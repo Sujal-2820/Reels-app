@@ -1,0 +1,234 @@
+.container {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #0A0A0A 0%, #1A1A1A 100%);
+    padding: var(--space-xl);
+}
+
+.loadingWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--color-text-secondary);
+}
+
+.content {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+}
+
+.logo svg {
+    width: 40px;
+    height: 40px;
+}
+
+.logo span {
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.reelPreview {
+    width: 180px;
+    height: 320px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: var(--space-xl);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.reelPreview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.previewOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.previewOverlay svg {
+    width: 48px;
+    height: 48px;
+    color: white;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.referrerInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.referrerAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.referrerAvatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.referrerAvatar span {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1A1A1A;
+}
+
+.referrerInfo p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+.referrerInfo strong {
+    color: var(--color-text-primary);
+}
+
+.messageBox {
+    margin-bottom: var(--space-xl);
+}
+
+.messageBox h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-sm);
+}
+
+.messageBox p {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.installBtn {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #34A853 0%, #0F9D58 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    transition: all var(--transition-normal);
+    margin-bottom: var(--space-md);
+}
+
+.installBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(52, 168, 83, 0.4);
+}
+
+.installBtn:active {
+    transform: translateY(0);
+}
+
+.webBtn {
+    width: 100%;
+    padding: 14px 24px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.webBtn:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+.caption {
+    margin-top: var(--space-xl);
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    max-width: 280px;
+}
+
+.errorCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    background: var(--color-bg-elevated);
+    border-radius: 20px;
+    border: 1px solid var(--color-border);
+    text-align: center;
+    max-width: 340px;
+}
+
+.errorCard svg {
+    width: 48px;
+    height: 48px;
+    color: var(--color-error);
+}
+
+.errorCard h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.errorCard p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+.errorCard button {
+    padding: 12px 24px;
+    background: var(--color-accent-primary);
+    color: #1A1A1A;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.errorCard button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}

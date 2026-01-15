@@ -1,0 +1,303 @@
+.container {
+    padding: var(--space-md);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
+    background-color: var(--color-bg-primary);
+    min-height: 100vh;
+}
+
+.content {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+}
+
+/* Header Section (Image 2 style) */
+.profileHeader {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-md) 0;
+}
+
+.topRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
+}
+
+.avatarWrapper {
+    position: relative;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--color-accent-gradient);
+    width: 90px;
+    height: 90px;
+}
+
+.avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--color-bg-primary);
+    border: 3px solid var(--color-bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.statsRow {
+    flex: 1;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+}
+
+.statItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.statValue {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.statLabel {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.bioSection {
+    margin-top: var(--space-sm);
+}
+
+.usernameRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: 4px;
+}
+
+.username {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.tick {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+}
+
+.blueTick {
+    color: #0095f6;
+}
+
+.goldTick {
+    color: #FFD700;
+}
+
+.fullName {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.bio {
+    font-size: 14px;
+    color: var(--color-text-primary);
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+/* Tab Navigation */
+.tabNav {
+    display: flex;
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-xl);
+}
+
+.tabItem {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+    transition: all 0.2s;
+    border-top: 2px solid transparent;
+    margin-top: -1px;
+}
+
+.activeTab {
+    color: var(--color-accent-primary);
+    border-top: 2px solid var(--color-accent-primary);
+}
+
+.tabIcon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Reels Grid */
+.reelsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding-top: 2px;
+}
+
+.gridItem {
+    position: relative;
+    aspect-ratio: 9/16;
+    background: var(--color-bg-tertiary);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.gridThumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gridOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.gridItem:hover .gridOverlay {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.managementBtns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 80%;
+}
+
+.mgBtn {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.1s;
+}
+
+.mgBtn:active {
+    transform: scale(0.95);
+}
+
+.mgBtnShare {
+    background: var(--color-accent-primary);
+    color: #1A1A1A;
+    /* Fixed dark text for yellow bg */
+}
+
+.mgBtnView {
+    background: #ffffff;
+    color: #000000;
+}
+
+.mgBtnDelete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.gridStats {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.gridViews {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gridViews svg {
+    flex-shrink: 0;
+}
+
+/* Analytics View */
+.analyticsView {
+    padding: var(--space-md) 0;
+}
+
+.analyticsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.analyticsCard {
+    background: var(--color-bg-elevated);
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    text-align: center;
+}
+
+.analyticsValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-accent-primary);
+    display: block;
+}
+
+.analyticsLabel {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Utility */
+.loadingSpinner {
+    display: flex;
+    justify-content: center;
+    padding: 100px 0;
+}
