@@ -8,8 +8,8 @@ export const ThemeProvider = ({ children }) => {
         const savedTheme = localStorage.getItem('reelbox_theme');
         if (savedTheme) return savedTheme;
 
-        const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return userPrefersDark ? 'dark' : 'light';
+        // Default to light theme
+        return 'light';
     };
 
     const [theme, setTheme] = useState(getInitialTheme);
@@ -27,18 +27,8 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('reelbox_theme', theme);
     }, [theme]);
 
-    // Handle system theme changes if user hasn't set a manual override
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = () => {
-            if (!localStorage.getItem('reelbox_theme')) {
-                setTheme(mediaQuery.matches ? 'dark' : 'light');
-            }
-        };
-
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+    // We removed the system theme listener to ensure the app stays in the default 'light' theme
+    // unless the user manually toggles it.
 
     const toggleTheme = () => {
         setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
