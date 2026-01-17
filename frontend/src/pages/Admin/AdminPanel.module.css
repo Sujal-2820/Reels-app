@@ -84,6 +84,10 @@ textarea {
     color: #72aee6;
 }
 
+.logoutBtn:hover {
+    color: #ef4444 !important;
+}
+
 /* Sidebar Styles */
 .sidebar {
     grid-area: sidebar;
@@ -190,4 +194,141 @@ textarea {
     .sidebar.open {
         left: 0;
     }
+}
+
+/* New Modern Utilities */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.contentGrid {
+    display: grid;
+    gap: 20px;
+}
+
+.statMiniCard {
+    background: #ffffff;
+    border: 1px solid var(--admin-border);
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+    border-radius: 4px;
+}
+
+.statLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #666;
+    font-weight: 600;
+}
+
+.statValue {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--admin-accent);
+}
+
+.adminTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid var(--admin-border);
+    font-size: 13px;
+}
+
+.adminTable th {
+    text-align: left;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-bottom: 2px solid var(--admin-border);
+    font-weight: 600;
+    color: #333;
+}
+
+.adminTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--admin-border);
+    vertical-align: middle;
+}
+
+.adminTable tr:hover {
+    background: #f0f6fb;
+}
+
+.adminInput,
+.adminSelect {
+    padding: 8px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.adminInput:focus,
+.adminSelect:focus {
+    border-color: var(--admin-accent);
+}
+
+.actionBtnRow {
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--admin-border);
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.actionBtnRow:hover {
+    background: #f0f0f1;
+}
+
+.actionBtnRow.danger {
+    color: #d63638;
+}
+
+.actionBtnRow.danger:hover {
+    background: #d63638;
+    color: white;
+    border-color: #d63638;
+}
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    padding: 100px;
+    font-weight: 500;
+    color: #666;
+}
+
+.badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badgeSuccess {
+    background: #e7f6ed;
+    color: #00a32a;
+}
+
+.badgeWarning {
+    background: #fcf3d7;
+    color: #dba617;
+}
+
+.badgeDanger {
+    background: #fbe9e9;
+    color: #d63638;
+}
+
+.badgeInfo {
+    background: #f0f6fb;
+    color: #2271b1;
 }

@@ -3,247 +3,100 @@ import { adminAPI } from '../../../services/api';
 import styles from '../AdminPanel.module.css';
 
 const AdminReferrals = () => {
+    const [ranking, setRanking] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchReferralStats();
+        fetchData();
     }, []);
 
-    const fetchReferralStats = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            // Call admin endpoint for referral analytics
-            const response = await fetch('/api/referrals/admin/all', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('reelbox_token')}`
-                }
-            });
-            const data = await response.json();
+            const [rankingRes, statsRes] = await Promise.all([
+                adminAPI.getReferralRanking({ limit: 50 }),
+                adminAPI.getDashboardStats() // Using dashboard stats for conversion totals
+            ]);
 
-            if (data.success) {
-                setStats(data.data);
+            if (rankingRes.success) {
+                setRanking(rankingRes.data.users);
+            }
+            if (statsRes.success) {
+                setStats(statsRes.data.platform);
             }
         } catch (err) {
-            console.error('Fetch referral stats error:', err);
+            console.error('Fetch referral data error:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner spinner-large"></div>
-            </div>
-        );
-    }
-
     return (
-        <div>
-            <h1 style={{ fontSize: '23px', fontWeight: '400', marginBottom: '20px' }}>Referral Analytics & User Ranking</h1>
-
-            {/* Overview Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
-                <div className={styles.card} style={{ borderTop: '4px solid #2271b1' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--admin-text-semi)', marginBottom: '8px' }}>Total Clicks</div>
-                    <div style={{ fontSize: '28px', fontWeight: '600' }}>{stats?.totalClicks?.toLocaleString() || 0}</div>
+        <div className={styles.container}>
+            <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#1a1a1a', margin: 0 }}>Referral Program</h1>
+                    <p style={{ color: '#666', marginTop: '5px' }}>Track user invites, rankings, and conversion metrics</p>
                 </div>
-                <div className={styles.card} style={{ borderTop: '4px solid #00a32a' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--admin-text-semi)', marginBottom: '8px' }}>Successful Installs</div>
-                    <div style={{ fontSize: '28px', fontWeight: '600' }}>{stats?.totalInstallsFromReferrals || 0}</div>
-                </div>
-                <div className={styles.card} style={{ borderTop: '4px solid #dba617' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--admin-text-semi)', marginBottom: '8px' }}>Conversion Rate</div>
-                    <div style={{ fontSize: '28px', fontWeight: '600' }}>
-                        {stats && stats.totalClicks > 0
-                            ? ((stats.totalInstallsFromReferrals / stats.totalClicks) * 100).toFixed(1)
-                            : 0}%
+                <div style={{ display: 'flex', gap: '15px' }}>
+                    <div className={styles.statMiniCard}>
+                        <span className={styles.statLabel}>Total Conversions</span>
+                        <span className={styles.statValue}>{stats?.referralConversions || 0}</span>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Top Referrers Leaderboard */}
-            <div className={styles.card} style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--admin-border)', paddingBottom: '12px' }}>
-                    🏆 Top Referrers Leaderboard
-                </h2>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--admin-border)' }}>
-                            <th style={{ padding: '12px', fontSize: '13px', fontWeight: '600' }}>Rank</th>
-                            <th style={{ padding: '12px', fontSize: '13px', fontWeight: '600' }}>User</th>
-                            <th style={{ padding: '12px', fontSize: '13px', fontWeight: '600' }}>Installs Generated</th>
-                            <th style={{ padding: '12px', fontSize: '13px', fontWeight: '600' }}>Impact Score</th>
-                            <th style={{ padding: '12px', fontSize: '13px', fontWeight: '600' }}>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {stats?.topReferrers && stats.topReferrers.length > 0 ? (
-                            stats.topReferrers.map((user, index) => (
-                                <tr key={user._id} style={{ borderBottom: '1px solid var(--admin-border)' }}>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{
-                                                width: '36px',
-                                                height: '36px',
-                                                borderRadius: '50%',
-                                                background: user.profilePic ? 'transparent' : '#ddd',
-                                                overflow: 'hidden'
-                                            }}>
-                                                {user.profilePic && <img src={user.profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                                            </div>
-                                            <div>
-                                                <div style={{ fontWeight: '600', color: 'var(--admin-accent)', fontSize: '14px' }}>
-                                                    {user.name}
-                                                </div>
-                                                <div style={{ fontSize: '12px', color: 'var(--admin-text-semi)' }}>
-                                                    @{user.username}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '18px', fontWeight: '700', color: '#00a32a' }}>
-                                        {user.referralCount}
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <div style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            background: index < 3 ? '#fff3cd' : '#f0f0f1',
-                                            borderRadius: '12px',
-                                            fontSize: '13px',
-                                            fontWeight: '600',
-                                            color: index < 3 ? '#dba617' : '#000000'
-                                        }}>
-                                            {user.referralCount * 100} pts
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            fontSize: '12px',
-                                            padding: '4px 10px',
-                                            background: user.referralCount >= 10 ? '#d1fae5' : '#e5e7eb',
-                                            color: user.referralCount >= 10 ? '#065f46' : '#000000',
-                                            borderRadius: '8px',
-                                            fontWeight: '600'
-                                        }}>
-                                            {user.referralCount >= 10 ? '⭐ Top Performer' : 'Active'}
-                                        </span>
-                                    </td>
+            <div className={styles.contentGrid}>
+                <div className={styles.card}>
+                    <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        🏆 Top Referrers Ranking
+                    </h2>
+
+                    {loading ? (
+                        <div className={styles.loadingContainer}>Calculating rankings...</div>
+                    ) : (
+                        <table className={styles.adminTable}>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px' }}>Rank</th>
+                                    <th>User</th>
+                                    <th>Invites Completed</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#000000' }}>
-                                    No referral data available yet
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Daily Trend Chart */}
-            <div className={styles.card}>
-                <h2 style={{ fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--admin-border)', paddingBottom: '12px' }}>
-                    📈 Referral Trend (Last 30 Days)
-                </h2>
-                {stats?.dailyReferrals && stats.dailyReferrals.length > 0 ? (
-                    <div>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'flex-end',
-                            gap: '8px',
-                            height: '200px',
-                            padding: '20px 0',
-                            borderBottom: '2px solid var(--admin-border)'
-                        }}>
-                            {stats.dailyReferrals.map((day, index) => {
-                                const maxCount = Math.max(...stats.dailyReferrals.map(d => d.count));
-                                const heightPercent = (day.count / maxCount) * 100;
-
-                                return (
-                                    <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <div
-                                            style={{
-                                                width: '100%',
-                                                height: `${heightPercent}%`,
-                                                background: 'linear-gradient(180deg, #2271b1 0%, #135e96 100%)',
-                                                borderRadius: '4px 4px 0 0',
-                                                position: 'relative',
-                                                minHeight: day.count > 0 ? '10px' : '2px'
-                                            }}
-                                            title={`${day._id}: ${day.count} installs`}
-                                        >
-                                            {day.count > 0 && (
-                                                <span style={{
-                                                    position: 'absolute',
-                                                    top: '-20px',
-                                                    left: '50%',
-                                                    transform: 'translateX(-50%)',
-                                                    fontSize: '10px',
-                                                    fontWeight: '600',
-                                                    color: '#2271b1'
-                                                }}>
-                                                    {day.count}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginTop: '10px',
-                            fontSize: '11px',
-                            color: 'var(--admin-text-semi)'
-                        }}>
-                            <span>{stats.dailyReferrals[0]?._id}</span>
-                            <span>{stats.dailyReferrals[Math.floor(stats.dailyReferrals.length / 2)]?._id}</span>
-                            <span>{stats.dailyReferrals[stats.dailyReferrals.length - 1]?._id}</span>
-                        </div>
-                    </div>
-                ) : (
-                    <p style={{ color: '#000000', padding: '20px' }}>No trend data available</p>
-                )}
-            </div>
-
-            {/* Insights */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
-                <div className={styles.card}>
-                    <h3 style={{ fontSize: '16px', marginBottom: '15px', color: 'var(--admin-accent)' }}>
-                        💡 Key Insights
-                    </h3>
-                    <ul style={{ fontSize: '13px', lineHeight: '2', color: 'var(--admin-text-main)' }}>
-                        <li>
-                            <strong>Average Impact:</strong> {stats?.topReferrers?.length > 0
-                                ? (stats.totalInstallsFromReferrals / stats.topReferrers.length).toFixed(1)
-                                : 0} installs per active referrer
-                        </li>
-                        <li>
-                            <strong>Top Performer:</strong> {stats?.topReferrers?.[0]?.name || 'N/A'} with {stats?.topReferrers?.[0]?.referralCount || 0} installs
-                        </li>
-                        <li>
-                            <strong>Growth Status:</strong> {stats?.totalInstallsFromReferrals > 50 ? '🔥 Viral Growth' : '📊 Organic Growth'}
-                        </li>
-                    </ul>
-                </div>
-
-                <div className={styles.card}>
-                    <h3 style={{ fontSize: '16px', marginBottom: '15px', color: 'var(--admin-accent)' }}>
-                        🎯 Recommendations
-                    </h3>
-                    <ul style={{ fontSize: '13px', lineHeight: '2', color: 'var(--admin-text-main)' }}>
-                        <li>Reward top 3 referrers with premium features</li>
-                        <li>Create referral incentive campaigns</li>
-                        <li>Monitor conversion rate weekly</li>
-                    </ul>
+                            </thead>
+                            <tbody>
+                                {ranking.map((user, index) => (
+                                    <tr key={user.id}>
+                                        <td style={{ fontWeight: '700', color: index < 3 ? 'var(--admin-accent)' : '#666' }}>
+                                            #{index + 1}
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <img src={user.profilePic} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                                                <div>
+                                                    <div style={{ fontWeight: '600' }}>{user.name}</div>
+                                                    <div style={{ fontSize: '12px', color: '#666' }}>@{user.username}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ fontSize: '15px', fontWeight: '700' }}>{user.referralCount || 0}</div>
+                                        </td>
+                                        <td>
+                                            <span className={`${styles.badge} ${user.referralCount > 50 ? styles.badgeSuccess : styles.badgeInfo}`}>
+                                                {user.referralCount > 50 ? 'Influencer' : 'Standard'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button className={styles.actionBtnRow}>View Profile</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
         </div>

@@ -29,34 +29,47 @@ const AdminLayout = () => {
             icon: '📊',
             path: '/admin/dashboard',
             subItems: [
-                { label: 'Home', path: '/admin/dashboard' }
+                { label: 'Home', path: '/admin/dashboard' },
+                { label: 'Analytics Hub', path: '/admin/analytics' }
             ]
         },
         {
-            id: 'reels',
-            label: 'Reels',
+            id: 'content',
+            label: 'Content',
             icon: '🎬',
             path: '/admin/reels',
             subItems: [
                 { label: 'All Reels', path: '/admin/reels' },
-                { label: 'Viral Analytics', path: '/admin/reels/viral' },
-                { label: 'Comments', path: '/admin/comments' }
+                { label: 'Videos', path: '/admin/videos' },
+                { label: 'Private Content', path: '/admin/private' },
+                { label: 'Viral Tracking', path: '/admin/reels/viral' }
             ]
         },
         {
-            id: 'users',
-            label: 'Users',
+            id: 'community',
+            label: 'Community',
             icon: '👥',
             path: '/admin/users',
             subItems: [
                 { label: 'All Users', path: '/admin/users' },
-                { label: 'Referrals & Ranking', path: '/admin/users/referrals' }
+                { label: 'Channels', path: '/admin/channels' },
+                { label: 'Referrals & Ranking', path: '/admin/referrals' }
             ]
         },
         {
-            id: 'subscriptions',
-            label: 'Subscriptions',
-            icon: '💳',
+            id: 'moderation',
+            label: 'Moderation',
+            icon: '🛡️',
+            path: '/admin/reports',
+            subItems: [
+                { label: 'Reports', path: '/admin/reports' },
+                { label: 'Comments', path: '/admin/comments' }
+            ]
+        },
+        {
+            id: 'monetization',
+            label: 'Monetization',
+            icon: '💰',
             path: '/admin/plans',
             subItems: [
                 { label: 'Plans', path: '/admin/plans' },
@@ -70,7 +83,7 @@ const AdminLayout = () => {
             icon: '🎧',
             path: '/admin/support',
             subItems: [
-                { label: 'All Tickets', path: '/admin/support' }
+                { label: 'Tickets', path: '/admin/support' }
             ]
         },
         {
@@ -79,7 +92,7 @@ const AdminLayout = () => {
             icon: '⚙️',
             path: '/admin/settings',
             subItems: [
-                { label: 'General', path: '/admin/settings' }
+                { label: 'Platform Config', path: '/admin/settings' }
             ]
         }
     ];

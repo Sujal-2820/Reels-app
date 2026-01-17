@@ -20,21 +20,21 @@ const uploadVideo = async (filePath, options = {}) => {
         const uploadParams = {
             resource_type: 'video',
             folder: 'reelbox/videos',
-            transformation: [
-                { quality: 'auto:good' },
-                { fetch_format: 'auto' }
-            ],
+            timeout: 300000, // 5 minute timeout
             ...otherOptions
         };
 
+        // Only apply trim transformation if offsets are provided
         if (startOffset !== undefined || endOffset !== undefined) {
-            uploadParams.transformation.push({
+            uploadParams.transformation = [{
                 start_offset: startOffset || 0,
                 end_offset: endOffset
-            });
+            }];
         }
 
+        console.log('Starting Cloudinary upload with params:', JSON.stringify(uploadParams, null, 2));
         const result = await cloudinary.uploader.upload(filePath, uploadParams);
+        console.log('Cloudinary upload complete:', result.public_id);
         return result;
     } catch (error) {
         console.error('Cloudinary video upload error:', error);

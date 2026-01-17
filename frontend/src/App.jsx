@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { AppSettingsProvider } from './context/AppSettingsContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import Home from './pages/Home/Home';
@@ -17,6 +18,8 @@ import About from './pages/Settings/SubScreens/About';
 import Help from './pages/Settings/SubScreens/Help';
 import Notifications from './pages/Settings/SubScreens/Notifications';
 import Language from './pages/Settings/SubScreens/Language';
+import Analytics from './pages/Settings/SubScreens/Analytics';
+import SettingsPrivateContent from './pages/Settings/SubScreens/PrivateContent';
 import AppGate from './pages/AppGate/AppGate';
 import AdminLayout from './pages/Admin/AdminLayout';
 import AdminDashboard from './pages/Admin/Dashboard/AdminDashboard';
@@ -32,15 +35,27 @@ import AdminSubscribers from './pages/Admin/Subscriptions/AdminSubscribers';
 import AdminViral from './pages/Admin/Viral/AdminViral';
 import AdminSupport from './pages/Admin/Support/AdminSupport';
 import AdminTicketDetail from './pages/Admin/Support/AdminTicketDetail';
+import AdminVideos from './pages/Admin/Videos/AdminVideos';
+import AdminChannels from './pages/Admin/Channels/AdminChannels';
+import AdminAnalytics from './pages/Admin/Dashboard/AdminAnalytics';
+import AdminPrivateContent from './pages/Admin/Reels/AdminPrivateContent';
 import Support from './pages/Support/Support';
 import TicketDetail from './pages/Support/TicketDetail';
 import CompleteProfile from './pages/CompleteProfile/CompleteProfile';
 import PrivateReelSuccess from './pages/Upload/PrivateReelSuccess';
+import VideoShowcase from './pages/Video/VideoShowcase';
+import ContentSwitch from './components/common/ContentSwitch';
+import Channels from './pages/Channels/Channels';
+import ChannelView from './pages/Channels/ChannelView';
+import PrivateContent from './pages/PrivateContent/PrivateContent';
+import Onboarding from './pages/Onboarding/Onboarding';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -54,15 +69,41 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Check if onboarding is complete (has username)
+  if (user && !user.username && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return children;
 };
 
 // App Layout with Header and BottomNav
 const AppLayout = ({ children, showNav = true }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const queryTab = searchParams.get('tab');
+  const pathTab = location.pathname.includes('/video') ? 'video' : (location.pathname.includes('/reel') ? 'reel' : null);
+  const activeTab = queryTab || pathTab || 'video';
+
+  const showSwitch = location.pathname === '/';
+
+  const handleTabChange = (tab) => {
+    if (location.pathname === '/') {
+      setSearchParams({ tab });
+    } else {
+      navigate(`/?tab=${tab}`);
+    }
+  };
+
   return (
     <>
       <Header />
-      <main className="main-content">
+      {showSwitch && (
+        <ContentSwitch activeTab={activeTab} onTabChange={handleTabChange} />
+      )}
+      <main className={`main-content with-header ${showNav ? 'with-bottom-nav' : ''}`}>
         {children}
       </main>
       {showNav && <BottomNav />}
@@ -90,6 +131,21 @@ function AppContent() {
       />
 
       <Route
+        path="/signup"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Navigate to="/signup" replace />}
+      />
+
+      <Route
+        path="/forgot-password"
+        element={<Login />}
+      />
+
+      <Route
         path="/plans"
         element={
           <AppLayout>
@@ -108,11 +164,60 @@ function AppContent() {
       />
 
       <Route
+        path="/video/:id"
+        element={
+          <AppLayout>
+            <VideoShowcase />
+          </AppLayout>
+        }
+      />
+
+      <Route
         path="/reel/private/:token"
         element={
           <AppLayout>
             <ReelView isPrivate={true} />
           </AppLayout>
+        }
+      />
+
+      <Route
+        path="/video/private/:token"
+        element={
+          <AppLayout>
+            <VideoShowcase isPrivate={true} />
+          </AppLayout>
+        }
+      />
+
+      {/* Channels Routes */}
+      <Route
+        path="/channels"
+        element={
+          <AppLayout>
+            <Channels />
+          </AppLayout>
+        }
+      />
+
+      <Route
+        path="/channels/:id"
+        element={
+          <AppLayout showNav={false}>
+            <ChannelView />
+          </AppLayout>
+        }
+      />
+
+      {/* Private Content */}
+      <Route
+        path="/private-content"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <PrivateContent />
+            </AppLayout>
+          </ProtectedRoute>
         }
       />
 
@@ -242,9 +347,40 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings/analytics"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Analytics />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/private-content"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <SettingsPrivateContent />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/reels/edit/:id"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <EditReel />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/video/edit/:id"
         element={
           <ProtectedRoute>
             <AppLayout>
@@ -277,10 +413,19 @@ function AppContent() {
       />
 
       <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/complete-profile"
         element={
           <ProtectedRoute>
-            <CompleteProfile />
+            <Navigate to="/onboarding" replace />
           </ProtectedRoute>
         }
       />
@@ -289,10 +434,14 @@ function AppContent() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="users/:userId" element={<AdminUserDetail />} />
-        <Route path="users/referrals" element={<AdminReferrals />} />
+        <Route path="channels" element={<AdminChannels />} />
+        <Route path="referrals" element={<AdminReferrals />} />
         <Route path="reels" element={<AdminReels />} />
+        <Route path="videos" element={<AdminVideos />} />
+        <Route path="private" element={<AdminPrivateContent />} />
         <Route path="reels/viral" element={<AdminViral />} />
         <Route path="comments" element={<AdminComments />} />
         <Route path="plans" element={<AdminPlans />} />
@@ -315,7 +464,9 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <AppSettingsProvider>
+            <AppContent />
+          </AppSettingsProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

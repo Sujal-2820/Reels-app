@@ -84,27 +84,29 @@ export const AuthProvider = ({ children }) => {
         }
     }, [firebaseUser]);
 
-    // Update profile in Firestore
+    // Update profile via backend API
     const updateProfile = useCallback(async (updates) => {
         if (!firebaseUser) {
             return { success: false, message: 'Not authenticated' };
         }
 
         try {
+            const { authAPI } = await import('../services/api');
             setError(null);
-            const userRef = doc(db, 'users', firebaseUser.uid);
 
-            await updateDoc(userRef, {
-                ...updates,
-                updatedAt: serverTimestamp()
-            });
+            const response = await authAPI.updateProfile(updates);
 
-            // Refresh user data
-            const updatedUser = await refreshUser();
-            return { success: true, data: updatedUser };
+            if (response.success) {
+                // Refresh local user data
+                const updatedUser = await refreshUser();
+                return { success: true, data: updatedUser };
+            } else {
+                return { success: false, message: response.message };
+            }
         } catch (err) {
-            setError(err.message);
-            return { success: false, message: err.message };
+            const message = err.message || 'Failed to update profile';
+            setError(message);
+            return { success: false, message };
         }
     }, [firebaseUser, refreshUser]);
 

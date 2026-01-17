@@ -72,7 +72,8 @@ export const authAPI = {
             });
         }
         return api.put('/users/me', data);
-    }
+    },
+    checkUsername: (username) => api.get(`/users/check-username/${username}`)
 };
 
 // ========================================
@@ -80,8 +81,8 @@ export const authAPI = {
 // ========================================
 
 export const reelsAPI = {
-    getFeed: (cursor = 0, limit = 10) =>
-        api.get(`/reels/feed?cursor=${cursor}&limit=${limit}`),
+    getFeed: (cursor = 0, limit = 10, type = 'reel', category = 'All') =>
+        api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}`),
 
     getById: (id) => api.get(`/reels/${id}`),
 
@@ -112,7 +113,8 @@ export const reelsAPI = {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     toggleSave: (id) => api.post(`/reels/${id}/save`),
-    getSaved: () => api.get('/reels/my/saved')
+    getSaved: () => api.get('/reels/my/saved'),
+    report: (id, reason) => api.post(`/reels/${id}/report`, { reason })
 };
 
 // ========================================
@@ -161,6 +163,11 @@ export const adminAPI = {
     banUser: (userId, data) => api.post(`/admin/users/${userId}/ban`, data),
     unbanUser: (userId) => api.post(`/admin/users/${userId}/unban`),
     deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+
+    // Authentication & Security
+    login: (data) => api.post('/admin/auth/login', data),
+    getAuthConfig: () => api.get('/admin/auth/config'),
+    updateAuthConfig: (data) => api.put('/admin/auth/config', data),
     updateUser: (userId, data) => api.put(`/admin/users/${userId}`, data),
     verifyUser: (userId, verificationType) => api.post(`/admin/users/${userId}/verify`, { verificationType }),
 
@@ -195,7 +202,26 @@ export const adminAPI = {
     getSupportStats: () => api.get('/admin/support/stats'),
     getSupportTicketDetails: (ticketId) => api.get(`/admin/support/tickets/${ticketId}`),
     replySupportTicket: (ticketId, message) => api.post(`/admin/support/tickets/${ticketId}/reply`, { message }),
-    updateTicketStatus: (ticketId, data) => api.put(`/admin/support/tickets/${ticketId}/status`, data)
+    updateTicketStatus: (ticketId, data) => api.put(`/admin/support/tickets/${ticketId}/status`, data),
+
+    // Reports
+    getReports: (params) => api.get('/admin/reports', { params }),
+    getReportStats: () => api.get('/admin/reports/stats'),
+    resolveReport: (reportId, data) => api.put(`/admin/reports/${reportId}`, data),
+    unbanContent: (reelId) => api.post(`/admin/reels/${reelId}/unban`),
+
+    // Channels
+    getChannels: (params) => api.get('/admin/channels', { params }),
+    getChannelStats: () => api.get('/admin/channels/stats'),
+    deleteChannel: (channelId) => api.delete(`/admin/channels/${channelId}`),
+
+    // App Settings
+    getSettings: () => api.get('/admin/settings'),
+    updateSettings: (data) => api.put('/admin/settings', data),
+
+    // Referrals (Global)
+    getGlobalReferralStats: () => api.get('/admin/referrals/stats'), // Assuming this endpoint for global stats
+    getReferralRanking: (params) => api.get('/admin/users', { params: { ...params, sortBy: 'referralCount', sortOrder: 'desc' } })
 };
 
 // ========================================
@@ -207,6 +233,70 @@ export const supportAPI = {
     getMyTickets: (status) => api.get('/support/tickets', { params: { status } }),
     getTicketDetails: (ticketId) => api.get(`/support/tickets/${ticketId}`),
     replyToTicket: (ticketId, message) => api.post(`/support/tickets/${ticketId}/reply`, { message })
+};
+
+// ========================================
+// CHANNELS API
+// ========================================
+
+export const channelsAPI = {
+    getAll: (cursor = 0, limit = 20, creatorId = null) =>
+        api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}`),
+    getById: (id) => api.get(`/channels/${id}`),
+    getMyChannels: () => api.get('/channels/my'),
+    getJoinedChannels: () => api.get('/channels/joined'),
+    create: (data) => api.post('/channels', data),
+    join: (id) => api.post(`/channels/${id}/join`),
+    leave: (id) => api.post(`/channels/${id}/leave`),
+    delete: (id) => api.delete(`/channels/${id}`),
+    getPosts: (id, cursor = 0, limit = 20) =>
+        api.get(`/channels/${id}/posts?cursor=${cursor}&limit=${limit}`),
+    createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
+};
+
+// ========================================
+// FOLLOW API
+// ========================================
+
+export const followAPI = {
+    follow: (userId) => api.post(`/follow/${userId}`),
+    unfollow: (userId) => api.delete(`/follow/${userId}`),
+    getStatus: (userId) => api.get(`/follow/${userId}/status`),
+    getFollowers: (userId, cursor = 0, limit = 20) =>
+        api.get(`/follow/${userId}/followers?cursor=${cursor}&limit=${limit}`),
+    getFollowing: (userId, cursor = 0, limit = 20) =>
+        api.get(`/follow/${userId}/following?cursor=${cursor}&limit=${limit}`)
+};
+
+// ========================================
+// SEARCH API
+// ========================================
+
+export const searchAPI = {
+    search: (query, type = 'all', limit = 20) =>
+        api.get(`/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}`),
+    getTrending: () => api.get('/search/trending'),
+    parseLink: (url) => api.post('/search/parse-link', { url })
+};
+
+// ========================================
+// REPORTS API
+// ========================================
+
+export const reportsAPI = {
+    getReasons: () => api.get('/reports/reasons'),
+    report: (contentId, contentType, reason) =>
+        api.post('/reports', { contentId, contentType, reason })
+};
+
+// ========================================
+// APP SETTINGS API (Public)
+// ========================================
+
+export const appSettingsAPI = {
+    get: () => api.get('/settings')
 };
 
 export default api;

@@ -1,0 +1,214 @@
+.container {
+    min-height: 100vh;
+    padding: var(--space-xl) var(--space-md);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
+    background: var(--color-bg-primary);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    padding: 8px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+}
+
+.typeSwitcher {
+    display: flex;
+    background: var(--color-bg-secondary);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+    margin-bottom: var(--space-xl);
+}
+
+.typeBtn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.activeType {
+    background: var(--color-accent-primary);
+    color: #1A1A1A;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.statCard {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+}
+
+.statLabel {
+    display: block;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-accent-primary);
+}
+
+.subStatsRow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.subStatBox {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.boxTitle {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.boxRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.boxRow span:last-child {
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.listSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.listItem {
+    display: flex;
+    gap: var(--space-md);
+    background: var(--color-bg-secondary);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.itemMedia {
+    position: relative;
+    width: 100px;
+    aspect-ratio: 16/9;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+}
+
+.thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.privateBadge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 8px;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.itemDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.itemTitle {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.itemMetrics {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: 2px;
+}
+
+.metric {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.itemDate {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    padding-top: 100px;
+}
+
+.error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    padding: var(--space-md);
+    border-radius: 8px;
+    text-align: center;
+}

@@ -10,7 +10,7 @@ const getDashboardStats = async (req, res) => {
             db.collection('users').get(),
             db.collection('reels').get(),
             db.collection('payments').where('status', '==', 'completed').get(),
-            db.collection('userPlans').where('isActive', '==', true).where('expiresAt', '>', admin.firestore.Timestamp.now()).get(),
+            db.collection('userPlans').where('isActive', '==', true).get(),
             db.collection('referrals').where('isConverted', '==', true).get()
         ]);
 

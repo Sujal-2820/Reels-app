@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import ReelPlayer from '../../components/reel/ReelPlayer';
+import SearchSwitchOverlay from '../../components/common/SearchSwitchOverlay';
 import styles from './ReelView.module.css';
 
 const ReelView = ({ isPrivate = false }) => {
@@ -30,10 +31,22 @@ const ReelView = ({ isPrivate = false }) => {
                 let targetReel;
                 if (isPrivate) {
                     const response = await reelsAPI.getPrivate(token);
-                    if (response.success) targetReel = response.data;
+                    if (response.success) {
+                        targetReel = response.data;
+                        if (targetReel.contentType === 'video') {
+                            navigate(`/video/private/${token}`, { replace: true });
+                            return;
+                        }
+                    }
                 } else {
                     const response = await reelsAPI.getById(id);
-                    if (response.success) targetReel = response.data;
+                    if (response.success) {
+                        targetReel = response.data;
+                        if (targetReel.contentType === 'video') {
+                            navigate(`/video/${id}`, { replace: true });
+                            return;
+                        }
+                    }
                 }
 
                 if (!targetReel) {
@@ -155,6 +168,7 @@ const ReelView = ({ isPrivate = false }) => {
                     </div>
                 ))}
             </div>
+            <SearchSwitchOverlay currentType="reel" />
         </div>
     );
 };

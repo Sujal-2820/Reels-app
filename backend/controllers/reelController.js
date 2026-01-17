@@ -16,7 +16,16 @@ const createReel = async (req, res) => {
 
     try {
         const userId = req.userId;
-        const { caption = '', isPrivate = false, startOffset, endOffset } = req.body;
+        const {
+            caption = '',
+            isPrivate = false,
+            contentType = 'reel', // 'reel' or 'video'
+            startOffset,
+            endOffset,
+            title = '',
+            description = '',
+            category = ''
+        } = req.body;
 
         // Fetch user from Firestore
         const userRef = db.collection('users').doc(userId);
@@ -113,13 +122,19 @@ const createReel = async (req, res) => {
             endOffset: endOffset ? parseFloat(endOffset) : undefined
         });
 
-        // 4. Check Duration (120 seconds limit)
-        if (videoResult.duration > 120) {
+        // 4. Check Duration (120 seconds limit - ONLY for PUBLIC REELS)
+        // Public videos and Private content have NO time limit
+        if (!isPrivateReel && contentType === 'reel' && videoResult.duration > 120) {
             // Delete from cloudinary if too long
             await deleteResource(videoResult.public_id, 'video');
+
+            // Cleanup local files
+            if (videoPath) cleanupFile(videoPath);
+            if (coverPath) cleanupFile(coverPath);
+
             return res.status(400).json({
                 success: false,
-                message: 'Video duration exceeds 120 seconds limit.'
+                message: 'Public reels have a 120 seconds limit. Videos and Private content have no time limit.'
             });
         }
 
@@ -143,7 +158,11 @@ const createReel = async (req, res) => {
         // Create reel document in Firestore
         const reelData = {
             userId,
-            caption: caption.substring(0, 150),
+            contentType, // 'reel' or 'video'
+            caption: contentType === 'reel' ? (isPrivateReel ? '' : caption.substring(0, 150)) : '',
+            title: (contentType === 'video' || isPrivateReel) ? title : '',
+            description: (contentType === 'video' || isPrivateReel) ? description : '',
+            category: (contentType === 'video' || isPrivateReel) ? category : '',
             videoUrl: videoResult.secure_url,
             posterUrl,
             cloudinaryPublicId: videoResult.public_id,
@@ -222,23 +241,42 @@ const createReel = async (req, res) => {
  */
 const getReelsFeed = async (req, res) => {
     try {
-        const { cursor = 0, limit = 10 } = req.query;
+        const { cursor = 0, limit = 10, type = 'reel', category } = req.query;
         const fetchLimit = parseInt(limit);
+        const parsedCursor = parseInt(cursor);
 
-        // Fetch reels from Firestore
-        let query = db.collection('reels')
+        // Fetch reels with minimal query to avoid composite index requirement
+        const snapshot = await db.collection('reels')
             .where('isPrivate', '==', false)
-            .limit(fetchLimit + 1);
+            .limit(200) // Fetch more to filter in-memory
+            .get();
 
-        const snapshot = await query.get();
-        let reels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Filter and sort in-memory
+        let reels = snapshot.docs
+            .map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate?.() || new Date(0)
+            }))
+            .filter(reel => {
+                // Filter by content type
+                if (reel.contentType !== type) return false;
+                // Filter by category if specified
+                if (category && category !== 'All' && reel.category !== category) return false;
+                return true;
+            })
+            .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
-        // Check if there are more reels
-        const hasMore = reels.length > fetchLimit;
-        if (hasMore) reels.pop();
+        console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, count=${reels.length}`);
+
+        // Apply pagination
+        const startIndex = parsedCursor * fetchLimit;
+        const paginatedReels = reels.slice(startIndex, startIndex + fetchLimit + 1);
+        const hasMore = paginatedReels.length > fetchLimit;
+        if (hasMore) paginatedReels.pop();
 
         // Fetch user info for each reel
-        const items = await Promise.all(reels.map(async (reel) => {
+        const items = await Promise.all(paginatedReels.map(async (reel) => {
             const userSnap = await db.collection('users').doc(reel.userId).get();
             const userInfo = userSnap.exists ? userSnap.data() : null;
 
@@ -247,12 +285,17 @@ const getReelsFeed = async (req, res) => {
 
             return {
                 id: reel.id,
+                contentType: reel.contentType,
+                title: reel.title,
+                description: reel.description,
+                category: reel.category,
                 poster: reel.posterUrl,
                 videoUrl: reel.videoUrl,
                 caption: reel.caption,
                 likesCount: reel.likesCount || 0,
                 commentsCount: reel.commentsCount || 0,
                 viewsCount: reel.viewsCount || 0,
+                duration: reel.duration || 0,
                 viralityScore: Math.round(reel.viralityScore || 0),
                 isPrivate: false,
                 isLiked,
@@ -271,7 +314,7 @@ const getReelsFeed = async (req, res) => {
             success: true,
             data: {
                 items,
-                nextCursor: hasMore ? parseInt(cursor) + 1 : null
+                nextCursor: hasMore ? parsedCursor + 1 : null
             }
         });
     } catch (error) {
@@ -320,10 +363,15 @@ const getReelById = async (req, res) => {
             success: true,
             data: {
                 id: reelSnap.id,
+                contentType: reel.contentType || 'reel',
+                title: reel.title || '',
+                description: reel.description || '',
+                category: reel.category || '',
                 caption: reel.caption,
                 videoUrl: reel.videoUrl,
                 poster: reel.posterUrl,
                 posterUrl: reel.posterUrl,
+                duration: reel.duration || 0,
                 isPrivate: reel.isPrivate,
                 likesCount: reel.likesCount || 0,
                 commentsCount: reel.commentsCount || 0,
@@ -392,10 +440,15 @@ const getPrivateReel = async (req, res) => {
             success: true,
             data: {
                 id: reelDoc.id,
+                contentType: reel.contentType || 'reel',
+                title: reel.title || '',
+                description: reel.description || '',
+                category: reel.category || '',
                 caption: reel.caption,
                 videoUrl: reel.videoUrl,
                 poster: reel.posterUrl,
                 posterUrl: reel.posterUrl,
+                duration: reel.duration || 0,
                 likesCount: reel.likesCount || 0,
                 commentsCount: reel.commentsCount || 0,
                 viewsCount: (reel.viewsCount || 0) + 1,
@@ -448,6 +501,10 @@ const getUserReels = async (req, res) => {
                 count: reels.length,
                 items: reels.map(reel => ({
                     id: reel.id,
+                    contentType: reel.contentType || 'reel',
+                    title: reel.title || '',
+                    caption: reel.caption || '',
+                    category: reel.category || '',
                     posterUrl: reel.posterUrl,
                     isPrivate: reel.isPrivate,
                     viewsCount: reel.viewsCount || 0,
@@ -595,9 +652,12 @@ const getSavedReels = async (req, res) => {
 
             return {
                 id: doc.id,
+                contentType: reel.contentType || 'reel',
+                title: reel.title || '',
+                caption: reel.caption || '',
+                category: reel.category || '',
                 posterUrl: reel.posterUrl,
                 videoUrl: reel.videoUrl,
-                caption: reel.caption,
                 likesCount: reel.likesCount || 0,
                 commentsCount: reel.commentsCount || 0,
                 viewsCount: reel.viewsCount || 0,
@@ -634,11 +694,20 @@ const getSavedReels = async (req, res) => {
  * PUT /api/reels/:id
  */
 const updateReel = async (req, res) => {
+    let videoPath = null;
     let coverPath = null;
     try {
         const { id } = req.params;
         const userId = req.userId;
-        const { caption, isPrivate } = req.body;
+        const {
+            caption,
+            title,
+            description,
+            category,
+            isPrivate,
+            startOffset,
+            endOffset
+        } = req.body;
 
         const reelRef = db.collection('reels').doc(id);
         const reelSnap = await reelRef.get();
@@ -646,7 +715,7 @@ const updateReel = async (req, res) => {
         if (!reelSnap.exists || reelSnap.data().userId !== userId) {
             return res.status(404).json({
                 success: false,
-                message: 'Reel not found or not authorized.'
+                message: 'Post not found or not authorized.'
             });
         }
 
@@ -654,12 +723,13 @@ const updateReel = async (req, res) => {
         const updates = { updatedAt: serverTimestamp() };
 
         if (caption !== undefined) updates.caption = caption;
+        if (title !== undefined) updates.title = title;
+        if (description !== undefined) updates.description = description;
+        if (category !== undefined) updates.category = category;
 
         // Handle Privacy Toggle
         if (isPrivate !== undefined) {
             const isPrivateReel = isPrivate === 'true' || isPrivate === true;
-
-            // Generate accessToken if it's becoming private and doesn't have one
             if (isPrivateReel && !reel.accessToken) {
                 updates.accessToken = uuidv4();
                 updates.isPrivate = true;
@@ -671,36 +741,60 @@ const updateReel = async (req, res) => {
             }
         }
 
-        // If new cover image provided
-        if (req.files && req.files.cover && req.files.cover[0]) {
-            coverPath = req.files.cover[0].path;
+        // Handle File Replacements
+        if (req.files) {
+            // 1. Video Replacement
+            if (req.files.video && req.files.video[0]) {
+                videoPath = req.files.video[0].path;
 
-            // Delete old cover if it was custom
-            if (reel.posterPublicId) {
-                await deleteResource(reel.posterPublicId, 'image');
+                // Delete old video
+                if (reel.cloudinaryPublicId) {
+                    await deleteResource(reel.cloudinaryPublicId, 'video');
+                }
+
+                console.log('Replacing video with trim:', { startOffset, endOffset });
+                const videoResult = await uploadVideo(videoPath, {
+                    startOffset: startOffset ? parseFloat(startOffset) : 0,
+                    endOffset: endOffset ? parseFloat(endOffset) : undefined
+                });
+
+                updates.videoUrl = videoResult.secure_url;
+                updates.cloudinaryPublicId = videoResult.public_id;
+                updates.duration = videoResult.duration || 0;
             }
 
-            console.log('Uploading new cover image...');
-            const coverResult = await uploadImage(coverPath);
-            updates.posterUrl = coverResult.secure_url;
-            updates.posterPublicId = coverResult.public_id;
+            // 2. Cover Replacement
+            if (req.files.cover && req.files.cover[0]) {
+                coverPath = req.files.cover[0].path;
+
+                if (reel.posterPublicId) {
+                    await deleteResource(reel.posterPublicId, 'image');
+                }
+
+                console.log('Uploading new cover image...');
+                const coverResult = await uploadImage(coverPath);
+                updates.posterUrl = coverResult.secure_url;
+                updates.posterPublicId = coverResult.public_id;
+            }
         }
 
         await reelRef.update(updates);
 
+        if (videoPath) cleanupFile(videoPath);
         if (coverPath) cleanupFile(coverPath);
 
         res.json({
             success: true,
-            message: 'Reel updated successfully.',
+            message: 'Post updated successfully.',
             data: { id, ...updates }
         });
     } catch (error) {
-        console.error('Update reel error:', error);
+        console.error('Update post error:', error);
+        if (videoPath) cleanupFile(videoPath);
         if (coverPath) cleanupFile(coverPath);
         res.status(500).json({
             success: false,
-            message: 'Failed to update reel.',
+            message: 'Failed to update post.',
             error: error.message
         });
     }
@@ -810,6 +904,45 @@ const processBatchActivity = async (req, res) => {
     }
 };
 
+/**
+ * Report a reel
+ * POST /api/reels/:id/report
+ */
+const reportReel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const userId = req.userId;
+
+        const reportData = {
+            reelId: id,
+            userId,
+            reason: reason || 'Inappropriate content',
+            status: 'pending',
+            createdAt: serverTimestamp()
+        };
+
+        await db.collection('reports').add(reportData);
+
+        // Update reel with report count
+        await db.collection('reels').doc(id).update({
+            reportCount: admin.firestore.FieldValue.increment(1)
+        });
+
+        res.json({
+            success: true,
+            message: 'Report submitted successfully. Thank you for helping keep our community safe.'
+        });
+    } catch (error) {
+        console.error('Report reel error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to report reel.',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createReel,
     getReelsFeed,
@@ -821,5 +954,6 @@ module.exports = {
     processBatchActivity,
     updateReel,
     toggleSave,
-    getSavedReels
+    getSavedReels,
+    reportReel
 };

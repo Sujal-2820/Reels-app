@@ -24,6 +24,10 @@ const Login = () => {
     const [socialLoading, setSocialLoading] = useState(null);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [resetSent, setResetSent] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -32,8 +36,6 @@ const Login = () => {
         password: '',
         confirmPassword: ''
     });
-    const [avatar, setAvatar] = useState(null);
-    const [avatarPreview, setAvatarPreview] = useState(null);
 
     const from = location.state?.from || '/';
 
@@ -44,17 +46,18 @@ const Login = () => {
         setSuccess(null);
     };
 
-    const handleAvatarChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                setError('Image size must be less than 5MB');
-                return;
-            }
-            setAvatar(file);
-            setAvatarPreview(URL.createObjectURL(file));
+    // Sync mode with URL
+    useEffect(() => {
+        if (location.pathname === '/signup' || location.pathname === '/register') {
+            setMode('register');
+        } else if (location.pathname === '/forgot-password') {
+            setMode('forgot');
+        } else {
+            setMode('login');
         }
-    };
+    }, [location.pathname]);
+
+
 
     // Generate referral code
     const generateReferralCode = () => {
@@ -128,7 +131,7 @@ const Login = () => {
             });
 
             setUser(userData);
-            navigate(from, { replace: true });
+            navigate('/onboarding', { state: { from }, replace: true });
         } catch (err) {
             throw new Error(getFirebaseErrorMessage(err.code));
         }
@@ -162,8 +165,8 @@ const Login = () => {
                     setUser(userData);
 
                     if (isNewUser) {
-                        console.log('New user, navigating to complete-profile');
-                        navigate('/complete-profile', { state: { from }, replace: true });
+                        console.log('New user, navigating to onboarding');
+                        navigate('/onboarding', { state: { from }, replace: true });
                     } else {
                         console.log('Existing user, navigating to', from);
                         navigate(from, { replace: true });
@@ -185,13 +188,13 @@ const Login = () => {
     // Handle Google Sign-In
     const handleGoogleSignIn = async () => {
         try {
+            setError(null);
             setSocialLoading('google');
             console.log('Starting Google Sign-In with Popup...');
             const result = await signInWithPopup(auth, googleProvider);
 
             if (result) {
                 console.log('Google Sign-In successful:', result.user.email);
-                // Check if user existed before
                 const userRef = doc(db, 'users', result.user.uid);
                 const userSnap = await getDoc(userRef);
                 const isNewUser = !userSnap.exists();
@@ -202,15 +205,18 @@ const Login = () => {
                 setUser(userData);
 
                 if (isNewUser) {
-                    navigate('/complete-profile', { state: { from }, replace: true });
+                    navigate('/onboarding', { state: { from }, replace: true });
                 } else {
                     navigate(from, { replace: true });
                 }
             }
         } catch (err) {
             console.error('Google sign-in error:', err);
+            if (err.code !== 'auth/popup-closed-by-user') {
+                setError(getFirebaseErrorMessage(err.code));
+            }
+        } finally {
             setSocialLoading(null);
-            setError(getFirebaseErrorMessage(err.code));
         }
     };
 
@@ -224,7 +230,8 @@ const Login = () => {
         try {
             setLoading(true);
             await sendPasswordResetEmail(auth, formData.email);
-            setSuccess('Password reset email sent! Check your inbox.');
+            setResetSent(true);
+            setCountdown(60);
             setError(null);
         } catch (err) {
             setError(getFirebaseErrorMessage(err.code));
@@ -232,6 +239,17 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    // Countdown timer for resend
+    useEffect(() => {
+        let timer;
+        if (countdown > 0) {
+            timer = setInterval(() => {
+                setCountdown(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [countdown]);
 
     // Form submission handler
     const handleSubmit = async (e) => {
@@ -271,9 +289,13 @@ const Login = () => {
 
     // Switch modes
     const switchMode = (newMode) => {
-        setMode(newMode);
         setError(null);
         setSuccess(null);
+        setResetSent(false);
+
+        if (newMode === 'register') navigate('/signup');
+        else if (newMode === 'forgot') navigate('/forgot-password');
+        else navigate('/login');
     };
 
     return (
@@ -306,12 +328,12 @@ const Login = () => {
                 <h1 className={styles.title}>
                     {mode === 'login' && 'Welcome Back'}
                     {mode === 'register' && 'Create Account'}
-                    {mode === 'forgot' && 'Reset Password'}
+                    {mode === 'forgot' && (resetSent ? 'Check Your Inbox' : 'Reset Password')}
                 </h1>
                 <p className={styles.subtitle}>
                     {mode === 'login' && 'Login to continue watching reels'}
                     {mode === 'register' && 'Join to share your moments'}
-                    {mode === 'forgot' && 'Enter your email to receive reset link'}
+                    {mode === 'forgot' && (resetSent ? `We've sent a recovery link to ${formData.email}` : 'Enter your email to receive reset link')}
                 </p>
 
                 {/* Error */}
@@ -324,166 +346,192 @@ const Login = () => {
                     </div>
                 )}
 
-                {/* Success */}
-                {success && (
-                    <div className={styles.success}>
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                        </svg>
-                        <span>{success}</span>
-                    </div>
-                )}
-
                 {/* Form */}
                 <form onSubmit={handleSubmit} className={styles.form}>
-                    {/* Avatar Upload (Register only) */}
-                    {mode === 'register' && (
-                        <div className={styles.avatarUpload}>
-                            <input
-                                type="file"
-                                id="avatar"
-                                ref={fileInputRef}
-                                accept="image/*"
-                                onChange={handleAvatarChange}
-                                className={styles.hiddenInput}
-                            />
-                            <div
-                                className={styles.avatarCircle}
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                {avatarPreview ? (
-                                    <div>
-                                        <img src={avatarPreview} alt="Preview" className={styles.avatarPreview} />
-                                        <div className={styles.changeOverlay}>
-                                            <span>Change</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <svg className={styles.uploadIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                                            <circle cx="12" cy="13" r="4" />
-                                        </svg>
-                                        <span className={styles.uploadLabel}>Profile Photo</span>
-                                    </div>
-                                )}
+                    {mode === 'forgot' && resetSent ? (
+                        <div className={styles.resetSentView}>
+                            <div className={styles.mailIconWrapper}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                    <polyline points="22,6 12,13 2,6" />
+                                </svg>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Name (Register only) */}
-                    {mode === 'register' && (
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="name">Full Name</label>
-                            <input
-                                type="text"
-                                id="name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="Enter your name"
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {/* Email */}
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="email">Email Address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="you@example.com"
-                            required
-                        />
-                    </div>
-
-                    {/* Phone (Register only - optional) */}
-                    {mode === 'register' && (
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="phone">Phone Number (Optional)</label>
-                            <div className={styles.phoneInput}>
-                                <span className={styles.phonePrefix}>+91</span>
-                                <input
-                                    type="tel"
-                                    id="phone"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    placeholder="9876543210"
-                                    maxLength={10}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Password */}
-                    {mode !== 'forgot' && (
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="password">Password</label>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Enter password"
-                                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                                required
-                                minLength={6}
-                            />
-                        </div>
-                    )}
-
-                    {/* Confirm Password (Register only) */}
-                    {mode === 'register' && (
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="confirmPassword">Confirm Password</label>
-                            <input
-                                type="password"
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                placeholder="Confirm password"
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {/* Forgot Password Link */}
-                    {mode === 'login' && (
-                        <div className={styles.forgotPassword}>
+                            <p className={styles.resetMessage}>
+                                Didn't receive the email? Check your spam folder or try resending.
+                            </p>
                             <button
                                 type="button"
-                                className={styles.forgotPasswordLink}
-                                onClick={() => switchMode('forgot')}
+                                className={styles.resendBtn}
+                                onClick={handleForgotPassword}
+                                disabled={countdown > 0 || loading}
                             >
-                                Forgot Password?
+                                {loading ? 'Sending...' : (countdown > 0 ? `Resend in ${countdown}s` : 'Resend Link')}
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.backToLoginBtn}
+                                onClick={() => switchMode('login')}
+                            >
+                                Back to Login
                             </button>
                         </div>
-                    )}
+                    ) : (
+                        <>
+                            {/* Name (Register only) */}
+                            {mode === 'register' && (
+                                <div className={styles.inputGroup}>
+                                    <label htmlFor="name">Full Name</label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        placeholder="Enter your name"
+                                        required
+                                    />
+                                </div>
+                            )}
 
-                    {/* Submit Button */}
-                    <button type="submit" className={styles.submitBtn} disabled={loading}>
-                        {loading ? (
-                            <>
-                                <div className="spinner"></div>
-                                {mode === 'login' && 'Logging in...'}
-                                {mode === 'register' && 'Creating account...'}
-                                {mode === 'forgot' && 'Sending...'}
-                            </>
-                        ) : (
-                            <>
-                                {mode === 'login' && 'Login'}
-                                {mode === 'register' && 'Create Account'}
-                                {mode === 'forgot' && 'Send Reset Link'}
-                            </>
-                        )}
-                    </button>
+                            {/* Email */}
+                            <div className={styles.inputGroup}>
+                                <label htmlFor="email">Email Address</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="you@example.com"
+                                    required
+                                />
+                            </div>
+
+                            {/* Phone (Register only - optional) */}
+                            {mode === 'register' && (
+                                <div className={styles.inputGroup}>
+                                    <label htmlFor="phone">Phone Number (Optional)</label>
+                                    <div className={styles.phoneInput}>
+                                        <span className={styles.phonePrefix}>+91</span>
+                                        <input
+                                            type="tel"
+                                            id="phone"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            placeholder="9876543210"
+                                            maxLength={10}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Password */}
+                            {mode !== 'forgot' && (
+                                <div className={styles.inputGroup}>
+                                    <label htmlFor="password">Password</label>
+                                    <div className={styles.passwordWrapper}>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            id="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="Enter password"
+                                            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                                            required
+                                            minLength={6}
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.visibilityBtn}
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showPassword ? (
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            ) : (
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Confirm Password (Register only) */}
+                            {mode === 'register' && (
+                                <div className={styles.inputGroup}>
+                                    <label htmlFor="confirmPassword">Confirm Password</label>
+                                    <div className={styles.passwordWrapper}>
+                                        <input
+                                            type={showConfirmPassword ? 'text' : 'password'}
+                                            id="confirmPassword"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="Confirm password"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.visibilityBtn}
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showConfirmPassword ? (
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                            ) : (
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Forgot Password Link */}
+                            {mode === 'login' && (
+                                <div className={styles.forgotPassword}>
+                                    <button
+                                        type="button"
+                                        className={styles.forgotPasswordLink}
+                                        onClick={() => switchMode('forgot')}
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Submit Button */}
+                            <button type="submit" className={styles.submitBtn} disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <div className="spinner"></div>
+                                        {mode === 'login' && 'Logging in...'}
+                                        {mode === 'register' && 'Creating account...'}
+                                        {mode === 'forgot' && 'Sending...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        {mode === 'login' && 'Login'}
+                                        {mode === 'register' && 'Create Account'}
+                                        {mode === 'forgot' && 'Send Reset Link'}
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    )}
                 </form>
 
                 {/* Social Login (not for forgot password) */}

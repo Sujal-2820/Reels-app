@@ -1,0 +1,217 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    width: 100%;
+    max-width: 400px;
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    animation: scaleIn 0.3s cubic-bezier(0.15, 0, 0.15, 1);
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.header h2 {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+}
+
+.body {
+    padding: var(--space-lg);
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-lg);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-xl);
+}
+
+.reasonsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.reasonItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    font-size: 14px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.reasonItem:hover {
+    border-color: var(--color-accent-primary);
+}
+
+.reasonItem.selected {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: var(--color-accent-primary);
+}
+
+.reasonRadio {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+}
+
+.reasonItem.selected .reasonRadio {
+    border-color: var(--color-accent-primary);
+}
+
+.radioFill {
+    width: 10px;
+    height: 10px;
+    background: var(--color-accent-primary);
+    border-radius: 50%;
+    animation: radioIn 0.2s ease;
+}
+
+@keyframes radioIn {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.footer {
+    display: flex;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.cancelBtn {
+    flex: 1;
+    padding: 12px;
+    background: var(--color-bg-tertiary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cancelBtn:hover {
+    background: var(--color-bg-secondary);
+}
+
+.submitBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: 12px;
+    background: #ef4444;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.submitBtn:not(:disabled):hover {
+    background: #dc2626;
+}
+
+/* Success State */
+.successMessage {
+    padding: var(--space-xl);
+    text-align: center;
+}
+
+.successIcon {
+    margin-bottom: var(--space-lg);
+    color: #22c55e;
+}
+
+.successMessage h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+}
+
+.successMessage p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}

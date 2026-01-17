@@ -1,0 +1,412 @@
+.editorContainer {
+    min-height: 100vh;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    padding-bottom: 180px;
+    /* Increased to clear bottom navbar */
+}
+
+.editorHeader {
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Removed sticky */
+}
+
+.headerTitle {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.closeBtn {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.mainContent {
+    max-width: 700px;
+    /* narrowed for single column scroll flow */
+    margin: 0 auto;
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.previewSection {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 24px;
+    padding: var(--space-lg);
+    /* Removed sticky and fixed opacity */
+}
+
+.videoWrapper {
+    width: 100%;
+    background: #000;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.videoWrapperHorizontal {
+    aspect-ratio: 16 / 9;
+}
+
+.videoWrapperVertical {
+    aspect-ratio: 9 / 16;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.mainVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.videoOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--space-md);
+}
+
+.replaceBtn {
+    width: 100%;
+    margin-top: var(--space-md);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.replaceBtn:hover {
+    border-color: var(--color-accent-primary);
+    color: var(--color-accent-primary);
+}
+
+.formSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.sectionCard {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 24px;
+    padding: var(--space-xl);
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inputGroup {
+    margin-bottom: var(--space-lg);
+}
+
+.label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.textInput,
+.textarea,
+.selectInput {
+    width: 100%;
+    background: var(--color-bg-primary);
+    border: 1.5px solid var(--color-border);
+    border-radius: 14px;
+    padding: 14px;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.textInput:focus,
+.textarea:focus,
+.selectInput:focus {
+    border-color: var(--color-accent-primary);
+}
+
+.textarea {
+    resize: none;
+    min-height: 120px;
+}
+
+.privacyBox {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+    background: var(--color-bg-primary);
+    border-radius: 16px;
+}
+
+.thumbnailGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-md);
+}
+
+.thumbnailActive {
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    border: 3px solid var(--color-accent-primary);
+}
+
+.thumbnailActive img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.thumbnailChange {
+    background: var(--color-bg-primary);
+    border: 2px dashed var(--color-border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    min-height: 100px;
+}
+
+/* Actions Section */
+.bottomActionBar {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--color-border);
+    /* Removed fixed and glassmorphism */
+}
+
+.actionBarContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.saveBtn {
+    width: 100%;
+    background: var(--color-accent-primary);
+    color: #000;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.2s;
+}
+
+.saveBtn:hover {
+    transform: translateY(-2px);
+}
+
+.cancelBtn {
+    width: 100%;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+}
+
+.deleteBtn {
+    width: 100%;
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-border);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--color-accent-primary);
+}
+
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+/* Trimmer Styles */
+.trimSection {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.trimHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.trimLabel {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.trimValue {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--color-accent-primary);
+}
+
+.rangeInputs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.rangeGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rangeGroup label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+}
+
+.rangeGroup input {
+    width: 100%;
+    height: 6px;
+    background: var(--color-bg-primary);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.rangeGroup input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-accent-primary);
+    border: 3px solid var(--color-bg-secondary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.trimStats {
+    margin-top: var(--space-sm);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+    color: var(--color-text-secondary);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.previewSection,
+.sectionCard {
+    animation: fadeIn 0.4s ease-out backwards;
+}

@@ -11,22 +11,48 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
     const [submitting, setSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const commentsEndRef = useRef(null);
     const sheetRef = useRef(null);
-    const dragStartRef = useRef(null);
+    const dragStartYRef = useRef(null);
+    const currentYRef = useRef(0);
     const isDraggingRef = useRef(false);
+    const rafIdRef = useRef(null);
+    const lastTouchYRef = useRef(0);
+    const velocityRef = useRef(0);
 
     useEffect(() => {
         if (isOpen) {
             fetchComments(1);
+            currentYRef.current = 0;
+            if (sheetRef.current) {
+                sheetRef.current.style.transform = 'translate3d(0, 0, 0)';
+            }
         }
     }, [isOpen, reelId]);
 
-    // Handle touch/mouse drag for closing
+    // Cleanup RAF on unmount
+    useEffect(() => {
+        return () => {
+            if (rafIdRef.current) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+        };
+    }, []);
+
+    // Handle touch/mouse drag with RAF for 60fps smoothness
+    const updateSheetPosition = (y) => {
+        if (sheetRef.current && y >= 0) {
+            // Use translate3d for GPU acceleration
+            sheetRef.current.style.transform = `translate3d(0, ${y}px, 0)`;
+            currentYRef.current = y;
+        }
+    };
+
     const handleDragStart = (e) => {
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        dragStartRef.current = clientY;
+        dragStartYRef.current = clientY;
+        lastTouchYRef.current = clientY;
         isDraggingRef.current = true;
+        velocityRef.current = 0;
 
         if (sheetRef.current) {
             sheetRef.current.style.transition = 'none';
@@ -34,39 +60,52 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
     };
 
     const handleDragMove = (e) => {
-        if (!isDraggingRef.current || dragStartRef.current === null) return;
+        if (!isDraggingRef.current || dragStartYRef.current === null) return;
 
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const diff = clientY - dragStartRef.current;
+        const diff = clientY - dragStartYRef.current;
+
+        // Calculate velocity for momentum
+        velocityRef.current = clientY - lastTouchYRef.current;
+        lastTouchYRef.current = clientY;
 
         // Only allow dragging down
-        if (diff > 0 && sheetRef.current) {
-            sheetRef.current.style.transform = `translateY(${diff}px)`;
+        if (diff > 0) {
+            // Cancel any pending RAF and schedule new one
+            if (rafIdRef.current) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+
+            rafIdRef.current = requestAnimationFrame(() => {
+                updateSheetPosition(diff);
+            });
         }
     };
 
     const handleDragEnd = (e) => {
         if (!isDraggingRef.current) return;
 
-        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-        const diff = clientY - dragStartRef.current;
-
         isDraggingRef.current = false;
 
         if (sheetRef.current) {
-            sheetRef.current.style.transition = 'transform 0.3s ease';
+            sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
 
-            if (diff > 100) {
-                // Close if dragged more than 100px
-                sheetRef.current.style.transform = 'translateY(100%)';
+            const threshold = 100;
+            const velocityThreshold = 5;
+
+            // Close if dragged beyond threshold OR if velocity is high enough
+            if (currentYRef.current > threshold || velocityRef.current > velocityThreshold) {
+                sheetRef.current.style.transform = 'translate3d(0, 100%, 0)';
                 setTimeout(() => onClose(), 300);
             } else {
                 // Snap back
-                sheetRef.current.style.transform = 'translateY(0)';
+                sheetRef.current.style.transform = 'translate3d(0, 0, 0)';
+                currentYRef.current = 0;
             }
         }
 
-        dragStartRef.current = null;
+        dragStartYRef.current = null;
+        velocityRef.current = 0;
     };
 
     const fetchComments = async (pageNum) => {

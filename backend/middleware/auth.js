@@ -1,10 +1,24 @@
 const { auth: adminAuth, db } = require('../config/firebase');
 
+// Check if app is in maintenance mode
+const checkMaintenanceMode = async () => {
+    try {
+        const settingsDoc = await db.collection('appSettings').doc('global').get();
+        if (settingsDoc.exists) {
+            return settingsDoc.data().maintenanceMode === true;
+        }
+    } catch (error) {
+        console.error('Error checking maintenance mode:', error);
+    }
+    return false;
+};
+
 /**
  * Authentication middleware
  * Verifies Firebase ID token and attaches user to request
  */
 const auth = async (req, res, next) => {
+    console.log(`[AUTH] Request: ${req.method} ${req.path}`);
     try {
         const authHeader = req.header('Authorization');
 
@@ -43,6 +57,18 @@ const auth = async (req, res, next) => {
                 });
             }
 
+            // Check maintenance mode (admins bypass)
+            if (userData.role !== 'admin') {
+                const isMaintenanceMode = await checkMaintenanceMode();
+                if (isMaintenanceMode) {
+                    return res.status(503).json({
+                        success: false,
+                        message: 'The platform is currently under maintenance. Please try again later.',
+                        maintenanceMode: true
+                    });
+                }
+            }
+
             req.user = userData;
             req.userId = userId;
             next();
@@ -68,6 +94,7 @@ const auth = async (req, res, next) => {
  * Attaches user if token is valid, but doesn't block request
  */
 const optionalAuth = async (req, res, next) => {
+    console.log(`[OPTIONAL-AUTH] Request: ${req.method} ${req.path}`);
     try {
         const authHeader = req.header('Authorization');
 

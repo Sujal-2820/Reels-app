@@ -93,6 +93,26 @@ const uploadReel = multer({
     }
 });
 
+// Generic upload middleware for channel posts (accepts images and videos)
+const channelFilter = (req, file, cb) => {
+    const videoMimes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+    const imageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+    if (videoMimes.includes(file.mimetype) || imageMimes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only image and video files are allowed.'), false);
+    }
+};
+
+const upload = multer({
+    storage,
+    fileFilter: channelFilter,
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB max per file
+    }
+});
+
 // Cleanup uploaded file utility
 const cleanupFile = (filePath) => {
     try {
@@ -108,5 +128,6 @@ module.exports = {
     uploadVideo,
     uploadImage,
     uploadReel,
+    upload,
     cleanupFile
 };

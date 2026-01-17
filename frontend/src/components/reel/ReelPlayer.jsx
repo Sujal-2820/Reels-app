@@ -5,7 +5,7 @@ import { activitySync } from '../../services/activitySyncService';
 import CommentSection from './CommentSection';
 import styles from './ReelPlayer.module.css';
 
-const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
+const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const videoRef = useRef(null);
@@ -22,22 +22,66 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
     const [commentsCount, setCommentsCount] = useState(reel?.commentsCount || 0);
     const [isSaved, setIsSaved] = useState(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
     const [error, setError] = useState(null);
+    const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(reel.creator?.followersCount || 0);
+    const [followLoading, setFollowLoading] = useState(false);
+
+    const isCreator = user?.id === reel?.userId || user?.id === reel?.creator?.id;
+
+    // Show privacy notice to creator if likes < 1000
+    useEffect(() => {
+        if (isActive && isCreator && likesCount < 1000) {
+            const hasSeenNotice = sessionStorage.getItem(`privacy_notice_${reel.id}`);
+            if (!hasSeenNotice) {
+                setShowPrivacyNotice(true);
+                sessionStorage.setItem(`privacy_notice_${reel.id}`, 'true');
+                setTimeout(() => setShowPrivacyNotice(false), 5000);
+            }
+        }
+    }, [isActive, isCreator, likesCount, reel.id]);
 
     // Set initial liked and saved state from reel AND buffered activity
     useEffect(() => {
         const buffered = activitySync.getOptimisticState(reel.id);
 
         // Priority: Buffered activity > Backend state
-        if (buffered.isLiked !== undefined) {
+        // Check if there's a buffered like state (could be true or false)
+        if (buffered.isLiked !== null && buffered.isLiked !== undefined) {
             setIsLiked(buffered.isLiked);
+            // Adjust like count based on buffered state vs backend state
+            const backendLiked = reel?.isLiked || false;
+            if (buffered.isLiked !== backendLiked) {
+                const adjustment = buffered.isLiked ? 1 : -1;
+                setLikesCount(Math.max(0, (reel?.likesCount || 0) + adjustment));
+            } else {
+                setLikesCount(reel?.likesCount || 0);
+            }
         } else {
             setIsLiked(reel?.isLiked || false);
+            setLikesCount(reel?.likesCount || 0);
         }
 
         setIsSaved(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
-        setLikesCount(reel?.likesCount || 0);
         setCommentsCount(reel?.commentsCount || 0);
-    }, [reel?.id, user?.id]);
+        setFollowersCount(reel.creator?.followersCount || 0);
+
+        // Check follow status
+        const checkFollow = async () => {
+            if (isAuthenticated && reel.creator?.id && reel.creator.id !== user?.id) {
+                try {
+                    const { followAPI } = await import('../../services/api');
+                    const response = await followAPI.getStatus(reel.creator.id);
+                    if (response.success) {
+                        setIsFollowing(response.data.isFollowing);
+                    }
+                } catch (err) {
+                    console.error('Failed to check follow status:', err);
+                }
+            }
+        };
+        checkFollow();
+    }, [reel?.id, reel?.isLiked, reel?.likesCount, reel?.commentsCount, user?.id, isAuthenticated]);
 
     // Handle view tracking (track view after 3 seconds of active play)
     useEffect(() => {
@@ -162,7 +206,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
         }
 
         const newIsLiked = !isLiked;
-        const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
+        const newLikesCount = Math.max(0, newIsLiked ? likesCount + 1 : likesCount - 1);
 
         // 1. Immediate UI update
         setIsLiked(newIsLiked);
@@ -186,6 +230,35 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
             setIsMuted(video.muted);
         }
     }, []);
+
+    const handleFollowToggle = useCallback(async (e) => {
+        e.stopPropagation();
+        if (!isAuthenticated) {
+            window.location.href = '/login';
+            return;
+        }
+
+        const creatorId = reel.userId || reel.creator?.id;
+        if (!creatorId || creatorId === user?.id) return;
+
+        setFollowLoading(true);
+        try {
+            const { followAPI } = await import('../../services/api');
+            if (isFollowing) {
+                await followAPI.unfollow(creatorId);
+                setIsFollowing(false);
+                setFollowersCount(prev => Math.max(0, prev - 1));
+            } else {
+                await followAPI.follow(creatorId);
+                setIsFollowing(true);
+                setFollowersCount(prev => prev + 1);
+            }
+        } catch (err) {
+            console.error('Failed to update follow status:', err);
+        } finally {
+            setFollowLoading(false);
+        }
+    }, [isAuthenticated, isFollowing, reel.userId, reel.creator?.id, user?.id]);
 
     // Handle save toggle
     const handleSave = useCallback(async (e) => {
@@ -265,8 +338,16 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
         }
     }, [reel, isAuthenticated]);
 
-    // Format likes count
+    // Format likes count with 1000 privacy threshold
     const formatCount = (count) => {
+        if (count < 1000 && !isCreator) {
+            return ''; // Hidden for others
+        }
+        return formatCompact(count);
+    };
+
+    const formatCompact = (count) => {
+        if (!count) return '0';
         if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
         if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
         return count.toString();
@@ -337,6 +418,16 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
                 {error && (
                     <div className={styles.errorOverlay}>
                         <p>{error}</p>
+                    </div>
+                )}
+
+                {/* Creator Privacy Notice Toast */}
+                {showPrivacyNotice && (
+                    <div className={styles.privacyNotice}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <span>Likes hidden from others until 1K</span>
                     </div>
                 )}
 
@@ -451,6 +542,21 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
                         </svg>
                     )}
                 </button>
+
+                {/* 3-dot Options Button */}
+                <button
+                    className={styles.actionBtn}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenOptions && onOpenOptions();
+                    }}
+                    aria-label="Options"
+                >
+                    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="7" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="17" r="1.5" />
+                    </svg>
+                    <span className={styles.actionCount}>More</span>
+                </button>
             </div>
 
             {/* Caption & Creator Info */}
@@ -475,6 +581,18 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate }) => {
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                                 </svg>
                             </span>
+                        )}
+                        {user?.id !== (reel.userId || reel.creator.id) && (
+                            <>
+                                <span className={styles.dot}>•</span>
+                                <button
+                                    className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
+                                    onClick={handleFollowToggle}
+                                    disabled={followLoading}
+                                >
+                                    {isFollowing ? 'Following' : 'Follow'}
+                                </button>
+                            </>
                         )}
                     </div>
                 )}

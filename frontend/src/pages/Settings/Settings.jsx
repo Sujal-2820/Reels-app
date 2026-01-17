@@ -38,6 +38,12 @@ const Settings = () => {
         ),
         ArrowLeft: () => (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.chevron}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+        ),
+        Analytics: () => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.itemIcon}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+        ),
+        Lock: () => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.itemIcon}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
         )
     };
 
@@ -77,6 +83,16 @@ const Settings = () => {
                         <Icons.Globe />
                         <span className={styles.itemLabel}>Language</span>
                         <span className={styles.itemValue}>English</span>
+                        <Icons.ChevronRight />
+                    </button>
+                    <button className={styles.settingsItem} onClick={() => navigate('/settings/analytics')}>
+                        <Icons.Analytics />
+                        <span className={styles.itemLabel}>View Analytics</span>
+                        <Icons.ChevronRight />
+                    </button>
+                    <button className={styles.settingsItem} onClick={() => navigate('/settings/private-content')}>
+                        <Icons.Lock />
+                        <span className={styles.itemLabel}>Private Content</span>
                         <Icons.ChevronRight />
                     </button>
                 </div>

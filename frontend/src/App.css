@@ -3,7 +3,14 @@
 .main-content {
   flex: 1;
   min-height: 0;
+}
+
+.with-header {
   padding-top: var(--header-height);
+}
+
+.with-bottom-nav {
+  padding-bottom: var(--bottom-nav-height);
 }
 
 .loading-screen {

@@ -41,14 +41,27 @@ const {
     updateTicketStatus,
     getSupportStats
 } = require('../controllers/adminSupportController');
-const { auth } = require('../middleware/auth');
+const {
+    getReports,
+    resolveReport,
+    unbanContent,
+    getSettings,
+    updateSettings,
+    getReportStats
+} = require('../controllers/reportController');
+const {
+    getAllChannels,
+    getChannelStats,
+    deleteChannel
+} = require('../controllers/adminChannelController');
+const { auth, optionalAuth } = require('../middleware/auth');
 
 // All admin routes require authentication
 // TODO: Add admin role middleware for production
 
 // Dashboard routes
-router.get('/dashboard/stats', auth, getDashboardStats);
-router.get('/dashboard/analytics', auth, getDailyAnalytics);
+router.get('/dashboard/stats', optionalAuth, getDashboardStats);
+router.get('/dashboard/analytics', optionalAuth, getDailyAnalytics);
 
 // User management routes
 router.get('/users', auth, getAllUsers);
@@ -66,6 +79,12 @@ router.get('/reels/flagged', auth, getFlaggedReels);
 router.get('/reels/viral', auth, getViralAnalytics);
 router.get('/reels/:reelId', auth, getReelDetails);
 router.delete('/reels/:reelId', auth, deleteReel);
+router.post('/reels/:reelId/unban', auth, unbanContent);
+
+// Channel management routes
+router.get('/channels', auth, getAllChannels);
+router.get('/channels/stats', auth, getChannelStats);
+router.delete('/channels/:channelId', auth, deleteChannel);
 
 // Comment moderation routes
 router.get('/comments', auth, getAllComments);
@@ -90,5 +109,13 @@ router.get('/support/tickets/:ticketId', auth, getTicketDetails);
 router.post('/support/tickets/:ticketId/reply', auth, replyToTicket);
 router.put('/support/tickets/:ticketId/status', auth, updateTicketStatus);
 
-module.exports = router;
+// Report management routes
+router.get('/reports', auth, getReports);
+router.get('/reports/stats', auth, getReportStats);
+router.put('/reports/:id', auth, resolveReport);
 
+// App settings routes
+router.get('/settings', auth, getSettings);
+router.put('/settings', auth, updateSettings);
+
+module.exports = router;

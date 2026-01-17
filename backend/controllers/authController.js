@@ -56,10 +56,25 @@ const getMe = async (req, res) => {
             }
         }
 
+        // Initialize stats if missing
+        const dailyUploadCount = user.dailyUploadCount || 0;
+        const storageUsed = user.storageUsed || 0;
+        const lastUploadDate = user.lastUploadDate;
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Reset daily count if last upload was before today
+        let currentDailyCount = dailyUploadCount;
+        if (lastUploadDate && lastUploadDate.toDate() < startOfToday) {
+            currentDailyCount = 0;
+        }
+
         res.json({
             success: true,
             data: {
                 ...user,
+                dailyUploadCount: currentDailyCount,
+                storageUsed,
                 plan: planInfo
             }
         });
@@ -101,6 +116,8 @@ const getUserProfile = async (req, res) => {
                 profilePic: user.profilePic,
                 bio: user.bio,
                 verificationType: user.verificationType,
+                followersCount: user.followersCount || 0,
+                followingCount: user.followingCount || 0,
                 createdAt: user.createdAt?.toDate()
             }
         });
@@ -185,16 +202,42 @@ const updateProfile = async (req, res) => {
 const checkUsername = async (req, res) => {
     try {
         const { username } = req.params;
+        const normalizedUsername = username.toLowerCase().trim();
+
+        // Basic validation
+        if (normalizedUsername.length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username must be at least 3 characters.'
+            });
+        }
+
         const existingUserSnap = await db.collection('users')
-            .where('username', '==', username.toLowerCase())
+            .where('username', '==', normalizedUsername)
             .limit(1)
             .get();
 
+        const isAvailable = existingUserSnap.empty;
+        const suggestions = [];
+
+        if (!isAvailable) {
+            console.log(`Username taken: ${normalizedUsername}. Generating suggestions...`);
+            const base = normalizedUsername;
+            // Use more robust suggestions
+            const fixedSuffixes = ['_', '123', '99', 'official', 'real'];
+
+            for (const suffix of fixedSuffixes) {
+                suggestions.push(`${base}${suffix}`.toLowerCase());
+            }
+        }
+
         res.json({
             success: true,
-            available: existingUserSnap.empty
+            available: isAvailable,
+            suggestions: suggestions
         });
     } catch (error) {
+        console.error('Check username error:', error);
         res.status(500).json({
             success: false,
             message: 'Error checking username.'

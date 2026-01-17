@@ -11,7 +11,8 @@ const {
     processBatchActivity,
     updateReel,
     toggleSave,
-    getSavedReels
+    getSavedReels,
+    reportReel
 } = require('../controllers/reelController');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { uploadReel } = require('../middleware/upload');
@@ -39,6 +40,7 @@ router.get('/user/:userId', getUserReels);
 router.post('/activity/batch', optionalAuth, processBatchActivity);
 router.post('/:id/like', auth, toggleLike);
 router.post('/:id/save', auth, toggleSave);
+router.post('/:id/report', auth, reportReel);
 router.put('/:id', auth, uploadReel.fields([{ name: 'cover', maxCount: 1 }]), updateReel);
 router.delete('/:id', auth, deleteReel);
 

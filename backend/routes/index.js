@@ -5,6 +5,11 @@ const commentRoutes = require('./commentRoutes');
 const referralRoutes = require('./referralRoutes');
 const adminRoutes = require('./adminRoutes');
 const supportRoutes = require('./supportRoutes');
+const channelRoutes = require('./channelRoutes');
+const followRoutes = require('./followRoutes');
+const searchRoutes = require('./searchRoutes');
+const reportRoutes = require('./reportRoutes');
+const settingsRoutes = require('./settingsRoutes');
 
 module.exports = {
     authRoutes,
@@ -13,5 +18,10 @@ module.exports = {
     commentRoutes,
     referralRoutes,
     adminRoutes,
-    supportRoutes
+    supportRoutes,
+    channelRoutes,
+    followRoutes,
+    searchRoutes,
+    reportRoutes,
+    settingsRoutes
 };

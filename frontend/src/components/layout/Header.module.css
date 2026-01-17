@@ -42,6 +42,12 @@
     letter-spacing: -0.5px;
 }
 
+.rightActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
 .actionBtn {
     display: flex;
     align-items: center;

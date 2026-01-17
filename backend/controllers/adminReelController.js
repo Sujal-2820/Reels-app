@@ -11,11 +11,17 @@ const getAllReels = async (req, res) => {
         const {
             limit = 20,
             privacy = 'all', // all, public, private
+            contentType = 'all', // all, reel, video
             sortBy = 'createdAt',
             sortOrder = 'desc'
         } = req.query;
 
         let query = db.collection('reels');
+
+        // Content Type filter
+        if (contentType === 'reel' || contentType === 'video') {
+            query = query.where('contentType', '==', contentType);
+        }
 
         // Privacy filter
         if (privacy === 'public') {

@@ -1,8 +1,22 @@
+console.log('🚀 REELBOX SERVER V2 - OPTIONAL AUTH ACTIVE');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { authRoutes, reelRoutes, paymentRoutes, commentRoutes, referralRoutes, adminRoutes, supportRoutes } = require('./routes');
+const {
+    authRoutes,
+    reelRoutes,
+    paymentRoutes,
+    commentRoutes,
+    referralRoutes,
+    adminRoutes,
+    supportRoutes,
+    channelRoutes,
+    followRoutes,
+    searchRoutes,
+    reportRoutes,
+    settingsRoutes
+} = require('./routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +68,11 @@ app.use('/api/referrals', referralRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/channels', channelRoutes);
+app.use('/api/follow', followRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -66,6 +85,22 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
+
+    // CRITICAL: Cleanup any uploaded files if error occurs
+    const { cleanupFile } = require('./middleware/upload');
+    if (req.file) {
+        cleanupFile(req.file.path);
+    }
+    if (req.files) {
+        // Handle array or object of files
+        if (Array.isArray(req.files)) {
+            req.files.forEach(file => cleanupFile(file.path));
+        } else {
+            Object.values(req.files).forEach(fileArray => {
+                fileArray.forEach(file => cleanupFile(file.path));
+            });
+        }
+    }
 
     // Handle multer errors
     if (err.code === 'LIMIT_FILE_SIZE') {

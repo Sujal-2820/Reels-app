@@ -11,7 +11,8 @@ const AdminReels = () => {
     const [filters, setFilters] = useState({
         page: 1,
         search: '',
-        privacy: 'all',
+        privacy: 'public',
+        contentType: 'reel',
         sortBy: 'createdAt',
         sortOrder: 'desc'
     });
@@ -78,7 +79,7 @@ const AdminReels = () => {
 
     return (
         <div>
-            <h1 style={{ fontSize: '23px', fontWeight: '400', marginBottom: '20px' }}>Content Management</h1>
+            <h1 style={{ fontSize: '23px', fontWeight: '400', marginBottom: '20px' }}>Reels Management</h1>
 
             {/* Stats Cards */}
             {stats && (
