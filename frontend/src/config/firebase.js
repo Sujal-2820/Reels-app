@@ -5,13 +5,13 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyASkiVe1sAhPCACwa8yoc0GPhzZdByIquE",
-    authDomain: "reel-box-d9920.firebaseapp.com",
-    projectId: "reel-box-d9920",
-    storageBucket: "reel-box-d9920.firebasestorage.app",
-    messagingSenderId: "398152440892",
-    appId: "1:398152440892:web:99b11ed611d72e2af57739",
-    measurementId: "G-J4BT6F53JP"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyASkiVe1sAhPCACwa8yoc0GPhzZdByIquE",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "reel-box-d9920.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "reel-box-d9920",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "reel-box-d9920.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "398152440892",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:398152440892:web:99b11ed611d72e2af57739",
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-J4BT6F53JP"
 };
 
 // Initialize Firebase
