@@ -199,20 +199,23 @@ const Home = () => {
 
     return (
         <div className={styles.homeContainer}>
+            {/* Category Bar moved outside scrollable view to remain fixed at top */}
+            {activeTab === 'video' && (
+                <div className={styles.categoryBar}>
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            className={`${styles.categoryBtn} ${selectedCategory === cat ? styles.activeCat : ''}`}
+                            onClick={() => setSelectedCategory(cat)}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {activeTab === 'video' ? (
                 <div className={styles.videoView} ref={videoContainerRef}>
-                    <div className={styles.categoryBar}>
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                className={`${styles.categoryBtn} ${selectedCategory === cat ? styles.activeCat : ''}`}
-                                onClick={() => setSelectedCategory(cat)}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-
                     <VideoList
                         videos={videos}
                         loading={videoLoading}
