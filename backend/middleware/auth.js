@@ -124,11 +124,20 @@ const optionalAuth = async (req, res, next) => {
 };
 
 /**
- * Generate Token (LEGACY/REMOVED - Use Firebase on client side)
+ * Skip Auth middleware
+ * Completely bypasses auth, useful for development or temporary access
  */
-const generateToken = () => {
-    throw new Error('generateToken is deprecated. Use Firebase getIdToken() on the client.');
+const skipAuth = (req, res, next) => {
+    console.log(`[SKIP-AUTH] Bypassing auth for: ${req.method} ${req.path}`);
+    // Mock an admin user for controllers that might expect it
+    req.user = {
+        id: 'admin_bypass_id',
+        role: 'admin',
+        name: 'Admin Bypass'
+    };
+    req.userId = 'admin_bypass_id';
+    next();
 };
 
-module.exports = { auth, optionalAuth, generateToken };
+module.exports = { auth, optionalAuth, skipAuth, generateToken };
 
