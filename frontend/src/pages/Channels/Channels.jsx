@@ -14,7 +14,7 @@ const Channels = () => {
     const [channels, setChannels] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newChannel, setNewChannel] = useState({ name: '', description: '' });
+    const [newChannel, setNewChannel] = useState({ name: '', description: '', isPrivate: false });
     const [creating, setCreating] = useState(false);
 
     useEffect(() => {
@@ -55,7 +55,7 @@ const Channels = () => {
             const response = await channelsAPI.create(newChannel);
             if (response.success) {
                 setShowCreateModal(false);
-                setNewChannel({ name: '', description: '' });
+                setNewChannel({ name: '', description: '', isPrivate: false });
                 fetchChannels();
             }
         } catch (error) {
@@ -188,6 +188,15 @@ const Channels = () => {
                                         <span className={styles.memberCount}>
                                             {channel.memberCount || 0} members
                                         </span>
+                                        {channel.isPrivate && (
+                                            <span className={styles.privateLabel}>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                                    <path d="M7 11V7a5 5 0 0110 0v4" />
+                                                </svg>
+                                                Private
+                                            </span>
+                                        )}
                                         {channel.creator && (
                                             <span className={styles.creatorName}>
                                                 by @{channel.creator.username}
@@ -247,6 +256,23 @@ const Channels = () => {
                                     maxLength={200}
                                     rows={3}
                                 />
+                            </div>
+                            <div className={styles.formGroupInline}>
+                                <div className={styles.toggleInfo}>
+                                    <label>Private Channel</label>
+                                    <p>Only users with the link can access this channel.</p>
+                                </div>
+                                <label className={styles.switch}>
+                                    <input
+                                        type="checkbox"
+                                        checked={newChannel.isPrivate}
+                                        onChange={(e) => setNewChannel({ ...newChannel, isPrivate: e.target.checked })}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                            </div>
+                            <div className={styles.limitsInfo}>
+                                <small>Limits: Public: 10, Private: 50</small>
                             </div>
                         </div>
                         <div className={styles.modalFooter}>

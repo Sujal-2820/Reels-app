@@ -39,6 +39,7 @@ import AdminVideos from './pages/Admin/Videos/AdminVideos';
 import AdminChannels from './pages/Admin/Channels/AdminChannels';
 import AdminAnalytics from './pages/Admin/Dashboard/AdminAnalytics';
 import AdminPrivateContent from './pages/Admin/Reels/AdminPrivateContent';
+import AdminReports from './pages/Admin/Channels/AdminReports';
 import Support from './pages/Support/Support';
 import TicketDetail from './pages/Support/TicketDetail';
 import CompleteProfile from './pages/CompleteProfile/CompleteProfile';
@@ -445,6 +446,7 @@ function AppContent() {
         <Route path="videos" element={<AdminVideos />} />
         <Route path="private" element={<AdminPrivateContent />} />
         <Route path="reels/viral" element={<AdminViral />} />
+        <Route path="reports" element={<AdminReports />} />
         <Route path="comments" element={<AdminComments />} />
         <Route path="plans" element={<AdminPlans />} />
         <Route path="transactions" element={<AdminTransactions />} />

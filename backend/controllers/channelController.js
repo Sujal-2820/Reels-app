@@ -27,8 +27,9 @@ const getUploadLimits = async () => {
 // POST /api/channels
 const createChannel = async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, isPrivate } = req.body;
         const creatorId = req.userId;
+        const isPrivateChannel = isPrivate === true || isPrivate === 'true';
 
         // Check if channels feature is enabled
         const settings = await getUploadLimits();
@@ -46,18 +47,29 @@ const createChannel = async (req, res) => {
             });
         }
 
-        // Check max channels per user limit
-        const userChannels = await db.collection('channels')
+        // Check channel limits: Public: 10, Private: 50
+        const userChannelsSnap = await db.collection('channels')
             .where('creatorId', '==', creatorId)
             .where('isActive', '==', true)
             .get();
 
-        const maxChannelsPerUser = settings.maxChannelsPerUser || 5;
-        if (userChannels.size >= maxChannelsPerUser) {
-            return res.status(400).json({
-                success: false,
-                message: `You can only create up to ${maxChannelsPerUser} channels`
-            });
+        const publicChannels = userChannelsSnap.docs.filter(doc => !doc.data().isPrivate);
+        const privateChannels = userChannelsSnap.docs.filter(doc => doc.data().isPrivate);
+
+        if (isPrivateChannel) {
+            if (privateChannels.length >= 50) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'You have reached the limit of 50 private channels'
+                });
+            }
+        } else {
+            if (publicChannels.length >= 10) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'You have reached the limit of 10 public channels'
+                });
+            }
         }
 
         // Check if user already has a channel with this name
@@ -77,6 +89,8 @@ const createChannel = async (req, res) => {
         const creatorDoc = await db.collection('users').doc(creatorId).get();
         const creator = creatorDoc.exists ? creatorDoc.data() : {};
 
+        const accessToken = isPrivateChannel ? require('crypto').randomBytes(16).toString('hex') : null;
+
         const channelData = {
             creatorId,
             name: name.trim(),
@@ -84,14 +98,19 @@ const createChannel = async (req, res) => {
             profilePic: creator.profilePic || null,
             createdAt: serverTimestamp(),
             memberCount: 0,
-            isActive: true
+            isActive: true,
+            isPrivate: isPrivateChannel,
+            accessToken,
+            isBanned: false,
+            reportCount: 0,
+            status: 'active'
         };
 
         const channelRef = await db.collection('channels').add(channelData);
 
         res.status(201).json({
             success: true,
-            message: 'Channel created successfully',
+            message: `Channel created successfully${isPrivateChannel ? '. This is a private channel.' : ''}`,
             data: {
                 id: channelRef.id,
                 ...channelData,
@@ -116,12 +135,10 @@ const getChannels = async (req, res) => {
         const parsedLimit = Math.min(parseInt(limit), 50);
         const parsedCursor = parseInt(cursor);
 
-        let query = db.collection('channels').where('isActive', '==', true);
+        let query = db.collection('channels');
 
         if (creatorId) {
-            query = db.collection('channels')
-                .where('creatorId', '==', creatorId)
-                .where('isActive', '==', true);
+            query = query.where('creatorId', '==', creatorId);
         }
 
         const snapshot = await query.get();
@@ -130,8 +147,25 @@ const getChannels = async (req, res) => {
         let allDocs = snapshot.docs.map(doc => ({
             doc,
             data: doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(0)
+            id: doc.id
         }));
+
+        // Filter and Hydrate
+        allDocs = allDocs.filter(item => {
+            const data = item.data;
+            // Default to true/active if missing, hide ONLY if explicitly false
+            if (data.isActive === false) return false;
+            // Hide private channels from explore ONLY if explicitly true
+            if (data.isPrivate === true && !creatorId) return false;
+            return true;
+        });
+
+        // Add createdAt for sorting
+        allDocs = allDocs.map(item => ({
+            ...item,
+            createdAt: item.data.createdAt?.toDate?.() || new Date(item.data.createdAt || 0)
+        }));
+
         allDocs.sort((a, b) => b.createdAt - a.createdAt);
 
         // Apply pagination
@@ -195,6 +229,7 @@ const getChannels = async (req, res) => {
 const getChannelById = async (req, res) => {
     try {
         const { id } = req.params;
+        const { token } = req.query; // For private channel access
         const userId = req.userId;
 
         const channelDoc = await db.collection('channels').doc(id).get();
@@ -207,6 +242,36 @@ const getChannelById = async (req, res) => {
         }
 
         const channelData = channelDoc.data();
+
+        // Check privacy access
+        if (channelData.isPrivate && channelData.accessToken !== token && channelData.creatorId !== userId) {
+            // Also check if member
+            let isMember = false;
+            if (userId) {
+                const memberDoc = await db.collection('channelMembers')
+                    .where('channelId', '==', id)
+                    .where('userId', '==', userId)
+                    .get();
+                isMember = !memberDoc.empty;
+            }
+
+            if (!isMember) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Private channel. Access denied.',
+                    isPrivate: true
+                });
+            }
+        }
+
+        // Check if banned
+        if (channelData.isBanned && channelData.creatorId !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'This channel has been banned for violating our policies.',
+                isBanned: true
+            });
+        }
 
         // Get creator info
         const creatorDoc = await db.collection('users').doc(channelData.creatorId).get();
@@ -716,7 +781,7 @@ const getJoinedChannels = async (req, res) => {
         const channels = [];
         for (const channelId of channelIds) {
             const channelDoc = await db.collection('channels').doc(channelId).get();
-            if (channelDoc.exists && channelDoc.data().isActive) {
+            if (channelDoc.exists && channelDoc.data().isActive !== false) {
                 const data = channelDoc.data();
                 const creatorDoc = await db.collection('users').doc(data.creatorId).get();
                 channels.push({
@@ -805,7 +870,7 @@ const updateChannelSettings = async (req, res) => {
     }
 };
 
-// Get channel members (Creator only)
+// Get channel members
 // GET /api/channels/:id/members
 const getChannelMembers = async (req, res) => {
     try {
@@ -814,27 +879,23 @@ const getChannelMembers = async (req, res) => {
 
         const channelDoc = await db.collection('channels').doc(id).get();
         if (!channelDoc.exists) {
-            return res.status(404).json({
-                success: false,
-                message: 'Channel not found'
-            });
+            return res.status(404).json({ success: false, message: 'Channel not found' });
         }
 
+        // Only creator can manage members
         if (channelDoc.data().creatorId !== userId) {
-            return res.status(403).json({
-                success: false,
-                message: 'Only the channel creator can view members'
-            });
+            return res.status(403).json({ success: false, message: 'Only the creator can view the member list' });
         }
 
-        const snapshot = await db.collection('channelMembers')
+        const memberSnapshot = await db.collection('channelMembers')
             .where('channelId', '==', id)
+            .orderBy('joinedAt', 'desc')
             .get();
 
         const members = [];
-        for (const doc of snapshot.docs) {
-            const memberUserId = doc.data().userId;
-            const userDoc = await db.collection('users').doc(memberUserId).get();
+        for (const doc of memberSnapshot.docs) {
+            const memberData = doc.data();
+            const userDoc = await db.collection('users').doc(memberData.userId).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 members.push({
@@ -842,7 +903,7 @@ const getChannelMembers = async (req, res) => {
                     name: userData.name,
                     username: userData.username,
                     profilePic: userData.profilePic,
-                    joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || null
+                    joinedAt: memberData.joinedAt?.toDate?.()?.toISOString() || null
                 });
             }
         }
@@ -861,6 +922,246 @@ const getChannelMembers = async (req, res) => {
     }
 };
 
+// --- REPORTING & APPEALS ---
+
+// Helper to get total user count
+const getTotalUserCount = async () => {
+    const userSnapshot = await db.collection('users').get();
+    return userSnapshot.size;
+};
+
+// Report a post
+// POST /api/channels/:id/posts/:postId/report
+const reportPost = async (req, res) => {
+    try {
+        const { id: channelId, postId } = req.params;
+        const { reason } = req.body;
+        const userId = req.userId;
+
+        const postRef = db.collection('channelPosts').doc(postId);
+        const postDoc = await postRef.get();
+
+        if (!postDoc.exists) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+
+        // Check if user already reported this post
+        const reportId = `report_post_${postId}_${userId}`;
+        const reportDoc = await db.collection('reports').doc(reportId).get();
+        if (reportDoc.exists) {
+            return res.status(400).json({ success: false, message: 'You have already reported this post' });
+        }
+
+        const totalUsers = await getTotalUserCount();
+        const threshold = Math.max(1, Math.ceil(totalUsers * 0.02)); // 2% 
+
+        await db.collection('reports').doc(reportId).set({
+            targetId: postId,
+            targetType: 'post',
+            channelId,
+            reporterId: userId,
+            reason,
+            createdAt: serverTimestamp()
+        });
+
+        // Increment report count
+        const updatedPost = await postRef.update({
+            reportCount: admin.firestore.FieldValue.increment(1)
+        });
+
+        const currentPostData = (await postRef.get()).data();
+        if (currentPostData.reportCount >= threshold) {
+            await postRef.update({ isRemoved: true, status: 'removed' });
+        }
+
+        res.json({ success: true, message: 'Post reported successfully' });
+    } catch (error) {
+        console.error('Report post error:', error);
+        res.status(500).json({ success: false, message: 'Failed to report post' });
+    }
+};
+
+// Report a channel
+// POST /api/channels/:id/report
+const reportChannel = async (req, res) => {
+    try {
+        const { id: channelId } = req.params;
+        const { reason } = req.body;
+        const userId = req.userId;
+
+        const channelRef = db.collection('channels').doc(channelId);
+        const channelDoc = await channelRef.get();
+
+        if (!channelDoc.exists) {
+            return res.status(404).json({ success: false, message: 'Channel not found' });
+        }
+
+        // Check if user already reported this channel
+        const reportId = `report_channel_${channelId}_${userId}`;
+        const reportDoc = await db.collection('reports').doc(reportId).get();
+        if (reportDoc.exists) {
+            return res.status(400).json({ success: false, message: 'You have already reported this channel' });
+        }
+
+        const totalUsers = await getTotalUserCount();
+        const threshold = Math.max(1, Math.ceil(totalUsers * 0.60)); // 60%
+
+        await db.collection('reports').doc(reportId).set({
+            targetId: channelId,
+            targetType: 'channel',
+            reporterId: userId,
+            reason,
+            createdAt: serverTimestamp()
+        });
+
+        // Increment report count
+        await channelRef.update({
+            reportCount: admin.firestore.FieldValue.increment(1)
+        });
+
+        const currentChannelData = (await channelRef.get()).data();
+        if (currentChannelData.reportCount >= threshold) {
+            await channelRef.update({
+                isBanned: true,
+                status: 'banned',
+                banReason: 'Automated ban due to high volume of reports'
+            });
+        }
+
+        res.json({ success: true, message: 'Channel reported successfully' });
+    } catch (error) {
+        console.error('Report channel error:', error);
+        res.status(500).json({ success: false, message: 'Failed to report channel' });
+    }
+};
+
+// Appeal a ban
+// POST /api/channels/:id/appeal
+const appealBan = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reasoning } = req.body;
+        const userId = req.userId;
+
+        const channelRef = db.collection('channels').doc(id);
+        const channelDoc = await channelRef.get();
+
+        if (!channelDoc.exists) {
+            return res.status(404).json({ success: false, message: 'Channel not found' });
+        }
+
+        if (channelDoc.data().creatorId !== userId) {
+            return res.status(403).json({ success: false, message: 'Only the creator can appeal' });
+        }
+
+        if (!channelDoc.data().isBanned) {
+            return res.status(400).json({ success: false, message: 'This channel is not banned' });
+        }
+
+        await channelRef.update({
+            status: 'pending_appeal',
+            appealText: reasoning,
+            appealAt: serverTimestamp()
+        });
+
+        res.json({ success: true, message: 'Appeal submitted successfully' });
+    } catch (error) {
+        console.error('Appeal ban error:', error);
+        res.status(500).json({ success: false, message: 'Failed to submit appeal' });
+    }
+};
+
+// --- ADMIN CONTROLS ---
+
+// Get reports for admin
+// GET /api/channels/admin/reports
+const getReports = async (req, res) => {
+    try {
+        const userDoc = await db.collection('users').doc(req.userId).get();
+        if (userDoc.data().role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Admin only' });
+        }
+
+        const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').limit(100).get();
+        const reports = [];
+
+        for (const doc of snapshot.docs) {
+            const report = { id: doc.id, ...doc.data() };
+
+            // Get reporter info
+            const reporterDoc = await db.collection('users').doc(report.reporterId).get();
+            if (reporterDoc.exists) {
+                report.reporter = {
+                    name: reporterDoc.data().name,
+                    username: reporterDoc.data().username
+                };
+            }
+
+            // Get target info
+            if (report.targetType === 'channel') {
+                const targetDoc = await db.collection('channels').doc(report.targetId).get();
+                if (targetDoc.exists) {
+                    report.targetDetails = {
+                        name: targetDoc.data().name,
+                        isBanned: targetDoc.data().isBanned,
+                        status: targetDoc.data().status,
+                        appealText: targetDoc.data().appealText
+                    };
+                }
+            } else if (report.targetType === 'post') {
+                const targetDoc = await db.collection('channelPosts').doc(report.targetId).get();
+                if (targetDoc.exists) {
+                    report.targetDetails = {
+                        text: targetDoc.data().content?.text,
+                        hasMedia: (targetDoc.data().content?.images?.length > 0 || targetDoc.data().content?.videos?.length > 0),
+                        isRemoved: targetDoc.data().isRemoved,
+                        status: targetDoc.data().status
+                    };
+                }
+            }
+            reports.push(report);
+        }
+
+        res.json({ success: true, data: { items: reports } });
+    } catch (error) {
+        console.error('Get reports error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch reports' });
+    }
+};
+
+// Handle admin action (ban/unban/remove post)
+// POST /api/channels/admin/action
+const handleAdminAction = async (req, res) => {
+    try {
+        const { type, targetId, action, reason } = req.body;
+        const userDoc = await db.collection('users').doc(req.userId).get();
+        if (userDoc.data().role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Admin only' });
+        }
+
+        if (type === 'channel') {
+            const channelRef = db.collection('channels').doc(targetId);
+            if (action === 'ban') {
+                await channelRef.update({ isBanned: true, status: 'banned', banReason: reason });
+            } else if (action === 'unban') {
+                await channelRef.update({ isBanned: false, status: 'active', banReason: null, reportCount: 0 });
+            }
+        } else if (type === 'post') {
+            const postRef = db.collection('channelPosts').doc(targetId);
+            if (action === 'remove') {
+                await postRef.update({ isRemoved: true, status: 'removed' });
+            } else if (action === 'restore') {
+                await postRef.update({ isRemoved: false, status: 'active', reportCount: 0 });
+            }
+        }
+
+        res.json({ success: true, message: 'Admin action applied successfully' });
+    } catch (error) {
+        console.error('Admin action error:', error);
+        res.status(500).json({ success: false, message: 'Failed to apply admin action' });
+    }
+};
+
 module.exports = {
     createChannel,
     getChannels,
@@ -873,5 +1174,10 @@ module.exports = {
     getMyChannels,
     getJoinedChannels,
     updateChannelSettings,
-    getChannelMembers
+    getChannelMembers,
+    reportPost,
+    reportChannel,
+    appealBan,
+    getReports,
+    handleAdminAction
 };

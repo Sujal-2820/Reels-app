@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './ChannelView.module.css';
@@ -25,6 +25,14 @@ const ChannelView = () => {
     const [hasMore, setHasMore] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [fullMedia, setFullMedia] = useState(null); // { type: 'image' | 'video', url: string }
+    const [reportModal, setReportModal] = useState({ show: false, type: 'channel', targetId: null, reason: '' });
+    const [appealModal, setAppealModal] = useState({ show: false, reasoning: '' });
+    const [reporting, setReporting] = useState(false);
+    const [appealing, setAppealing] = useState(false);
+
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const token = queryParams.get('token');
 
     useEffect(() => {
         fetchChannel();
@@ -38,13 +46,19 @@ const ChannelView = () => {
 
     const fetchChannel = async () => {
         try {
-            const response = await channelsAPI.getById(id);
+            const response = await channelsAPI.getById(id, token);
             if (response.success) {
                 setChannel(response.data);
             }
         } catch (error) {
             console.error('Failed to fetch channel:', error);
-            navigate('/channels');
+            if (error.isPrivate) {
+                setChannel({ isPrivate: true, locked: true });
+            } else if (error.isBanned) {
+                setChannel({ isBanned: true, locked: true });
+            } else {
+                navigate('/channels');
+            }
         } finally {
             setLoading(false);
         }
@@ -151,6 +165,45 @@ const ChannelView = () => {
             fetchChannel();
         } catch (error) {
             alert(error.message || 'Failed to leave channel');
+        }
+    };
+
+    const handleReport = async () => {
+        if (!reportModal.reason.trim()) return;
+        setReporting(true);
+        try {
+            let response;
+            if (reportModal.type === 'channel') {
+                response = await channelsAPI.report(id, reportModal.reason);
+            } else {
+                response = await channelsAPI.reportPost(id, reportModal.targetId, reportModal.reason);
+            }
+
+            if (response.success) {
+                alert('Report submitted successfully. Thank you for making our community safer.');
+                setReportModal({ show: false, type: 'channel', targetId: null, reason: '' });
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to submit report');
+        } finally {
+            setReporting(false);
+        }
+    };
+
+    const handleAppeal = async () => {
+        if (!appealModal.reasoning.trim()) return;
+        setAppealing(true);
+        try {
+            const response = await channelsAPI.appealBan(id, appealModal.reasoning);
+            if (response.success) {
+                alert('Appeal submitted successfully. Our team will review it.');
+                setAppealModal({ show: false, reasoning: '' });
+                fetchChannel();
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to submit appeal');
+        } finally {
+            setAppealing(false);
         }
     };
 
@@ -289,82 +342,177 @@ const ChannelView = () => {
         );
     }
 
-    if (!channel) return null;
+    if (channel?.isBanned) {
+        return (
+            <div className={styles.lockedContainer}>
+                <div className={styles.lockedContent}>
+                    <div className={styles.lockedIcon}>🚫</div>
+                    <h2>Channel Banned</h2>
+                    <p>This channel was removed for violating community guidelines.</p>
+                    {channel.isCreator && (
+                        <div className={styles.creatorAppeal}>
+                            <p className={styles.banReason}>Reason: {channel.banReason || 'High volume of reports'}</p>
+                            {channel.status === 'pending_appeal' ? (
+                                <div className={styles.appealPending}>
+                                    Appeal submitted. Pending review.
+                                </div>
+                            ) : (
+                                <button
+                                    className={styles.appealBtn}
+                                    onClick={() => setAppealModal({ show: true, reasoning: '' })}
+                                >
+                                    Appeal Decision
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    <button className={styles.backBtn} onClick={() => navigate('/channels')}>Back to Channels</button>
+                </div>
+            </div>
+        );
+    }
+
+    if (channel?.isPrivate && channel?.locked) {
+        return (
+            <div className={styles.lockedContainer}>
+                <div className={styles.lockedContent}>
+                    <div className={styles.lockedIcon}>🔒</div>
+                    <h2>Private Channel</h2>
+                    <p>This channel is private. You need a special link to join.</p>
+                    <button className={styles.backBtn} onClick={() => navigate('/channels')}>Back to Channels</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>
-            {/* Channel Header */}
+            {/* Header */}
             <div className={styles.header}>
-                <button className={styles.backBtn} onClick={() => navigate('/channels')}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <button className={styles.backBtnHeader} onClick={() => navigate('/channels')}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </button>
 
                 <div
-                    className={styles.channelHeader}
+                    className={styles.channelInfo}
                     onClick={() => setShowCreatorInfo(!showCreatorInfo)}
                 >
                     <div className={styles.channelAvatar}>
                         {channel.profilePic ? (
                             <img src={channel.profilePic} alt={channel.name} />
                         ) : (
-                            <span>{channel.name.charAt(0).toUpperCase()}</span>
+                            <span>{channel.name?.charAt(0).toUpperCase()}</span>
                         )}
                     </div>
-                    <div className={styles.channelTitle}>
-                        <h1>{channel.name}</h1>
-                        <span>{channel.memberCount} members</span>
+                    <div className={styles.channelNameGroup}>
+                        <h2 className={styles.channelName}>{channel.name}</h2>
+                        <span className={styles.memberCountSmall}>{channel.memberCount || 0} members</span>
                     </div>
                 </div>
 
-                {channel.isCreator && (
+                <div className={styles.headerActions}>
+                    {!channel.isCreator && (
+                        <button
+                            className={styles.reportBtn}
+                            onClick={() => setReportModal({ show: true, type: 'channel', targetId: id, reason: '' })}
+                            title="Report Channel"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
+                            </svg>
+                        </button>
+                    )}
                     <button
-                        className={`${styles.membersBtn} ${showMembers ? styles.active : ''}`}
-                        onClick={() => setShowMembers(!showMembers)}
-                        title="View Members"
+                        className={styles.moreBtn}
+                        onClick={() => setShowCreatorInfo(!showCreatorInfo)}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2524 22.1614 16.5523C21.6184 15.8522 20.8581 15.3505 20 15.12" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="19" r="1.5" />
                         </svg>
                     </button>
-                )}
-
-                {channel.isMember && !channel.isCreator && (
-                    <button className={styles.leaveBtn} onClick={handleLeave}>
-                        Leave
-                    </button>
-                )}
+                </div>
             </div>
 
-            {/* Creator Info Panel */}
-            {showCreatorInfo && channel.creator && (
+            {/* Creator / Channel Info Panel */}
+            {showCreatorInfo && (
                 <div className={styles.creatorPanel}>
-                    <div className={styles.creatorInfo}>
-                        <div className={styles.creatorAvatar}>
-                            {channel.creator.profilePic ? (
-                                <img src={channel.creator.profilePic} alt={channel.creator.name} />
-                            ) : (
-                                <span>{channel.creator.name?.charAt(0).toUpperCase()}</span>
-                            )}
-                        </div>
-                        <div className={styles.creatorDetails}>
-                            <h3>{channel.creator.name}</h3>
-                            <p>@{channel.creator.username}</p>
-                            {channel.creator.bio && (
-                                <p className={styles.creatorBio}>{channel.creator.bio}</p>
-                            )}
-                        </div>
+                    <div className={styles.panelHeader}>
+                        <h3>Channel Info</h3>
+                        <button className={styles.closePanelBtn} onClick={() => setShowCreatorInfo(false)}>×</button>
                     </div>
-                    <Link
-                        to={`/profile/${channel.creator.id}`}
-                        className={styles.profileLink}
-                    >
-                        View Profile
-                    </Link>
+                    <div className={styles.panelBody}>
+                        <div className={styles.infoSection}>
+                            <label>Description</label>
+                            <p>{channel.description || 'No description provided.'}</p>
+                        </div>
+
+                        {channel.isPrivate && channel.isCreator && (
+                            <div className={styles.infoSection}>
+                                <label>Private Join Link</label>
+                                <div className={styles.copyLink}>
+                                    <input
+                                        readOnly
+                                        value={`${window.location.origin}/channels/${id}?token=${channel.accessToken}`}
+                                    />
+                                    <button onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/channels/${id}?token=${channel.accessToken}`);
+                                        alert('Link copied!');
+                                    }}>Copy</button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={styles.infoSection}>
+                            <label>Created By</label>
+                            <div className={styles.creatorInfo}>
+                                <Link to={`/profile/${channel.creator?.username}`} className={styles.creatorAvatar}>
+                                    {channel.creator?.profilePic ? (
+                                        <img src={channel.creator.profilePic} alt="" />
+                                    ) : (
+                                        <div className={styles.avatarPlaceholder}>
+                                            {channel.creator?.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </Link>
+                                <div className={styles.creatorDetails}>
+                                    <Link to={`/profile/${channel.creator?.username}`}>
+                                        <span className={styles.creatorNameText}>{channel.creator?.name}</span>
+                                        <span className={styles.creatorHandle}>@{channel.creator?.username}</span>
+                                    </Link>
+                                    <p className={styles.creatorBio}>{channel.creator?.bio}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {channel.isCreator && (
+                            <div className={styles.creatorActions}>
+                                <button className={styles.settingsBtn}>Update Settings</button>
+                                <button
+                                    className={styles.membersBtn}
+                                    onClick={() => {
+                                        setShowMembers(true);
+                                        setShowCreatorInfo(false);
+                                    }}
+                                >
+                                    Manage Members
+                                </button>
+                                <button
+                                    className={styles.deleteBtn}
+                                    onClick={() => alert('Feature coming soon')}
+                                >
+                                    Delete Channel
+                                </button>
+                            </div>
+                        )}
+
+                        {!channel.isCreator && channel.isMember && (
+                            <button className={styles.leaveBtnPanel} onClick={handleLeave}>
+                                Leave Channel
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -373,7 +521,7 @@ const ChannelView = () => {
                 <div className={styles.membersPanel}>
                     <div className={styles.panelHeader}>
                         <h3>Channel Members ({members.length})</h3>
-                        <button onClick={() => setShowMembers(false)}>×</button>
+                        <button className={styles.closePanelBtn} onClick={() => setShowMembers(false)}>×</button>
                     </div>
                     <div className={styles.membersList}>
                         {membersLoading ? (
@@ -409,10 +557,11 @@ const ChannelView = () => {
             )}
 
             {/* Content Area */}
-            {!channel.isMember && !channel.isCreator ? (
+            {(!channel.isMember && !channel.isCreator) ? (
                 <div className={styles.joinPrompt}>
                     <div className={styles.joinContent}>
                         <h2>{channel.name}</h2>
+                        {channel.isPrivate && <span className={styles.privateTag}>Private Channel</span>}
                         {channel.description && <p>{channel.description}</p>}
                         <div className={styles.joinMeta}>
                             <span>{channel.memberCount} members</span>
@@ -496,8 +645,22 @@ const ChannelView = () => {
                                                         ))}
                                                     </div>
                                                 )}
-                                                <div className={styles.postTimeSmall}>
-                                                    {formatDate(post.createdAt)}
+
+                                                <div className={styles.postFooter}>
+                                                    <div className={styles.postTimeSmall}>
+                                                        {formatDate(post.createdAt)}
+                                                    </div>
+                                                    {!post.isCreator && isAuthenticated && (
+                                                        <button
+                                                            className={styles.reportSmallBtn}
+                                                            onClick={() => setReportModal({ show: true, type: 'post', targetId: post.id, reason: '' })}
+                                                            title="Report post"
+                                                        >
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -582,6 +745,77 @@ const ChannelView = () => {
                                 className={styles.fullMediaVideo}
                             />
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Report Modal */}
+            {reportModal.show && (
+                <div className={styles.modalOverlay} onClick={() => setReportModal({ ...reportModal, show: false })}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2>Report {reportModal.type === 'channel' ? 'Channel' : 'Post'}</h2>
+                            <button className={styles.modalCloseBtn} onClick={() => setReportModal({ ...reportModal, show: false })}>×</button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p className={styles.modalSubtext}>Why are you reporting this {reportModal.type}?</p>
+                            <div className={styles.reportOptions}>
+                                {['Spam', 'Harassment', 'Inappropriate Content', 'Misinformation', 'Other'].map(option => (
+                                    <label key={option} className={styles.reportOption}>
+                                        <input
+                                            type="radio"
+                                            name="reportReason"
+                                            value={option}
+                                            checked={reportModal.reason === option}
+                                            onChange={(e) => setReportModal({ ...reportModal, reason: e.target.value })}
+                                        />
+                                        <span>{option}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <button
+                                className={styles.reportSubmitBtn}
+                                onClick={handleReport}
+                                disabled={reporting || !reportModal.reason}
+                            >
+                                {reporting ? 'Submitting...' : 'Submit Report'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Appeal Modal */}
+            {appealModal.show && (
+                <div className={styles.modalOverlay} onClick={() => setAppealModal({ ...appealModal, show: false })}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2>Appeal Ban</h2>
+                            <button className={styles.modalCloseBtn} onClick={() => setAppealModal({ ...appealModal, show: false })}>×</button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <div className={styles.formGroupModal}>
+                                <label>Why should this channel be unbanned?</label>
+                                <textarea
+                                    className={styles.modalTextarea}
+                                    placeholder="Provide your reasoning here..."
+                                    value={appealModal.reasoning}
+                                    onChange={(e) => setAppealModal({ ...appealModal, reasoning: e.target.value })}
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <button
+                                className={styles.appealSubmitBtn}
+                                onClick={handleAppeal}
+                                disabled={appealing || !appealModal.reasoning.trim()}
+                            >
+                                {appealing ? 'Submitting...' : 'Submit Appeal'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

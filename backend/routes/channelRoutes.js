@@ -14,7 +14,12 @@ const {
     getMyChannels,
     getJoinedChannels,
     updateChannelSettings,
-    getChannelMembers
+    getChannelMembers,
+    reportChannel,
+    reportPost,
+    appealBan,
+    getReports,
+    handleAdminAction
 } = require('../controllers/channelController');
 
 // Public routes
@@ -33,6 +38,15 @@ router.delete('/:id', auth, deleteChannel);
 // Channel posts & members
 router.get('/:id/posts', auth, getChannelPosts);
 router.get('/:id/members', auth, getChannelMembers);
-router.post('/:id/posts', auth, upload.array('files', 15), createChannelPost); // Increased files limit to 15 (10 imgs + 5 vids)
+router.post('/:id/posts', auth, upload.array('files', 15), createChannelPost);
+
+// Reporting & Appeals
+router.post('/:id/report', auth, reportChannel);
+router.post('/:id/posts/:postId/report', auth, reportPost);
+router.post('/:id/appeal', auth, appealBan);
+
+// Admin controls
+router.get('/admin/reports', auth, getReports);
+router.post('/admin/action', auth, handleAdminAction);
 
 module.exports = router;

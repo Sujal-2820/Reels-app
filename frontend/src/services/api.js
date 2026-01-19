@@ -242,7 +242,11 @@ export const supportAPI = {
 export const channelsAPI = {
     getAll: (cursor = 0, limit = 20, creatorId = null) =>
         api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}`),
-    getById: (id) => api.get(`/channels/${id}`),
+    getById: (id, token = null) => {
+        let url = `/channels/${id}`;
+        if (token) url += `?token=${token}`;
+        return api.get(url);
+    },
     getMyChannels: () => api.get('/channels/my'),
     getJoinedChannels: () => api.get('/channels/joined'),
     create: (data) => api.post('/channels', data),
@@ -258,7 +262,12 @@ export const channelsAPI = {
     createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
-    updateSettings: (data) => api.post('/channels/settings', data)
+    updateSettings: (data) => api.post('/channels/settings', data),
+    report: (id, reason) => api.post(`/channels/${id}/report`, { reason }),
+    reportPost: (channelId, postId, reason) => api.post(`/channels/${channelId}/posts/${postId}/report`, { reason }),
+    appealBan: (id, reasoning) => api.post(`/channels/${id}/appeal`, { reasoning }),
+    getAdminReports: () => api.get('/channels/admin/reports'),
+    handleAdminAction: (data) => api.post('/channels/admin/action', data)
 };
 
 // ========================================
