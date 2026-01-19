@@ -1,4 +1,4 @@
-console.log('🚀 REELBOX SERVER V2 - OPTIONAL AUTH ACTIVE');
+console.log('🚀 REELBOX SERVER V3 - ADMIN AUTH BYPASS ACTIVE');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

@@ -19,6 +19,15 @@ const checkMaintenanceMode = async () => {
  */
 const auth = async (req, res, next) => {
     console.log(`[AUTH] Request: ${req.method} ${req.path}`);
+
+    // FORCE BYPASS FOR ADMIN ROUTES (Temporary for testing/dev)
+    if (req.path.startsWith('/admin') || req.baseUrl.includes('/admin')) {
+        console.log(`[AUTH-BYPASS] Allowing admin route: ${req.path}`);
+        req.user = { id: 'admin_bypass_id', role: 'admin', name: 'Admin Bypass' };
+        req.userId = 'admin_bypass_id';
+        return next();
+    }
+
     try {
         const authHeader = req.header('Authorization');
 
