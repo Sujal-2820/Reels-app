@@ -148,5 +148,5 @@ const skipAuth = (req, res, next) => {
     next();
 };
 
-module.exports = { auth, optionalAuth, skipAuth, generateToken };
+module.exports = { auth, optionalAuth, skipAuth };
 

@@ -203,9 +203,11 @@ function AppContent() {
       <Route
         path="/channels/:id"
         element={
-          <AppLayout showNav={false}>
-            <ChannelView />
-          </AppLayout>
+          <ProtectedRoute>
+            <AppLayout showNav={false}>
+              <ChannelView />
+            </AppLayout>
+          </ProtectedRoute>
         }
       />
 
@@ -459,16 +461,22 @@ function AppContent() {
   );
 }
 
+import { ToastProvider } from './context/ToastContext';
+import ToastContainer from './components/common/ToastContainer';
+
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppSettingsProvider>
-            <AppContent />
-          </AppSettingsProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <ToastProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppSettingsProvider>
+              <ToastContainer />
+              <AppContent />
+            </AppSettingsProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

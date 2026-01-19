@@ -130,15 +130,19 @@ const getFollowStatus = async (req, res) => {
         const { userId: targetUserId } = req.params;
         const followerId = req.userId;
 
-        const existingFollow = await db.collection('follows')
+        const snapshot = await db.collection('follows')
             .where('followerId', '==', followerId)
             .where('followingId', '==', targetUserId)
             .get();
 
+        const isFollowing = !snapshot.empty;
+        const isSubscribed = isFollowing ? (snapshot.docs[0].data().notify || false) : false;
+
         res.json({
             success: true,
             data: {
-                isFollowing: !existingFollow.empty
+                isFollowing,
+                isSubscribed
             }
         });
     } catch (error) {
@@ -146,6 +150,48 @@ const getFollowStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to get follow status',
+            error: error.message
+        });
+    }
+};
+
+// Toggle notifications for a followed user
+// POST /api/follow/:userId/notify
+const toggleNotifications = async (req, res) => {
+    try {
+        const { userId: targetUserId } = req.params;
+        const followerId = req.userId;
+
+        const snapshot = await db.collection('follows')
+            .where('followerId', '==', followerId)
+            .where('followingId', '==', targetUserId)
+            .get();
+
+        if (snapshot.empty) {
+            return res.status(400).json({
+                success: false,
+                message: 'You are not following this user'
+            });
+        }
+
+        const followDoc = snapshot.docs[0];
+        const newNotifyState = !followDoc.data().notify;
+
+        await followDoc.ref.update({
+            notify: newNotifyState,
+            updatedAt: serverTimestamp()
+        });
+
+        res.json({
+            success: true,
+            message: `Notifications ${newNotifyState ? 'enabled' : 'disabled'}`,
+            data: { isSubscribed: newNotifyState }
+        });
+    } catch (error) {
+        console.error('Toggle notifications error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to toggle notifications',
             error: error.message
         });
     }
@@ -258,5 +304,6 @@ module.exports = {
     unfollowUser,
     getFollowStatus,
     getFollowers,
-    getFollowing
+    getFollowing,
+    toggleNotifications
 };

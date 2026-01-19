@@ -1,0 +1,138 @@
+.container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: calc(100% - 40px);
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.toast {
+    position: relative;
+    padding: 14px 16px;
+    background: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+    cursor: pointer;
+    overflow: hidden;
+    animation: slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+}
+
+.toast:active {
+    transform: scale(0.98);
+}
+
+.icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.content {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+/* Types */
+.success {
+    border-left: 4px solid #4ade80;
+}
+
+.error {
+    border-left: 4px solid #f87171;
+}
+
+.warning {
+    border-left: 4px solid #fbbf24;
+}
+
+.info {
+    border-left: 4px solid var(--color-accent-primary);
+}
+
+.progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    width: 100%;
+    transform-origin: left;
+    animation: progress linear forwards;
+}
+
+.success .progress {
+    background: #4ade80;
+}
+
+.error .progress {
+    background: #f87171;
+}
+
+.warning .progress {
+    background: #fbbf24;
+}
+
+.info .progress {
+    background: var(--color-accent-primary);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes progress {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+/* Principle 5: Responsive */
+@media (max-width: 480px) {
+    .container {
+        top: env(safe-area-inset-top, 20px);
+    }
+
+    .toast {
+        margin: 0 10px;
+        border-radius: 12px;
+    }
+}

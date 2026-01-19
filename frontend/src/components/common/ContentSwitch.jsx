@@ -4,8 +4,8 @@ import styles from './ContentSwitch.module.css';
 const ContentSwitch = ({ activeTab, onTabChange }) => {
     return (
         <>
-            {/* Unified blur backdrop layer */}
-            <div className={styles.blurBackdrop} />
+            {/* Unified blur backdrop layer (Only on Video tab) */}
+            {activeTab === 'video' && <div className={styles.blurBackdrop} />}
 
             {/* Fixed toggle buttons layer */}
             <div className={styles.toggleWrapper}>

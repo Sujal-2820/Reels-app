@@ -35,6 +35,16 @@ const Upload = () => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
+    // Cover adjustment states
+    const [isAdjustingCover, setIsAdjustingCover] = useState(false);
+    const [coverScale, setCoverScale] = useState(1);
+    const [coverPosition, setCoverPosition] = useState({ x: 0, y: 0 });
+    const [originalCoverUrl, setOriginalCoverUrl] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const coverContainerRef = useRef(null);
+    const coverImgRef = useRef(null);
+
     const categories = [
         'Entertainment',
         'Education',
@@ -109,8 +119,93 @@ const Upload = () => {
     const handleCoverSelect = (e) => {
         const file = e.target.files?.[0];
         if (!file || !file.type.startsWith('image/')) return;
+
+        if (originalCoverUrl) URL.revokeObjectURL(originalCoverUrl);
+        const url = URL.createObjectURL(file);
+        setOriginalCoverUrl(url);
+        setCoverPreview(url);
         setCoverFile(file);
-        setCoverPreview(URL.createObjectURL(file));
+        setCoverScale(1.0);
+        setCoverPosition({ x: 0, y: 0 });
+        setIsAdjustingCover(true);
+    };
+
+    const handleCoverDragStart = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        setDragStart({ x: clientX - coverPosition.x, y: clientY - coverPosition.y });
+    };
+
+    const handleCoverDragMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        setCoverPosition({
+            x: clientX - dragStart.x,
+            y: clientY - dragStart.y
+        });
+    };
+
+    const handleCoverDragEnd = () => {
+        setIsDragging(false);
+    };
+
+    const getCroppedCover = async () => {
+        if (!coverImgRef.current || !coverContainerRef.current) return coverFile;
+
+        const canvas = document.createElement('canvas');
+        const img = coverImgRef.current;
+        const container = coverContainerRef.current;
+
+        // Aspect ratio of the container (target)
+        const targetWidth = contentType === 'reel' ? 720 : 1280;
+        const targetHeight = contentType === 'reel' ? 1280 : 720;
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+
+        // Calculate the actual source dimensions based on scale and position
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+
+        const scaleFactor = img.naturalWidth / (containerWidth * coverScale);
+
+        // The position is relative to the container. 
+        // We need to find what part of the image is at 0,0 of the container.
+        const sourceX = (-coverPosition.x) * (img.naturalWidth / (containerWidth * coverScale));
+        const sourceY = (-coverPosition.y) * (img.naturalHeight / (containerHeight * coverScale));
+
+        const sourceWidth = targetWidth * (img.naturalWidth / (containerWidth * coverScale));
+        const sourceHeight = targetHeight * (img.naturalHeight / (containerHeight * coverScale));
+
+        ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            0, 0, targetWidth, targetHeight
+        );
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
+            }, 'image/jpeg', 0.9);
+        });
+    };
+
+    const saveCoverAdjustment = async () => {
+        try {
+            const adjustedFile = await getCroppedCover();
+            const url = URL.createObjectURL(adjustedFile);
+            setCoverPreview(url);
+            setCoverFile(adjustedFile);
+            setIsAdjustingCover(false);
+        } catch (err) {
+            console.error('Failed to save cover adjustment:', err);
+            setError('Failed to process cover image');
+        }
     };
 
     const handleUpload = async () => {
@@ -320,7 +415,7 @@ const Upload = () => {
                     <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className={styles.hiddenInput} />
                 </div>
 
-                {/* Cover Image Upload */}
+                {/* Cover Image Upload Area */}
                 <div className={styles.uploadSection}>
                     <label className={styles.label}>Cover Image <span className={styles.optional}>(optional)</span></label>
                     {!coverPreview ? (
@@ -328,13 +423,78 @@ const Upload = () => {
                             <svg className={styles.dropzoneIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                 <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
+                            <span className={styles.dropzoneText}>Select Thumbnail</span>
                         </div>
                     ) : (
-                        <div className={`${styles.preview} ${styles.previewSmall}`}>
-                            <img src={coverPreview} alt="Cover" className={styles.coverPreview} />
-                            <button className={styles.removeBtn} onClick={handleRemoveCover}>
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
-                            </button>
+                        <div className={styles.coverEditorContainer}>
+                            {isAdjustingCover ? (
+                                <div className={styles.adjusterOverlay}>
+                                    <h3 className={styles.adjusterTitle}>Adjust Cover Area</h3>
+                                    <div
+                                        className={`${styles.adjusterContainer} ${contentType === 'reel' ? styles.adjusterVertical : styles.adjusterHorizontal}`}
+                                        ref={coverContainerRef}
+                                        onMouseDown={handleCoverDragStart}
+                                        onMouseMove={handleCoverDragMove}
+                                        onMouseUp={handleCoverDragEnd}
+                                        onMouseLeave={handleCoverDragEnd}
+                                        onTouchStart={handleCoverDragStart}
+                                        onTouchMove={handleCoverDragMove}
+                                        onTouchEnd={handleCoverDragEnd}
+                                    >
+                                        <img
+                                            ref={coverImgRef}
+                                            src={originalCoverUrl}
+                                            className={styles.adjusterImg}
+                                            style={{
+                                                transform: `translate(${coverPosition.x}px, ${coverPosition.y}px) scale(${coverScale})`,
+                                                cursor: isDragging ? 'grabbing' : 'grab'
+                                            }}
+                                            alt="To adjust"
+                                            draggable="false"
+                                        />
+                                    </div>
+                                    <div className={styles.adjusterControls}>
+                                        <div className={styles.scaleControl}>
+                                            <label>Zoom</label>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="3"
+                                                step="0.01"
+                                                value={coverScale}
+                                                onChange={(e) => setCoverScale(parseFloat(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className={styles.adjusterButtons}>
+                                            <button
+                                                className={styles.removeBtnEditor}
+                                                onClick={() => {
+                                                    handleRemoveCover();
+                                                    setIsAdjustingCover(false);
+                                                }}
+                                            >
+                                                Remove
+                                            </button>
+                                            <div className={styles.mainAdjusterActions}>
+                                                <button className={styles.cancelBtn} onClick={() => setIsAdjustingCover(false)}>Cancel</button>
+                                                <button className={styles.saveAdjustmentBtn} onClick={saveCoverAdjustment}>Apply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className={`${styles.preview} ${contentType === 'reel' ? styles.previewReel : styles.previewSmall}`}>
+                                    <img src={coverPreview} alt="Cover" className={styles.coverPreview} />
+                                    <div className={styles.coverActionOverlay}>
+                                        <button className={styles.adjustBtn} onClick={() => setIsAdjustingCover(true)}>
+                                            Adjust
+                                        </button>
+                                        <button className={styles.removeBtn} onClick={handleRemoveCover}>
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverSelect} className={styles.hiddenInput} />

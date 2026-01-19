@@ -3,8 +3,8 @@
     top: var(--header-height);
     left: 0;
     right: 0;
-    height: 130px;
-    /* Covers toggle and category bar area */
+    height: 85px;
+    /* Further reduced height */
     z-index: 150;
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -23,7 +23,8 @@
     /* Above Category Bar (160) */
     display: flex;
     justify-content: center;
-    padding-top: var(--space-sm);
+    padding-top: 4px;
+    /* Further reduced padding */
     pointer-events: none;
 }
 
@@ -32,20 +33,23 @@
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 4px;
+    padding: 2px;
+    /* Further reduced padding */
     border-radius: 100px;
     display: flex;
-    gap: 4px;
+    gap: 2px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     animation: fadeInDown 0.5s ease;
 }
 
 .tab {
-    padding: 8px 16px;
+    padding: 4px 12px;
+    /* Further reduced padding */
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 14px;
+    font-size: 12px;
+    /* Further reduced font size */
     font-weight: 700;
     cursor: pointer;
     border-radius: 100px;

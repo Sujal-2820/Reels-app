@@ -249,11 +249,16 @@ export const channelsAPI = {
     join: (id) => api.post(`/channels/${id}/join`),
     leave: (id) => api.post(`/channels/${id}/leave`),
     delete: (id) => api.delete(`/channels/${id}`),
-    getPosts: (id, cursor = 0, limit = 20) =>
-        api.get(`/channels/${id}/posts?cursor=${cursor}&limit=${limit}`),
+    getPosts: (id, cursor = null, limit = 20) => {
+        let url = `/channels/${id}/posts?limit=${limit}`;
+        if (cursor && cursor !== 'null') url += `&cursor=${cursor}`;
+        return api.get(url);
+    },
+    getMembers: (id) => api.get(`/channels/${id}/members`),
     createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    }),
+    updateSettings: (data) => api.post('/channels/settings', data)
 };
 
 // ========================================
@@ -264,6 +269,7 @@ export const followAPI = {
     follow: (userId) => api.post(`/follow/${userId}`),
     unfollow: (userId) => api.delete(`/follow/${userId}`),
     getStatus: (userId) => api.get(`/follow/${userId}/status`),
+    toggleNotifications: (userId) => api.post(`/follow/${userId}/notify`),
     getFollowers: (userId, cursor = 0, limit = 20) =>
         api.get(`/follow/${userId}/followers?cursor=${cursor}&limit=${limit}`),
     getFollowing: (userId, cursor = 0, limit = 20) =>

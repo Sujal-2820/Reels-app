@@ -139,6 +139,8 @@ const getChannels = async (req, res) => {
         const hasMore = allDocs.length > parsedCursor + parsedLimit;
 
         const channels = [];
+        const userId = req.userId;
+
         for (const { doc, data } of paginatedDocs) {
             // Get creator info
             const creatorDoc = await db.collection('users').doc(data.creatorId).get();
@@ -149,10 +151,24 @@ const getChannels = async (req, res) => {
                 profilePic: creatorDoc.data().profilePic
             } : null;
 
+            // Check if current user is a member/creator
+            let isMember = false;
+            let isCreator = false;
+            if (userId) {
+                isCreator = userId === data.creatorId;
+                const memberSnap = await db.collection('channelMembers')
+                    .where('channelId', '==', doc.id)
+                    .where('userId', '==', userId)
+                    .get();
+                isMember = !memberSnap.empty;
+            }
+
             channels.push({
                 id: doc.id,
                 ...data,
                 creator,
+                isMember,
+                isCreator,
                 createdAt: data.createdAt?.toDate?.()?.toISOString() || null
             });
         }
@@ -265,8 +281,9 @@ const joinChannel = async (req, res) => {
             });
         }
 
-        // Add member
-        await db.collection('channelMembers').add({
+        // Use a consistent ID for the membership document to prevent duplicates
+        const memberId = `${id}_${userId}`;
+        await db.collection('channelMembers').doc(memberId).set({
             channelId: id,
             userId,
             joinedAt: serverTimestamp()
@@ -378,32 +395,58 @@ const createChannelPost = async (req, res) => {
         const videos = [];
         const files = [];
 
+        if (text && text.length > (limits.maxTextLength || 1000)) {
+            return res.status(400).json({
+                success: false,
+                message: `Text exceeds maximum length of ${limits.maxTextLength || 1000} characters`
+            });
+        }
+
         if (req.files) {
+            let imgCount = 0;
+            let vidCount = 0;
+
             for (const file of req.files) {
                 try {
                     if (file.mimetype.startsWith('image/')) {
-                        if (file.size > limits.maxImageSize) {
+                        if (imgCount >= (limits.maxImagesPerPost || 10)) {
                             cleanupFile(file.path);
                             continue;
                         }
-                        const result = await uploadImage(file.path, 'channel_images');
+                        if (file.size > (limits.maxImageSize || 10 * 1024 * 1024)) {
+                            cleanupFile(file.path);
+                            continue;
+                        }
+                        const result = await uploadImage(file.path, {
+                            folder: 'channel_images',
+                            transformation: [
+                                { quality: 'auto:good' },
+                                { fetch_format: 'auto' }
+                            ]
+                        });
                         images.push({ url: result.secure_url, size: file.size, publicId: result.public_id });
+                        imgCount++;
                         cleanupFile(file.path);
                     } else if (file.mimetype.startsWith('video/')) {
-                        if (file.size > limits.maxVideoSize) {
+                        if (vidCount >= (limits.maxVideosPerPost || 5)) {
                             cleanupFile(file.path);
                             continue;
                         }
-                        const result = await uploadVideo(file.path, 'channel_videos');
+                        if (file.size > (limits.maxVideoSize || 100 * 1024 * 1024)) {
+                            cleanupFile(file.path);
+                            continue;
+                        }
+                        const result = await uploadVideo(file.path, {
+                            folder: 'channel_videos',
+                            transformation: [
+                                { quality: 'auto' },
+                                { fetch_format: 'auto' }
+                            ]
+                        });
                         videos.push({ url: result.secure_url, size: file.size, publicId: result.public_id });
+                        vidCount++;
                         cleanupFile(file.path);
                     } else {
-                        if (file.size > limits.maxFileSize) {
-                            cleanupFile(file.path);
-                            continue;
-                        }
-                        // For other files, we'd need a file storage service
-                        // For now, skip non-image/video files
                         cleanupFile(file.path);
                     }
                 } catch (uploadError) {
@@ -472,10 +515,9 @@ const createChannelPost = async (req, res) => {
 const getChannelPosts = async (req, res) => {
     try {
         const { id } = req.params;
-        const { cursor = 0, limit = 20 } = req.query;
+        const { cursor = null, limit = 20 } = req.query;
         const userId = req.userId;
-        const parsedLimit = Math.min(parseInt(limit), 50);
-        const parsedCursor = parseInt(cursor);
+        const parsedLimit = Math.min(parseInt(limit) || 20, 50);
 
         // Verify channel exists
         const channelDoc = await db.collection('channels').doc(id).get();
@@ -509,16 +551,20 @@ const getChannelPosts = async (req, res) => {
         }
 
         // Get posts
-        const snapshot = await db.collection('channelPosts')
+        let query = db.collection('channelPosts')
             .where('channelId', '==', id)
-            .orderBy('createdAt', 'desc')
-            .offset(parsedCursor)
-            .limit(parsedLimit + 1)
-            .get();
+            .orderBy('createdAt', 'desc');
+
+        if (cursor && cursor !== 'null' && cursor !== 'undefined') {
+            const cursorDoc = await db.collection('channelPosts').doc(cursor).get();
+            if (cursorDoc.exists) {
+                query = query.startAfter(cursorDoc);
+            }
+        }
+
+        const snapshot = await query.limit(parsedLimit).get();
 
         const posts = [];
-        const docs = snapshot.docs.slice(0, parsedLimit);
-
         // Get creator info once
         const creatorDoc = await db.collection('users').doc(channelData.creatorId).get();
         const creator = creatorDoc.exists ? {
@@ -528,7 +574,7 @@ const getChannelPosts = async (req, res) => {
             profilePic: creatorDoc.data().profilePic
         } : null;
 
-        for (const doc of docs) {
+        for (const doc of snapshot.docs) {
             const data = doc.data();
             posts.push({
                 id: doc.id,
@@ -542,11 +588,21 @@ const getChannelPosts = async (req, res) => {
             success: true,
             data: {
                 items: posts,
-                nextCursor: snapshot.docs.length > parsedLimit ? parsedCursor + parsedLimit : null
+                nextCursor: snapshot.docs.length === parsedLimit ? snapshot.docs[snapshot.docs.length - 1].id : null
             }
         });
     } catch (error) {
         console.error('Get channel posts error:', error);
+
+        // Specifically detect missing index error
+        if (error.message && error.message.includes('requires an index')) {
+            return res.status(500).json({
+                success: false,
+                message: 'Database configuration error: A Firestore index is required for this query. Please check server logs for the creation link.',
+                indexError: true
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to fetch posts',
@@ -691,6 +747,120 @@ const getJoinedChannels = async (req, res) => {
     }
 };
 
+// Update channel global settings (Admin only)
+// POST /api/channels/settings
+const updateChannelSettings = async (req, res) => {
+    try {
+        const { id, role } = req.user;
+        if (role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin only.'
+            });
+        }
+
+        const newSettings = req.body;
+
+        // Allowed keys to update
+        const allowedKeys = [
+            'allowChannels',
+            'maxChannelsPerUser',
+            'maxChannelPostsPerDay',
+            'maxTextLength',
+            'maxImagesPerPost',
+            'maxVideosPerPost',
+            'maxImageSize',
+            'maxVideoSize',
+            'maxFileSize'
+        ];
+
+        const settingsToUpdate = {};
+        allowedKeys.forEach(key => {
+            if (newSettings[key] !== undefined) {
+                settingsToUpdate[key] = newSettings[key];
+            }
+        });
+
+        if (Object.keys(settingsToUpdate).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No valid settings provided'
+            });
+        }
+
+        await db.collection('appSettings').doc('global').set(settingsToUpdate, { merge: true });
+
+        res.json({
+            success: true,
+            message: 'Channel settings updated successfully',
+            data: settingsToUpdate
+        });
+    } catch (error) {
+        console.error('Update channel settings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update channel settings',
+            error: error.message
+        });
+    }
+};
+
+// Get channel members (Creator only)
+// GET /api/channels/:id/members
+const getChannelMembers = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId;
+
+        const channelDoc = await db.collection('channels').doc(id).get();
+        if (!channelDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                message: 'Channel not found'
+            });
+        }
+
+        if (channelDoc.data().creatorId !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only the channel creator can view members'
+            });
+        }
+
+        const snapshot = await db.collection('channelMembers')
+            .where('channelId', '==', id)
+            .get();
+
+        const members = [];
+        for (const doc of snapshot.docs) {
+            const memberUserId = doc.data().userId;
+            const userDoc = await db.collection('users').doc(memberUserId).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                members.push({
+                    id: userDoc.id,
+                    name: userData.name,
+                    username: userData.username,
+                    profilePic: userData.profilePic,
+                    joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || null
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: { items: members }
+        });
+    } catch (error) {
+        console.error('Get channel members error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch channel members',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createChannel,
     getChannels,
@@ -701,5 +871,7 @@ module.exports = {
     getChannelPosts,
     deleteChannel,
     getMyChannels,
-    getJoinedChannels
+    getJoinedChannels,
+    updateChannelSettings,
+    getChannelMembers
 };

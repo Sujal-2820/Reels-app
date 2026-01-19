@@ -30,6 +30,11 @@ const AdminSettings = () => {
         // Channel Settings
         maxChannelPostsPerDay: 10,
         maxChannelsPerUser: 5,
+        maxTextLength: 1000,
+        maxImagesPerPost: 10,
+        maxVideosPerPost: 5,
+        maxImageSize: 10, // MB
+        maxVideoSize: 100, // MB
 
         // Feature Toggles
         maintenanceMode: false,
@@ -361,7 +366,7 @@ const AdminSettings = () => {
                     📣 Channel Settings
                 </h2>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
                             Max Channel Posts Per Day
@@ -382,6 +387,70 @@ const AdminSettings = () => {
                             type="number"
                             value={settings.maxChannelsPerUser}
                             onChange={(e) => handleChange('maxChannelsPerUser', parseInt(e.target.value))}
+                            style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Text Length (chars)
+                        </label>
+                        <input
+                            type="number"
+                            value={settings.maxTextLength}
+                            onChange={(e) => handleChange('maxTextLength', parseInt(e.target.value))}
+                            style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Images Per Post
+                        </label>
+                        <input
+                            type="number"
+                            value={settings.maxImagesPerPost}
+                            onChange={(e) => handleChange('maxImagesPerPost', parseInt(e.target.value))}
+                            style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Videos Per Post
+                        </label>
+                        <input
+                            type="number"
+                            value={settings.maxVideosPerPost}
+                            onChange={(e) => handleChange('maxVideosPerPost', parseInt(e.target.value))}
+                            style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Post Image Size (MB)
+                        </label>
+                        <input
+                            type="number"
+                            value={settings.maxImageSize}
+                            onChange={(e) => handleChange('maxImageSize', parseInt(e.target.value))}
+                            style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Post Video Size (MB)
+                        </label>
+                        <input
+                            type="number"
+                            value={settings.maxVideoSize}
+                            onChange={(e) => handleChange('maxVideoSize', parseInt(e.target.value))}
                             style={{ width: '100%', padding: '10px', border: '1px solid var(--admin-border)', borderRadius: '4px' }}
                         />
                     </div>

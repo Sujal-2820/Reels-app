@@ -11,7 +11,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const videoRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isMuted, setIsMuted] = useState(true);
+    const [isMuted, setIsMuted] = useState(false);
     const [isLiked, setIsLiked] = useState(reel?.isLiked || false);
     const [likesCount, setLikesCount] = useState(reel?.likesCount || 0);
     const [showHeart, setShowHeart] = useState(false);

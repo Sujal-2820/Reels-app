@@ -1,32 +1,32 @@
 .list {
-    padding: var(--space-md);
-    padding-top: 0;
-    /* Managed by parent Home component now */
+    padding: 0;
+    /* Removed var(--space-md) to make cards full-width */
     display: flex;
     flex-direction: column;
 }
 
 .loadingContainer {
-    padding: var(--space-md);
-    padding-top: 0;
+    padding: 0;
 }
 
 .skeletonCard {
-    margin-bottom: var(--space-lg);
+    margin-bottom: 8px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .skeletonThumb {
     width: 100%;
     aspect-ratio: 16/9;
     background: var(--color-bg-secondary);
-    border-radius: 12px;
+    border-radius: 0;
     animation: shimmer 1.5s infinite linear;
 }
 
 .skeletonMeta {
     display: flex;
     gap: 12px;
-    padding: 12px 4px;
+    padding: 12px var(--space-md);
 }
 
 .skeletonAvatar {

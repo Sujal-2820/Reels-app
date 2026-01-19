@@ -11,6 +11,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const { id, token } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
+    const videoRef = useRef(null);
 
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -24,14 +25,75 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [isSubscribed, setIsSubscribed] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);
+    const [isDescExpanded, setIsDescExpanded] = useState(false);
+    const [relatedVideos, setRelatedVideos] = useState([]);
+    const [relatedLoading, setRelatedLoading] = useState(false);
+    const [currentQuality, setCurrentQuality] = useState('Auto');
+    const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [playHistory, setPlayHistory] = useState([]);
+
+    const QUALITIES = [
+        { label: 'Auto', value: 'Auto' },
+        { label: '1080p', value: 'h_1080,q_auto' },
+        { label: '720p', value: 'h_720,q_auto' },
+        { label: '480p', value: 'h_480,q_auto' },
+        { label: '360p', value: 'h_360,q_auto' }
+    ];
+
+    const getTransformedUrl = (url, quality) => {
+        if (!url || quality === 'Auto') return url;
+
+        // Cloudinary URL transformation injection
+        // Replaces '/upload/' with '/upload/[transformation]/'
+        if (url.includes('/upload/')) {
+            return url.replace('/upload/', `/upload/${quality}/`);
+        }
+        return url;
+    };
+
+    const handleQualityChange = (qualityValue, qualityLabel) => {
+        if (videoRef.current) {
+            const currentTime = videoRef.current.currentTime;
+            const isPaused = videoRef.current.paused;
+
+            setCurrentQuality(qualityLabel);
+            setIsQualityMenuOpen(false);
+
+            // Give React a moment to update the src
+            setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.currentTime = currentTime;
+                    if (!isPaused) videoRef.current.play();
+                }
+            }, 100);
+        }
+    };
 
     const formatCompact = (count) => {
-        if (!count) return '0';
+        if (!count || count < 0) return '0';
         if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
         if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
         return count.toString();
+    };
+
+    const formatDuration = (seconds) => {
+        if (!seconds && seconds !== 0) return '0:00';
+        const totalSeconds = Math.floor(seconds);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+
+        const pad = (n) => n.toString().padStart(2, '0');
+
+        if (h > 0) {
+            return `${h}:${pad(m)}:${pad(s)}`;
+        }
+        // User requested: if MM not present then simply show M:SS Where M will be 0
+        return `${m}:${pad(s)}`;
     };
 
     useEffect(() => {
@@ -56,11 +118,22 @@ const VideoShowcase = ({ isPrivate = false }) => {
                     }
 
                     setVideo(videoData);
-                    setLikesCount(videoData.likesCount || 0);
-                    setCommentsCount(videoData.commentsCount || 0);
-                    setIsLiked(videoData.isLiked || false);
+                    setLikesCount(Math.max(0, videoData.likesCount || 0));
+                    setCommentsCount(Math.max(0, videoData.commentsCount || 0));
+
+                    // principle: check optimistic state from activity buffer
+                    const optimistic = activitySync.getOptimisticState(videoData.id);
+                    if (optimistic.isLiked !== undefined) {
+                        setIsLiked(optimistic.isLiked);
+                        if (optimistic.isLiked !== videoData.isLiked) {
+                            setLikesCount(prev => Math.max(0, prev + (optimistic.isLiked ? 1 : -1)));
+                        }
+                    } else {
+                        setIsLiked(videoData.isLiked || false);
+                    }
+
                     setIsSaved(videoData.isSaved || false);
-                    setFollowersCount(videoData.creator?.followersCount || 0);
+                    setFollowersCount(Math.max(0, videoData.creator?.followersCount || 0));
 
                     // Check follow status
                     if (isAuthenticated && videoData.creator?.id) {
@@ -68,8 +141,12 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         const followStatus = await followAPI.getStatus(videoData.creator.id);
                         if (followStatus.success) {
                             setIsFollowing(followStatus.data.isFollowing);
+                            setIsSubscribed(followStatus.data.isSubscribed || false);
                         }
                     }
+
+                    // Fetch related videos
+                    fetchRelatedVideos(videoData.category);
                 }
             } catch (err) {
                 setError(err.message || 'Failed to load video');
@@ -78,8 +155,122 @@ const VideoShowcase = ({ isPrivate = false }) => {
             }
         };
 
+        const fetchRelatedVideos = async (category) => {
+            try {
+                setRelatedLoading(true);
+                // Fetch first page of related category
+                const response = await reelsAPI.getFeed(0, 10, 'video', category);
+                if (response.success) {
+                    // Filter out current video
+                    const filtered = response.data.items.filter(item => item.id !== id);
+
+                    // If not enough related, fetch general feed
+                    if (filtered.length < 5) {
+                        const generalResponse = await reelsAPI.getFeed(0, 10, 'video', 'All');
+                        if (generalResponse.success) {
+                            const more = generalResponse.data.items.filter(
+                                item => item.id !== id && !filtered.find(f => f.id === item.id)
+                            );
+                            setRelatedVideos([...filtered, ...more].slice(0, 10));
+                        } else {
+                            setRelatedVideos(filtered);
+                        }
+                    } else {
+                        setRelatedVideos(filtered);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch related videos', err);
+            } finally {
+                setRelatedLoading(false);
+            }
+        };
+
         fetchVideo();
+        // Reset expanded state on video change
+        setIsDescExpanded(false);
+        setIsQualityMenuOpen(false);
+
+        // Track history for 'Previous' button
+        setPlayHistory(prev => {
+            if (prev.includes(id)) return prev;
+            return [...prev, id];
+        });
     }, [id, token, isPrivate, navigate]);
+
+    const handlePlayPause = () => {
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsPlaying(true);
+            } else {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            }
+        }
+    };
+
+    const handleNext = () => {
+        if (relatedVideos.length > 0) {
+            navigate(`/video/${relatedVideos[0].id}`);
+        }
+    };
+
+    const handlePrev = () => {
+        const currentIndex = playHistory.indexOf(id);
+        if (currentIndex > 0) {
+            const prevId = playHistory[currentIndex - 1];
+            navigate(`/video/${prevId}`);
+        }
+    };
+
+    const handleBellToggle = async (e) => {
+        if (e) e.stopPropagation();
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+
+        const creatorId = video?.userId || video?.creator?.id;
+        if (!creatorId) return;
+
+        // Principle: Auto-follow first if not following when clicking bell
+        if (!isFollowing) {
+            try {
+                const { followAPI } = await import('../../services/api');
+                await followAPI.follow(creatorId);
+                setIsFollowing(true);
+                setFollowersCount(prev => prev + 1);
+                if (window.showToast) {
+                    window.showToast(`Following ${video.creator?.username}`, 'success');
+                }
+            } catch (err) {
+                console.error('Auto-follow failed:', err);
+                return; // Stop if follow fails
+            }
+        }
+
+        const newSubState = !isSubscribed;
+        setIsSubscribed(newSubState);
+
+        try {
+            const { followAPI } = await import('../../services/api');
+            await followAPI.toggleNotifications(creatorId);
+
+            if (newSubState) {
+                if (window.showToast) {
+                    window.showToast(`Notifications enabled`, 'success');
+                }
+            } else if (!newSubState) {
+                if (window.showToast) {
+                    window.showToast(`Notifications disabled`, 'info');
+                }
+            }
+        } catch (err) {
+            console.error('Failed to toggle notifications:', err);
+            setIsSubscribed(!newSubState); // rollback
+        }
+    };
 
     const handleLike = async () => {
         if (!isAuthenticated) {
@@ -127,7 +318,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
                 });
             } else {
                 await navigator.clipboard.writeText(shareUrl);
-                alert('Link copied to clipboard');
+                if (window.showToast) window.showToast('Link copied to clipboard', 'success');
             }
         } catch (err) {
             console.error('Share failed', err);
@@ -169,15 +360,93 @@ const VideoShowcase = ({ isPrivate = false }) => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.videoSection}>
+            <div className={styles.videoSection} onMouseLeave={() => setIsQualityMenuOpen(false)}>
                 <video
-                    src={video.videoUrl}
+                    ref={videoRef}
+                    src={getTransformedUrl(video.videoUrl, QUALITIES.find(q => q.label === currentQuality)?.value)}
                     className={styles.player}
                     controls
                     autoPlay
                     playsInline
                     muted={isMuted}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
                 />
+
+                {/* Video Playback Controls Overlay */}
+                <div className={styles.playbackControls}>
+                    <button
+                        className={styles.controlBtn}
+                        onClick={handlePrev}
+                        disabled={playHistory.indexOf(id) <= 0}
+                        title="Previous video"
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                        </svg>
+                    </button>
+
+                    <button
+                        className={styles.playPauseBtn}
+                        onClick={handlePlayPause}
+                    >
+                        {isPlaying ? (
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                            </svg>
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                        )}
+                    </button>
+
+                    <button
+                        className={styles.controlBtn}
+                        onClick={handleNext}
+                        disabled={relatedVideos.length === 0}
+                        title="Next video"
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 18l8.5-6L6 6V18zM16 6v12h2V6h-2z" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Quality Control Overlay */}
+                <div className={styles.playerControls}>
+                    <div className={styles.qualityWrapper}>
+                        <button
+                            className={styles.qualityBtn}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsQualityMenuOpen(!isQualityMenuOpen);
+                            }}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            <span className={styles.qualityLabel}>{currentQuality}</span>
+                        </button>
+
+                        {isQualityMenuOpen && (
+                            <div className={styles.qualityMenu}>
+                                <div className={styles.menuHeader}>Quality</div>
+                                {QUALITIES.map((q) => (
+                                    <button
+                                        key={q.label}
+                                        className={`${styles.menuItem} ${currentQuality === q.label ? styles.menuItemActive : ''}`}
+                                        onClick={() => handleQualityChange(q.value, q.label)}
+                                    >
+                                        {q.label}
+                                        {currentQuality === q.label && <span className={styles.check}>✓</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className={styles.detailsSection}>
@@ -204,22 +473,6 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         </svg>
                         <span>{formatCompact(commentsCount)}</span>
                     </button>
-
-                    {video.creator && user?.id !== (video.userId || video.creator.id) && (
-                        <button
-                            className={`${styles.actionBtn} ${isFollowing ? styles.following : ''}`}
-                            onClick={handleFollowToggle}
-                            disabled={followLoading}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="8.5" cy="7" r="4" />
-                                {!isFollowing && <line x1="20" y1="8" x2="20" y2="14" />}
-                                {!isFollowing && <line x1="17" y1="11" x2="23" y2="11" />}
-                            </svg>
-                            <span>{followLoading ? '...' : (isFollowing ? 'Following' : 'Follow')}</span>
-                        </button>
-                    )}
 
                     <button className={`${styles.actionBtn} ${isSaved ? styles.active : ''}`} onClick={handleSave}>
                         <svg viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
@@ -249,7 +502,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
                             <span className={styles.username} onClick={() => navigate(`/profile/${video.creator?.id}`)}>
                                 {video.creator?.username}
                             </span>
-                            {(!user || user.id !== (video.userId || video.creator?.id)) && (
+                            {video.creator && user && user.id !== (video.userId || video.creator.id) && (
                                 <>
                                     <span className={styles.dot}>•</span>
                                     <button
@@ -264,10 +517,71 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         </div>
                     </div>
 
+                    {/* Bell Icon for Notifications */}
+                    {isAuthenticated && user && user.id !== (video.userId || video.creator?.id) && (
+                        <button
+                            className={`${styles.bellBtn} ${isSubscribed ? styles.bellActive : ''}`}
+                            onClick={handleBellToggle}
+                        >
+                            <svg viewBox="0 0 24 24" fill={isSubscribed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+                                {isSubscribed && (
+                                    <path d="M12 2v2m0 16v2M4 12H2m20 0h-2" strokeWidth="1" strokeLinecap="round" />
+                                )}
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
                 <div className={styles.descriptionBox}>
-                    <p className={styles.description} style={{ whiteSpace: 'pre-wrap' }}>{video.description}</p>
+                    <p className={styles.description} style={{ whiteSpace: 'pre-wrap' }}>
+                        {isDescExpanded || !video.description || video.description.length <= 100
+                            ? video.description
+                            : `${video.description.substring(0, 100)}... `
+                        }
+                        {video.description && video.description.length > 100 && (
+                            <button
+                                className={styles.seeMoreBtn}
+                                onClick={() => setIsDescExpanded(!isDescExpanded)}
+                            >
+                                {isDescExpanded ? 'Show less' : 'See more'}
+                            </button>
+                        )}
+                    </p>
+                </div>
+
+                {/* Recommended Videos Section */}
+                <div className={styles.recommendedSection}>
+                    <h2 className={styles.sectionTitle}>Up Next</h2>
+                    <div className={styles.relatedGrid}>
+                        {relatedLoading ? (
+                            <div className={styles.miniLoader}>Loading recommendations...</div>
+                        ) : relatedVideos.length > 0 ? (
+                            relatedVideos.map(item => (
+                                <div
+                                    key={item.id}
+                                    className={styles.relatedCard}
+                                    onClick={() => navigate(`/video/${item.id}`)}
+                                >
+                                    <div className={styles.relatedThumb}>
+                                        <img src={item.poster} alt={item.title} />
+                                        <span className={styles.duration}>
+                                            {formatDuration(item.duration)}
+                                        </span>
+                                    </div>
+                                    <div className={styles.relatedInfo}>
+                                        <h3 className={styles.relatedTitle}>{item.title}</h3>
+                                        <span className={styles.relatedMeta}>
+                                            {item.creator?.username} • {formatCompact(item.viewsCount)} views
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className={styles.noRelated}>No related videos found</p>
+                        )}
+                    </div>
                 </div>
             </div>
 

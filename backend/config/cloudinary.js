@@ -50,16 +50,23 @@ const uploadVideo = async (filePath, options = {}) => {
  */
 const uploadImage = async (filePath, options = {}) => {
     try {
-        const result = await cloudinary.uploader.upload(filePath, {
+        const { transformation, ...otherOptions } = options;
+
+        // Default transformation (e.g., for reel covers) if none provided
+        const defaultTransformation = [
+            { width: 720, height: 1280, crop: 'fill', gravity: 'center' },
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+        ];
+
+        const uploadParams = {
             resource_type: 'image',
             folder: 'reelbox/covers',
-            transformation: [
-                { width: 720, height: 1280, crop: 'fill', gravity: 'center' },
-                { quality: 'auto:good' },
-                { fetch_format: 'auto' }
-            ],
-            ...options
-        });
+            transformation: transformation || defaultTransformation,
+            ...otherOptions
+        };
+
+        const result = await cloudinary.uploader.upload(filePath, uploadParams);
         return result;
     } catch (error) {
         console.error('Cloudinary image upload error:', error);
