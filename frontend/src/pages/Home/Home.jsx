@@ -51,7 +51,8 @@ const Home = () => {
                 setVideoLoadingMore(true);
             }
 
-            const response = await reelsAPI.getFeed(cursorValue, 10, 'video', category);
+            const limit = cursorValue === 0 ? 5 : 10;
+            const response = await reelsAPI.getFeed(cursorValue, limit, 'video', category);
 
             if (response.success) {
                 const newItems = response.data.items;
