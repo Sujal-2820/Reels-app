@@ -432,3 +432,28 @@
     justify-content: center;
     color: var(--color-text-secondary) !important;
 }
+
+.lockBadge.locked {
+    background: #ef4444;
+    color: #fff;
+    width: auto;
+    padding: 2px 8px;
+    border-radius: 4px;
+    gap: 4px;
+}
+
+.lockedText {
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.lockedOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef4444;
+}

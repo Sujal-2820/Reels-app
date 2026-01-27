@@ -54,6 +54,18 @@ const {
     getChannelStats,
     deleteChannel
 } = require('../controllers/adminChannelController');
+const {
+    getAllPlans: getAllSubscriptionPlans,
+    createPlan: createSubscriptionPlan,
+    updatePlan: updateSubscriptionPlan,
+    deactivatePlan,
+    getSubscribers: getSubscriptionSubscribers,
+    grantSubscription,
+    extendSubscription,
+    cancelSubscription,
+    getStats: getSubscriptionStats2,
+    getUserLockedContent
+} = require('../controllers/adminSubscriptionController');
 const { auth, optionalAuth, skipAuth } = require('../middleware/auth');
 
 // All admin routes require authentication (TEMPORARILY DISABLED AS PER USER REQUEST)
@@ -92,7 +104,7 @@ router.get('/comments/stats', skipAuth, getCommentStats);
 router.delete('/comments/:commentId', skipAuth, deleteComment);
 router.post('/comments/bulk-delete', skipAuth, bulkDeleteComments);
 
-// Plan & Subscription management routes
+// Plan & Subscription management routes (LEGACY - kept for backward compatibility)
 router.get('/plans', skipAuth, getAllPlans);
 router.post('/plans', skipAuth, createPlan);
 router.put('/plans/:planId', skipAuth, updatePlan);
@@ -101,6 +113,19 @@ router.get('/transactions', skipAuth, getAllTransactions);
 router.get('/subscribers', skipAuth, getSubscribers);
 router.post('/subscribers/assign', skipAuth, assignPlanToUser);
 router.get('/subscriptions/stats', skipAuth, getSubscriptionStats);
+
+// NEW Subscription management routes (comprehensive system)
+router.get('/subscriptions/plans', skipAuth, getAllSubscriptionPlans);
+router.post('/subscriptions/plans', skipAuth, createSubscriptionPlan);
+router.put('/subscriptions/plans/:planId', skipAuth, updateSubscriptionPlan);
+router.delete('/subscriptions/plans/:planId', skipAuth, deactivatePlan);
+router.get('/subscriptions/subscribers', skipAuth, getSubscriptionSubscribers);
+router.post('/subscriptions/grant', skipAuth, grantSubscription);
+router.post('/subscriptions/extend/:subscriptionId', skipAuth, extendSubscription);
+router.post('/subscriptions/cancel/:subscriptionId', skipAuth, cancelSubscription);
+router.get('/subscriptions/stats-v2', skipAuth, getSubscriptionStats2);
+router.get('/subscriptions/locked-content/:userId', skipAuth, getUserLockedContent);
+
 
 // Support ticket management routes
 router.get('/support/tickets', skipAuth, getAllTickets);

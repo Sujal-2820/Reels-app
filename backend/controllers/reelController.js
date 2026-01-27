@@ -423,6 +423,27 @@ const getPrivateReel = async (req, res) => {
         const reelDoc = reelSnap.docs[0];
         const reel = reelDoc.data();
 
+        // Check if content is locked
+        if (reel.isLocked) {
+            const isOwner = req.userId === reel.userId;
+
+            return res.json({
+                success: true,
+                data: {
+                    id: reelDoc.id,
+                    isLocked: true,
+                    isOwner,
+                    lockReason: reel.lockReason,
+                    message: isOwner
+                        ? 'Your subscription has expired. Renew to unlock this content.'
+                        : 'This content is currently locked. The creator\'s subscription has expired.',
+                    posterUrl: reel.posterUrl, // Show poster even when locked
+                    contentType: reel.contentType || 'reel',
+                    title: reel.title || ''
+                }
+            });
+        }
+
         // Fetch creator info
         const userSnap = await db.collection('users').doc(reel.userId).get();
         const creator = userSnap.exists ? userSnap.data() : null;
@@ -453,6 +474,7 @@ const getPrivateReel = async (req, res) => {
                 commentsCount: reel.commentsCount || 0,
                 viewsCount: (reel.viewsCount || 0) + 1,
                 isPrivate: true,
+                isLocked: false,
                 isLiked,
                 isSaved,
                 createdAt: reel.createdAt?.toDate(),

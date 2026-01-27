@@ -314,4 +314,54 @@ export const appSettingsAPI = {
     get: () => api.get('/settings')
 };
 
+// ========================================
+// SUBSCRIPTIONS API
+// ========================================
+
+export const subscriptionAPI = {
+    // Get all available plans
+    getPlans: () => api.get('/subscriptions/plans'),
+
+    // Get user's active subscriptions and entitlements
+    getMySubscriptions: () => api.get('/subscriptions/my'),
+
+    // Get calculated entitlements only (lightweight)
+    getEntitlements: () => api.get('/subscriptions/entitlements'),
+
+    // Create a payment order for purchasing a plan (legacy one-time)
+    createPurchaseOrder: (planId, billingCycle = 'monthly') =>
+        api.post('/subscriptions/purchase', { planId, billingCycle }),
+
+    // Verify payment and activate subscription (legacy)
+    verifyPurchase: (orderId, paymentId, signature) =>
+        api.post('/subscriptions/verify', { orderId, paymentId, signature }),
+
+    // Check if specific content is locked
+    checkContentLocked: (contentId, collection = 'reels') =>
+        api.get(`/subscriptions/check-locked/${contentId}?collection=${collection}`),
+
+    // ===== NEW: Recurring Subscription Management =====
+
+    // Create recurring subscription via Razorpay Subscriptions API
+    createRecurringSubscription: (planId, billingCycle = 'monthly') =>
+        api.post('/subscriptions/create-recurring', { planId, billingCycle }),
+
+    // Upgrade to a higher tier (with proration)
+    upgradeSubscription: (newPlanId, billingCycle = 'monthly') =>
+        api.post('/subscriptions/upgrade', { newPlanId, billingCycle }),
+
+    // Schedule downgrade to a lower tier (takes effect at end of cycle)
+    downgradeSubscription: (newPlanId, billingCycle = 'monthly') =>
+        api.post('/subscriptions/downgrade', { newPlanId, billingCycle }),
+
+    // Cancel subscription
+    cancelSubscription: (immediately = false) =>
+        api.post('/subscriptions/cancel', { immediately }),
+
+    // Get proration preview for upgrade
+    prorationPreview: (newPlanId, billingCycle = 'monthly') =>
+        api.post('/subscriptions/proration-preview', { newPlanId, billingCycle })
+};
+
 export default api;
+

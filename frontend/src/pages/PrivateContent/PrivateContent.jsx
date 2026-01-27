@@ -146,6 +146,10 @@ const PrivateContent = () => {
     };
 
     const handleReelClick = (reel) => {
+        if (reel.isLocked) {
+            alert('This content is locked because you have exceeded your storage limit. Please upgrade your plan to unlock it.');
+            return;
+        }
         if (reel.contentType === 'video') {
             navigate(`/video/private/${reel.accessToken}`);
         } else {
@@ -227,12 +231,21 @@ const PrivateContent = () => {
                                             {reel.contentType === 'video' ? '🎬' : '📱'}
                                         </span>
                                     </div>
-                                    <div className={styles.lockBadge}>
+                                    <div className={`${styles.lockBadge} ${reel.isLocked ? styles.locked : ''}`}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                                             <path d="M7 11V7a5 5 0 0110 0v4" />
                                         </svg>
+                                        {reel.isLocked && <span className={styles.lockedText}>LOCKED</span>}
                                     </div>
+                                    {reel.isLocked && (
+                                        <div className={styles.lockedOverlay}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                                <path d="M7 11V7a5 5 0 0110 0v4" />
+                                            </svg>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

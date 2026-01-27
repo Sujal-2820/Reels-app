@@ -101,7 +101,7 @@ const Settings = () => {
             <div className={styles.settingsSection}>
                 <h3 className={styles.sectionTitle}>Preferences</h3>
                 <div className={styles.settingsList}>
-                    <button className={styles.settingsItem} onClick={() => navigate('/plans')}>
+                    <button className={styles.settingsItem} onClick={() => navigate('/settings/subscription')}>
                         <Icons.CreditCard />
                         <span className={styles.itemLabel}>Subscription Management</span>
                         <span className={styles.itemValue}>{user?.plan?.name || 'Free'}</span>

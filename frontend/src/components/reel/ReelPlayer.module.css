@@ -114,7 +114,7 @@
 .actions {
     position: absolute;
     right: var(--space-md);
-    bottom: calc(var(--bottom-nav-height) + 24px);
+    bottom: 30px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -174,7 +174,7 @@
     position: absolute;
     left: var(--space-md);
     right: 70px;
-    bottom: calc(var(--bottom-nav-height) + 20px);
+    bottom: 25px;
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -357,7 +357,7 @@
 /* Progress Bar Styles */
 .progressContainer {
     position: absolute;
-    bottom: calc(var(--bottom-nav-height) - 2px);
+    bottom: 2px;
     left: 0;
     right: 0;
     height: 12px;

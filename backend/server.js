@@ -15,8 +15,11 @@ const {
     followRoutes,
     searchRoutes,
     reportRoutes,
-    settingsRoutes
+    settingsRoutes,
+    subscriptionRoutes
 } = require('./routes');
+const webhookRoutes = require('./routes/webhookRoutes');
+const backgroundJobProcessor = require('./services/backgroundJobProcessor');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,6 +77,10 @@ app.use('/api/follow', followRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+
+// Webhook routes (no auth required - verified via signature)
+app.use('/api/webhooks', webhookRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -130,6 +137,11 @@ app.listen(PORT, () => {
 ║  Frontend:   ${process.env.FRONTEND_URL || 'http://localhost:5173'}                   ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
+
+    // Start background job processor for async subscription tasks
+    // Runs every 10 seconds to process queued jobs
+    backgroundJobProcessor.startProcessor(10000);
+    console.log('📋 Background job processor started');
 });
 
 module.exports = app;

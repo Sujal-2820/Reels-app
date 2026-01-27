@@ -20,6 +20,7 @@ import Notifications from './pages/Settings/SubScreens/Notifications';
 import Language from './pages/Settings/SubScreens/Language';
 import Analytics from './pages/Settings/SubScreens/Analytics';
 import SettingsPrivateContent from './pages/Settings/SubScreens/PrivateContent';
+import Subscription from './pages/Settings/SubScreens/Subscription';
 import AppGate from './pages/AppGate/AppGate';
 import AdminLayout from './pages/Admin/AdminLayout';
 import AdminDashboard from './pages/Admin/Dashboard/AdminDashboard';
@@ -50,6 +51,7 @@ import Channels from './pages/Channels/Channels';
 import ChannelView from './pages/Channels/ChannelView';
 import PrivateContent from './pages/PrivateContent/PrivateContent';
 import Onboarding from './pages/Onboarding/Onboarding';
+import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 
@@ -151,6 +153,15 @@ function AppContent() {
         element={
           <AppLayout>
             <Plans />
+          </AppLayout>
+        }
+      />
+
+      <Route
+        path="/subscription-plans"
+        element={
+          <AppLayout>
+            <SubscriptionPlans />
           </AppLayout>
         }
       />
@@ -356,6 +367,16 @@ function AppContent() {
           <ProtectedRoute>
             <AppLayout>
               <Analytics />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/subscription"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Subscription />
             </AppLayout>
           </ProtectedRoute>
         }
