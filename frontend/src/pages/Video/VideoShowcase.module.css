@@ -15,6 +15,25 @@
     top: var(--header-height);
     z-index: 10;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    user-select: none;
+}
+
+.videoSection.fullscreenMode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 9999;
+    aspect-ratio: auto;
+}
+
+.playerWrapper {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
 }
 
 .player {
@@ -394,12 +413,14 @@
     gap: 32px;
     z-index: 25;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    transition: all 0.3s ease;
     pointer-events: none;
 }
 
-.videoSection:hover .playbackControls {
+.playbackControls.visible {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
 }
 
@@ -459,105 +480,178 @@
     height: 24px;
 }
 
-.playerControls {
+/* Bottom Bar Controls */
+.bottomBar {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 20;
-    pointer-events: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+    padding: 30px 16px 12px;
+    z-index: 30;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    transform: translateY(10px);
 }
 
-.qualityWrapper {
+.bottomBar.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.seekContainer {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.seekBar {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.seekBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-accent-primary);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s;
+}
+
+.seekBar::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-accent-primary);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s;
+}
+
+.seekBar:hover::-webkit-slider-thumb {
+    transform: scale(1.2);
+}
+
+.seekBar:hover::-moz-range-thumb {
+    transform: scale(1.2);
+}
+
+.progressFill {
+    position: absolute;
+    left: 0;
+    top: 6px;
+    height: 4px;
+    background: var(--color-accent-primary);
+    border-radius: 2px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.bottomActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.timeDisplay {
+    font-size: 13px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.rightActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.iconBtn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.iconBtn:hover {
+    color: var(--color-accent-primary);
+    transform: scale(1.1);
+}
+
+.iconBtn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.qualityContainer {
     position: relative;
 }
 
-.qualityBtn {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.qualityBtnSmall {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 6px 14px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 700;
-    transition: all 0.2s;
+    text-transform: uppercase;
 }
 
-.qualityBtn:hover {
-    background: rgba(0, 0, 0, 0.8);
-    transform: scale(1.05);
-}
-
-.qualityBtn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.qualityMenu {
+.qualityMenuSmall {
     position: absolute;
-    top: calc(100% + 8px);
+    bottom: calc(100% + 12px);
     right: 0;
     background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    min-width: 140px;
+    border-radius: 8px;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    animation: fadeInScale 0.2s ease-out;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
 }
 
-.menuHeader {
-    padding: 10px 16px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.4);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.menuItem {
-    width: 100%;
-    padding: 12px 16px;
+.menuItemMini {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
     background: transparent;
     border: none;
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    text-align: left;
 }
 
-.menuItem:hover {
+.menuItemMini:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.menuItemActive {
-    color: var(--color-accent-primary);
-    font-weight: 700;
-}
-
-.check {
-    font-size: 12px;
-}
-
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: translateY(-10px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.playerControls {
+    display: none;
 }
 
 .loading,

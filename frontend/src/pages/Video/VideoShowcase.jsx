@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,8 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
     const videoRef = useRef(null);
+    const videoSectionRef = useRef(null);
+    const controlsTimeoutRef = useRef(null);
 
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -19,6 +21,13 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);
     const [commentsCount, setCommentsCount] = useState(0);
+
+    // Playback states
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [showControls, setShowControls] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Action states
     const [likesCount, setLikesCount] = useState(0);
@@ -33,7 +42,6 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [relatedLoading, setRelatedLoading] = useState(false);
     const [currentQuality, setCurrentQuality] = useState('Auto');
     const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(true);
     const [playHistory, setPlayHistory] = useState([]);
 
     const QUALITIES = [
@@ -198,17 +206,89 @@ const VideoShowcase = ({ isPrivate = false }) => {
         });
     }, [id, token, isPrivate, navigate]);
 
-    const handlePlayPause = () => {
+    // Controls Auto-hide logic
+    const showControlsTemporarily = useCallback(() => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = setTimeout(() => {
+            if (videoRef.current && !videoRef.current.paused) {
+                setShowControls(false);
+            }
+        }, 3000);
+    }, []);
+
+    const toggleControls = (e) => {
+        if (e) e.stopPropagation();
+        if (showControls) {
+            setShowControls(false);
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        } else {
+            showControlsTemporarily();
+        }
+    };
+
+    const handlePlayPause = (e) => {
+        if (e) e.stopPropagation();
         if (videoRef.current) {
             if (videoRef.current.paused) {
                 videoRef.current.play();
                 setIsPlaying(true);
+                showControlsTemporarily();
             } else {
                 videoRef.current.pause();
                 setIsPlaying(false);
+                setShowControls(true); // Keep controls visible when paused
+                if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
             }
         }
     };
+
+    const handleSeek = (e) => {
+        const seekTime = parseFloat(e.target.value);
+        if (videoRef.current) {
+            videoRef.current.currentTime = seekTime;
+            setCurrentTime(seekTime);
+        }
+        showControlsTemporarily();
+    };
+
+    const toggleFullscreen = async () => {
+        if (!document.fullscreenElement) {
+            await videoSectionRef.current.requestFullscreen();
+            setIsFullscreen(true);
+
+            // Intelligent rotation
+            if (videoRef.current && window.screen.orientation && window.screen.orientation.lock) {
+                if (videoRef.current.videoWidth > videoRef.current.videoHeight) {
+                    try {
+                        await window.screen.orientation.lock('landscape');
+                    } catch (e) { console.error('Auto-rotate failed:', e); }
+                }
+            }
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+            if (!document.fullscreenElement && window.screen.orientation && window.screen.orientation.unlock) {
+                window.screen.orientation.unlock();
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    useEffect(() => {
+        // Initially show controls
+        showControlsTemporarily();
+        return () => {
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        };
+    }, [showControlsTemporarily]);
 
     const handleNext = () => {
         if (relatedVideos.length > 0) {
@@ -360,24 +440,38 @@ const VideoShowcase = ({ isPrivate = false }) => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.videoSection} onMouseLeave={() => setIsQualityMenuOpen(false)}>
-                <video
-                    ref={videoRef}
-                    src={getTransformedUrl(video.videoUrl, QUALITIES.find(q => q.label === currentQuality)?.value)}
-                    className={styles.player}
-                    controls
-                    autoPlay
-                    playsInline
-                    muted={isMuted}
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                />
+            <div
+                ref={videoSectionRef}
+                className={`${styles.videoSection} ${isFullscreen ? styles.fullscreenMode : ''}`}
+                onMouseMove={showControlsTemporarily}
+                onMouseLeave={() => {
+                    if (videoRef.current && !videoRef.current.paused) setShowControls(false);
+                    setIsQualityMenuOpen(false);
+                }}
+            >
+                <div className={styles.playerWrapper} onClick={toggleControls}>
+                    <video
+                        ref={videoRef}
+                        src={getTransformedUrl(video.videoUrl, QUALITIES.find(q => q.label === currentQuality)?.value)}
+                        className={styles.player}
+                        autoPlay
+                        playsInline
+                        muted={isMuted}
+                        onPlay={() => {
+                            setIsPlaying(true);
+                            showControlsTemporarily();
+                        }}
+                        onPause={() => setIsPlaying(false)}
+                        onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+                        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+                    />
+                </div>
 
                 {/* Video Playback Controls Overlay */}
-                <div className={styles.playbackControls}>
+                <div className={`${styles.playbackControls} ${showControls ? styles.visible : ''}`}>
                     <button
                         className={styles.controlBtn}
-                        onClick={handlePrev}
+                        onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                         disabled={playHistory.indexOf(id) <= 0}
                         title="Previous video"
                     >
@@ -403,7 +497,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
 
                     <button
                         className={styles.controlBtn}
-                        onClick={handleNext}
+                        onClick={(e) => { e.stopPropagation(); handleNext(); }}
                         disabled={relatedVideos.length === 0}
                         title="Next video"
                     >
@@ -413,38 +507,84 @@ const VideoShowcase = ({ isPrivate = false }) => {
                     </button>
                 </div>
 
-                {/* Quality Control Overlay */}
-                <div className={styles.playerControls}>
-                    <div className={styles.qualityWrapper}>
-                        <button
-                            className={styles.qualityBtn}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsQualityMenuOpen(!isQualityMenuOpen);
-                            }}
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                            <span className={styles.qualityLabel}>{currentQuality}</span>
-                        </button>
+                {/* Bottom Bar Controls (Seek, Time, Fullscreen) */}
+                <div className={`${styles.bottomBar} ${showControls ? styles.visible : ''}`}>
+                    <div className={styles.seekContainer} onClick={e => e.stopPropagation()}>
+                        <input
+                            type="range"
+                            min="0"
+                            max={duration}
+                            value={currentTime}
+                            onChange={handleSeek}
+                            className={styles.seekBar}
+                        />
+                        <div
+                            className={styles.progressFill}
+                            style={{ width: `${(currentTime / duration) * 100}%` }}
+                        />
+                    </div>
 
-                        {isQualityMenuOpen && (
-                            <div className={styles.qualityMenu}>
-                                <div className={styles.menuHeader}>Quality</div>
-                                {QUALITIES.map((q) => (
-                                    <button
-                                        key={q.label}
-                                        className={`${styles.menuItem} ${currentQuality === q.label ? styles.menuItemActive : ''}`}
-                                        onClick={() => handleQualityChange(q.value, q.label)}
-                                    >
-                                        {q.label}
-                                        {currentQuality === q.label && <span className={styles.check}>✓</span>}
-                                    </button>
-                                ))}
+                    <div className={styles.bottomActions}>
+                        <div className={styles.timeDisplay}>
+                            {formatDuration(currentTime)} / {formatDuration(duration)}
+                        </div>
+
+                        <div className={styles.rightActions}>
+                            <button
+                                className={styles.iconBtn}
+                                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                            >
+                                {isMuted ? (
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                                    </svg>
+                                ) : (
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            <div className={styles.qualityContainer}>
+                                <button
+                                    className={styles.qualityBtnSmall}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsQualityMenuOpen(!isQualityMenuOpen);
+                                    }}
+                                >
+                                    {currentQuality}
+                                </button>
+                                {isQualityMenuOpen && (
+                                    <div className={styles.qualityMenuSmall}>
+                                        {QUALITIES.map((q) => (
+                                            <button
+                                                key={q.label}
+                                                className={`${styles.menuItemMini} ${currentQuality === q.label ? styles.menuItemActive : ''}`}
+                                                onClick={() => handleQualityChange(q.value, q.label)}
+                                            >
+                                                {q.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
+
+                            <button
+                                className={styles.iconBtn}
+                                onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                            >
+                                {isFullscreen ? (
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+                                    </svg>
+                                ) : (
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
