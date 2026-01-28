@@ -71,6 +71,11 @@
     scroll-behavior: smooth;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    background: #000;
+}
+
+.lockScroll {
+    overflow-y: hidden !important;
 }
 
 .reelView::-webkit-scrollbar {
@@ -88,6 +93,7 @@
     scroll-snap-stop: always;
     position: relative;
     overflow: hidden;
+    background: #000;
 }
 
 .loader {

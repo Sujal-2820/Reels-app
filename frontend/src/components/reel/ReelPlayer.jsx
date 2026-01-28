@@ -2,10 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { activitySync } from '../../services/activitySyncService';
-import CommentSection from './CommentSection';
 import styles from './ReelPlayer.module.css';
 
-const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
+const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClick }) => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const videoRef = useRef(null);
@@ -18,28 +17,16 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(reel?.duration || 0);
     const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
-    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
     const [commentsCount, setCommentsCount] = useState(reel?.commentsCount || 0);
     const [isSaved, setIsSaved] = useState(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
     const [error, setError] = useState(null);
-    const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [followersCount, setFollowersCount] = useState(reel.creator?.followersCount || 0);
     const [followLoading, setFollowLoading] = useState(false);
 
     const isCreator = user?.id === reel?.userId || user?.id === reel?.creator?.id;
 
-    // Show privacy notice to creator if likes < 1000
-    useEffect(() => {
-        if (isActive && isCreator && likesCount < 1000) {
-            const hasSeenNotice = sessionStorage.getItem(`privacy_notice_${reel.id}`);
-            if (!hasSeenNotice) {
-                setShowPrivacyNotice(true);
-                sessionStorage.setItem(`privacy_notice_${reel.id}`, 'true');
-                setTimeout(() => setShowPrivacyNotice(false), 5000);
-            }
-        }
-    }, [isActive, isCreator, likesCount, reel.id]);
+    // Privacy notice removed - no longer showing toast
 
     // Set initial liked and saved state from reel AND buffered activity
     useEffect(() => {
@@ -422,29 +409,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
                     </div>
                 )}
 
-                {/* Creator Privacy Notice Toast */}
-                {showPrivacyNotice && (
-                    <div className={styles.privacyNotice}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                        </svg>
-                        <span>Likes hidden from others until 1K</span>
-                    </div>
-                )}
-
-                {/* Private Reel Ad Prompt */}
-                {reel.isPrivate && isActive && (!user?.plan?.isActive) && (
-                    <div className={styles.adOverlay}>
-                        <div className={styles.adContent}>
-                            <div className={styles.adBadge}>AD SUPPORTED</div>
-                            <h3>Private Content</h3>
-                            <p>Subscribe to remove ads and support the creator.</p>
-                            <button className={styles.adBuyBtn} onClick={() => navigate('/plans')}>
-                                Remove Ads
-                            </button>
-                        </div>
-                    </div>
-                )}
+                {/* Privacy notice and ad overlay removed for cleaner UI */}
             </div>
 
             {/* Progress Bar (Instagram Style) */}
@@ -479,7 +444,9 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
                             strokeLinejoin="round"
                         />
                     </svg>
-                    <span className={styles.actionCount}>{formatCount(likesCount)}</span>
+                    <span className={styles.actionCount}>
+                        {isCreator && likesCount < 1000 ? '—' : formatCount(likesCount)}
+                    </span>
                 </button>
 
                 {/* Share Button */}
@@ -517,7 +484,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
                     className={styles.actionBtn}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setIsCommentsOpen(true);
+                        onCommentClick && onCommentClick();
                     }}
                     aria-label="Comments"
                 >
@@ -618,13 +585,6 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
                 )}
             </div>
 
-            {/* Comment Section Sheet */}
-            <CommentSection
-                reelId={reel.id}
-                isOpen={isCommentsOpen}
-                onClose={() => setIsCommentsOpen(false)}
-                onCommentCountUpdate={(delta) => setCommentsCount(prev => prev + delta)}
-            />
         </div >
     );
 };

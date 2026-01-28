@@ -1,10 +1,14 @@
 .container {
-    height: calc(100vh - var(--header-height, 60px));
+    height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - var(--safe-area-bottom));
     background: #000;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
-    /* Firefox */
+    -webkit-overflow-scrolling: touch;
+}
+
+.lockScroll {
+    overflow-y: hidden !important;
 }
 
 .container::-webkit-scrollbar {
@@ -14,15 +18,16 @@
 
 .reelsWrapper {
     width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
 }
 
 .reelItem {
-    height: calc(100vh - var(--header-height, 60px));
+    height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - var(--safe-area-bottom));
     width: 100%;
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    position: relative;
+    overflow: hidden;
+    background: #000;
 }
 
 .loading {

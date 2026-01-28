@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { commentsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './CommentSection.module.css';
@@ -6,107 +7,51 @@ import styles from './CommentSection.module.css';
 const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
     const { user, isAuthenticated } = useAuth();
     const [comments, setComments] = useState([]);
-    const [newComment, setNewComment] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+
+    // Refs for drag and lifecycle
+    const portalContainer = useRef(null);
     const sheetRef = useRef(null);
+    const closeTimeoutRef = useRef(null);
+    const rafIdRef = useRef(null);
     const dragStartYRef = useRef(null);
     const currentYRef = useRef(0);
     const isDraggingRef = useRef(false);
-    const rafIdRef = useRef(null);
     const lastTouchYRef = useRef(0);
     const velocityRef = useRef(0);
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchComments(1);
-            currentYRef.current = 0;
-            if (sheetRef.current) {
-                sheetRef.current.style.transform = 'translate3d(0, 0, 0)';
-            }
-        }
-    }, [isOpen, reelId]);
+    // 1. Setup Portal Container
+    if (!portalContainer.current) {
+        portalContainer.current = document.createElement('div');
+        portalContainer.current.id = `comment-portal-${reelId}`;
+    }
 
-    // Cleanup RAF on unmount
+    // 2. Lifecycle: Portal Mount/Unmount & Global Side Effects
     useEffect(() => {
+        document.body.appendChild(portalContainer.current);
+        document.body.classList.add('modal-open');
+
         return () => {
-            if (rafIdRef.current) {
-                cancelAnimationFrame(rafIdRef.current);
+            if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+            if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+
+            document.body.classList.remove('modal-open');
+            if (portalContainer.current && portalContainer.current.parentNode === document.body) {
+                document.body.removeChild(portalContainer.current);
             }
         };
     }, []);
 
-    // Handle touch/mouse drag with RAF for 60fps smoothness
-    const updateSheetPosition = (y) => {
-        if (sheetRef.current && y >= 0) {
-            // Use translate3d for GPU acceleration
-            sheetRef.current.style.transform = `translate3d(0, ${y}px, 0)`;
-            currentYRef.current = y;
+    // 3. Data Fetching
+    useEffect(() => {
+        if (reelId && isOpen) {
+            fetchComments(1);
         }
-    };
-
-    const handleDragStart = (e) => {
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        dragStartYRef.current = clientY;
-        lastTouchYRef.current = clientY;
-        isDraggingRef.current = true;
-        velocityRef.current = 0;
-
-        if (sheetRef.current) {
-            sheetRef.current.style.transition = 'none';
-        }
-    };
-
-    const handleDragMove = (e) => {
-        if (!isDraggingRef.current || dragStartYRef.current === null) return;
-
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const diff = clientY - dragStartYRef.current;
-
-        // Calculate velocity for momentum
-        velocityRef.current = clientY - lastTouchYRef.current;
-        lastTouchYRef.current = clientY;
-
-        // Only allow dragging down
-        if (diff > 0) {
-            // Cancel any pending RAF and schedule new one
-            if (rafIdRef.current) {
-                cancelAnimationFrame(rafIdRef.current);
-            }
-
-            rafIdRef.current = requestAnimationFrame(() => {
-                updateSheetPosition(diff);
-            });
-        }
-    };
-
-    const handleDragEnd = (e) => {
-        if (!isDraggingRef.current) return;
-
-        isDraggingRef.current = false;
-
-        if (sheetRef.current) {
-            sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
-
-            const threshold = 100;
-            const velocityThreshold = 5;
-
-            // Close if dragged beyond threshold OR if velocity is high enough
-            if (currentYRef.current > threshold || velocityRef.current > velocityThreshold) {
-                sheetRef.current.style.transform = 'translate3d(0, 100%, 0)';
-                setTimeout(() => onClose(), 300);
-            } else {
-                // Snap back
-                sheetRef.current.style.transform = 'translate3d(0, 0, 0)';
-                currentYRef.current = 0;
-            }
-        }
-
-        dragStartYRef.current = null;
-        velocityRef.current = 0;
-    };
+    }, [reelId, isOpen]);
 
     const fetchComments = async (pageNum) => {
         try {
@@ -128,16 +73,83 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
         }
     };
 
+    // 4. Interaction Handlers
+    const blurActiveElement = () => {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+            document.activeElement.blur();
+        }
+    };
+
+    const updateSheetPosition = (y) => {
+        if (sheetRef.current && y >= 0) {
+            sheetRef.current.style.transform = `translate3d(0, ${y}px, 0)`;
+            currentYRef.current = y;
+        }
+    };
+
+    const handleDragStart = (e) => {
+        blurActiveElement();
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragStartYRef.current = clientY;
+        lastTouchYRef.current = clientY;
+        isDraggingRef.current = true;
+        velocityRef.current = 0;
+
+        if (sheetRef.current) {
+            sheetRef.current.style.transition = 'none';
+        }
+    };
+
+    const handleDragMove = (e) => {
+        if (!isDraggingRef.current || dragStartYRef.current === null) return;
+
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const diff = clientY - dragStartYRef.current;
+
+        velocityRef.current = clientY - lastTouchYRef.current;
+        lastTouchYRef.current = clientY;
+
+        if (diff > 0) {
+            if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = requestAnimationFrame(() => {
+                updateSheetPosition(diff);
+            });
+        }
+    };
+
+    const handleDragEnd = () => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+
+        if (sheetRef.current) {
+            sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+            const threshold = 100;
+            const velocityThreshold = 5;
+
+            if (currentYRef.current > threshold || velocityRef.current > velocityThreshold) {
+                blurActiveElement();
+                sheetRef.current.style.transform = 'translate3d(0, 100%, 0)';
+                closeTimeoutRef.current = setTimeout(() => onClose(), 300);
+            } else {
+                sheetRef.current.style.transform = 'translate3d(0, 0, 0)';
+                currentYRef.current = 0;
+            }
+        }
+
+        dragStartYRef.current = null;
+        velocityRef.current = 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!newComment.trim() || !isAuthenticated || submitting) return;
+        if (!commentText.trim() || !isAuthenticated || submitting) return;
 
         try {
             setSubmitting(true);
-            const response = await commentsAPI.addComment(reelId, newComment);
+            const response = await commentsAPI.addComment(reelId, commentText);
             if (response.success) {
                 setComments(prev => [response.data, ...prev]);
-                setNewComment('');
+                setCommentText('');
                 if (onCommentCountUpdate) onCommentCountUpdate(1);
             }
         } catch (error) {
@@ -162,13 +174,15 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
 
     if (!isOpen) return null;
 
-    return (
+    // 5. Render with Portal to the stable container
+    return createPortal(
         <div className={`${styles.overlay} animate-fade-in`} onClick={onClose}>
             <div
                 ref={sheetRef}
                 className={`${styles.sheet} animate-fade-in-up`}
                 onClick={e => e.stopPropagation()}
             >
+                {/* Header / Drag Handle */}
                 <div
                     className={styles.header}
                     onTouchStart={handleDragStart}
@@ -183,57 +197,65 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
                     <div className={styles.headerContent}>
                         <h3>Comments</h3>
                         <button className={styles.closeBtn} onClick={onClose}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
                         </button>
                     </div>
                 </div>
 
+                {/* Comments List */}
                 <div className={styles.commentsList}>
                     {comments.length === 0 && !loading ? (
                         <div className={styles.emptyState}>
                             <p>No comments yet. Be the first to comment!</p>
                         </div>
                     ) : (
-                        comments.map(comment => (
-                            <div key={comment.id} className={styles.commentItem}>
-                                <div className={styles.userAvatar}>
-                                    {comment.userId?.avatar ? (
-                                        <img src={comment.userId.avatar} alt="" />
-                                    ) : (
-                                        <div className={styles.defaultAvatar}>
-                                            {comment.userId?.username?.[0]?.toUpperCase() || 'U'}
+                        <>
+                            {comments.map(comment => (
+                                <div key={comment.id} className={styles.commentItem}>
+                                    <div className={styles.userAvatar}>
+                                        {comment.userId?.avatar || comment.user?.profilePic ? (
+                                            <img src={comment.userId?.avatar || comment.user?.profilePic} alt="" />
+                                        ) : (
+                                            <div className={styles.defaultAvatar}>
+                                                {comment.userId?.username?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className={styles.commentContent}>
+                                        <div className={styles.commentHeader}>
+                                            <span className={styles.username}>{comment.userId?.username || 'User'}</span>
+                                            <span className={styles.time}>
+                                                {new Date(comment.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                            </span>
                                         </div>
+                                        <p className={styles.text}>{comment.content}</p>
+                                    </div>
+                                    {user?.id === (comment.userId?.id || comment.userId) && (
+                                        <button className={styles.deleteBtn} onClick={() => handleDelete(comment.id)}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                            </svg>
+                                        </button>
                                     )}
                                 </div>
-                                <div className={styles.commentContent}>
-                                    <div className={styles.commentHeader}>
-                                        <span className={styles.username}>{comment.userId?.username || 'User'}</span>
-                                        <span className={styles.time}>
-                                            {new Date(comment.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                        </span>
-                                    </div>
-                                    <p className={styles.text}>{comment.content}</p>
-                                </div>
-                                {user?.id === comment.userId?.id && (
-                                    <button className={styles.deleteBtn} onClick={() => handleDelete(comment.id)}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
-                                    </button>
-                                )}
-                            </div>
-                        ))
+                            ))}
+                            {hasMore && (
+                                <button className={styles.loadMore} onClick={() => fetchComments(page + 1)} disabled={loading}>
+                                    {loading ? 'Loading...' : 'Load more comments'}
+                                </button>
+                            )}
+                        </>
                     )}
-                    {hasMore && !loading && (
-                        <button className={styles.loadMore} onClick={() => fetchComments(page + 1)}>
-                            Load more comments
-                        </button>
-                    )}
-                    {loading && (
+                    {loading && comments.length === 0 && (
                         <div className={styles.loading}>
                             <div className="spinner"></div>
                         </div>
                     )}
                 </div>
 
+                {/* Input Area */}
                 <div className={styles.inputArea}>
                     {isAuthenticated ? (
                         <form onSubmit={handleSubmit} className={styles.commentForm}>
@@ -246,16 +268,16 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
                             </div>
                             <input
                                 type="text"
-                                value={newComment}
-                                onChange={e => setNewComment(e.target.value)}
-                                placeholder={`Comment as ${user?.name || 'User'}...`}
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                placeholder={`Comment as ${user?.username || 'User'}...`}
                                 className={styles.input}
                                 autoFocus
                             />
                             <button
                                 type="submit"
                                 className={styles.postBtn}
-                                disabled={!newComment.trim() || submitting}
+                                disabled={!commentText.trim() || submitting}
                             >
                                 {submitting ? '...' : 'Post'}
                             </button>
@@ -267,7 +289,8 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        portalContainer.current
     );
 };
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import ReelPlayer from '../../components/reel/ReelPlayer';
+import CommentSection from '../../components/reel/CommentSection';
 import SearchSwitchOverlay from '../../components/common/SearchSwitchOverlay';
 import styles from './ReelView.module.css';
 
@@ -15,6 +16,8 @@ const ReelView = ({ isPrivate = false }) => {
     const [error, setError] = useState(null);
     const [cursor, setCursor] = useState(0);
     const [hasMore, setHasMore] = useState(true);
+    const [commentReel, setCommentReel] = useState(null);
+    const isCommentsOpen = !!commentReel;
 
     const containerRef = useRef(null);
     const observerRef = useRef(null);
@@ -152,7 +155,7 @@ const ReelView = ({ isPrivate = false }) => {
     }
 
     return (
-        <div className={styles.container} ref={containerRef}>
+        <div className={`${styles.container} ${isCommentsOpen ? styles.lockScroll : ''}`} ref={containerRef}>
             <div className={styles.reelsWrapper}>
                 {reels.map((reel, index) => (
                     <div
@@ -164,11 +167,27 @@ const ReelView = ({ isPrivate = false }) => {
                             reel={reel}
                             isActive={index === currentIndex}
                             onLikeUpdate={handleLikeUpdate}
+                            onCommentClick={() => setCommentReel(reel)}
                         />
                     </div>
                 ))}
             </div>
             <SearchSwitchOverlay currentType="reel" />
+            {/* Global Comment Section */}
+            {commentReel && (
+                <CommentSection
+                    reelId={commentReel.id}
+                    isOpen={true}
+                    onClose={() => setCommentReel(null)}
+                    onCommentCountUpdate={(delta) => {
+                        setReels(prev => prev.map(r =>
+                            r.id === commentReel.id
+                                ? { ...r, commentsCount: (r.commentsCount || 0) + delta }
+                                : r
+                        ));
+                    }}
+                />
+            )}
         </div>
     );
 };

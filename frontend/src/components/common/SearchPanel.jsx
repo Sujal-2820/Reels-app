@@ -141,7 +141,7 @@ const SearchPanel = ({ isOpen, onClose }) => {
                         <input
                             ref={inputRef}
                             type="text"
-                            placeholder="Search users, channels, or paste a link..."
+                            placeholder="Search or paste link..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={(e) => {
@@ -179,10 +179,10 @@ const SearchPanel = ({ isOpen, onClose }) => {
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>Trending</h3>
                             <div className={styles.trendingGrid}>
-                                {trending.map(item => (
+                                {trending.slice(0, 5).map(item => (
                                     <div
                                         key={item.id}
-                                        className={`${styles.trendingItem} ${item.contentType === 'video' ? styles.trendingItemHorizontal : ''}`}
+                                        className={styles.trendingItem}
                                         onClick={() => handleResultClick('reel', item)}
                                     >
                                         <img src={item.poster} alt="" />

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { reelsAPI, referralsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import ReelPlayer from '../../components/reel/ReelPlayer';
+import CommentSection from '../../components/reel/CommentSection';
 import VideoList from '../../components/video/VideoList';
 import ReportModal from '../../components/common/ReportModal';
 import styles from './Home.module.css';
@@ -34,6 +35,8 @@ const Home = () => {
     const [selectedReel, setSelectedReel] = useState(null);
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportTarget, setReportTarget] = useState(null);
+    const [commentReel, setCommentReel] = useState(null);
+    const isCommentsOpen = !!commentReel;
 
     const categories = ['All', 'Entertainment', 'Education', 'Gaming', 'Music', 'Tech', 'Lifestyle'];
 
@@ -229,7 +232,7 @@ const Home = () => {
                     {videoLoadingMore && <div className={styles.loader}>Loading more...</div>}
                 </div>
             ) : (
-                <div className={styles.reelView} ref={reelContainerRef}>
+                <div className={`${styles.reelView} ${isCommentsOpen ? styles.lockScroll : ''}`} ref={reelContainerRef}>
                     <div className={styles.reelsWrapper}>
                         {reels.map((reel, index) => (
                             <div key={`${reel.id}-${index}`} className={styles.reelItem} ref={index === reels.length - 2 ? lastItemRef : null}>
@@ -237,6 +240,7 @@ const Home = () => {
                                     reel={reel}
                                     isActive={index === currentReelIndex}
                                     onOpenOptions={() => setSelectedReel(reel)}
+                                    onCommentClick={() => setCommentReel(reel)}
                                 />
                             </div>
                         ))}
@@ -317,6 +321,21 @@ const Home = () => {
                 contentId={reportTarget?.id}
                 contentType={reportTarget?.contentType}
             />
+            {/* Global Comment Section */}
+            {commentReel && (
+                <CommentSection
+                    reelId={commentReel.id}
+                    isOpen={true}
+                    onClose={() => setCommentReel(null)}
+                    onCommentCountUpdate={(delta) => {
+                        setReels(prev => prev.map(r =>
+                            r.id === commentReel.id
+                                ? { ...r, commentsCount: (r.commentsCount || 0) + delta }
+                                : r
+                        ));
+                    }}
+                />
+            )}
         </div>
     );
 };
