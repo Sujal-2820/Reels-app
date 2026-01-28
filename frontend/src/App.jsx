@@ -53,6 +53,8 @@ import PrivateContent from './pages/PrivateContent/PrivateContent';
 import Onboarding from './pages/Onboarding/Onboarding';
 import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
+import ToastContainer from './components/common/ToastContainer';
 import './App.css';
 
 // Protected Route Wrapper
@@ -484,8 +486,6 @@ function AppContent() {
   );
 }
 
-import { ToastProvider } from './context/ToastContext';
-import ToastContainer from './components/common/ToastContainer';
 
 function App() {
   return (

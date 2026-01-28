@@ -118,6 +118,10 @@ app.use((err, req, res, next) => {
         });
     }
 
+    // Log error to file for debugger
+    const fs = require('fs');
+    fs.appendFileSync('error_log.txt', `[${new Date().toISOString()}] ${err.stack}\n\n`);
+
     res.status(500).json({
         success: false,
         message: 'Internal server error',

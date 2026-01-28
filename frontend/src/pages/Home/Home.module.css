@@ -64,18 +64,30 @@
 
 .reelView {
     height: 100%;
+    width: 100%;
     overflow-y: scroll;
+    overflow-x: hidden;
     scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.reelView::-webkit-scrollbar {
+    display: none;
 }
 
 .reelsWrapper {
-    height: 100%;
+    width: 100%;
 }
 
 .reelItem {
-    height: 100%;
+    height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+    width: 100%;
     scroll-snap-align: start;
+    scroll-snap-stop: always;
+    position: relative;
+    overflow: hidden;
 }
 
 .loader {

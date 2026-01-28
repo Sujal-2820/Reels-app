@@ -74,15 +74,21 @@ const createRazorpayPlan = async (planConfig) => {
                 description: planConfig.description || ''
             },
             notes: {
-                planId: planConfig.id,
-                tier: planConfig.tier,
-                type: planConfig.type
+                planId: String(planConfig.id),
+                tier: String(planConfig.tier || ''),
+                type: String(planConfig.type || '')
             }
         });
 
         return plan;
     } catch (error) {
         console.error('Error creating Razorpay plan:', error);
+
+        // Handle specific "Feature not enabled" error from Razorpay
+        if (error.error?.description?.includes('The requested URL was not found on the server')) {
+            throw new Error('Razorpay Subscriptions feature is NOT enabled on your account. Please enable Subscriptions in your Razorpay Dashboard (Settings -> Account Settings -> Payment Products).');
+        }
+
         throw error;
     }
 };
@@ -117,6 +123,11 @@ const createSubscription = async (userId, planId, billingCycle = 'monthly', opti
 
         // If no Razorpay plan ID exists, create one
         if (!razorpayPlanId) {
+            console.log(`[Razorpay] Plan ${planDocId} has no Razorpay ID. Creating one now...`, {
+                period: billingCycle === 'yearly' ? 'yearly' : 'monthly',
+                amount: plan.price * 100,
+                name: plan.displayName
+            });
             const rzpPlan = await createRazorpayPlan({
                 ...plan,
                 id: planDocId,
@@ -150,10 +161,10 @@ const createSubscription = async (userId, planId, billingCycle = 'monthly', opti
             quantity: 1,
             customer_notify: 1,
             notes: {
-                userId,
-                planId: planDocId,
-                planName: plan.name,
-                billingCycle
+                userId: String(userId),
+                planId: String(planDocId),
+                planName: String(plan.name),
+                billingCycle: String(billingCycle)
             }
         };
 
@@ -185,6 +196,11 @@ const createSubscription = async (userId, planId, billingCycle = 'monthly', opti
         };
     } catch (error) {
         console.error('Error creating subscription:', error);
+
+        if (error.error?.description?.includes('The requested URL was not found on the server')) {
+            throw new Error('Razorpay Subscriptions feature is NOT enabled on your account. Please enable Subscriptions in your Razorpay Dashboard.');
+        }
+
         throw error;
     }
 };
@@ -196,24 +212,33 @@ const createSubscription = async (userId, planId, billingCycle = 'monthly', opti
  */
 const getActiveSubscription = async (userId) => {
     try {
-        const subQuery = await db.collection('userSubscriptions')
+        // Use a simpler query to avoid composite index requirement
+        // We fetch all subscriptions for the user and filter in memory
+        const subSnap = await db.collection('userSubscriptions')
             .where('userId', '==', userId)
-            .where('status', 'in', ['active', 'authenticated', 'pending'])
-            .where('planType', '==', 'subscription')
-            .orderBy('createdAt', 'desc')
-            .limit(1)
             .get();
 
-        if (subQuery.empty) {
+        if (subSnap.empty) {
             return null;
         }
 
-        return {
-            id: subQuery.docs[0].id,
-            ...subQuery.docs[0].data()
-        };
+        // Filter and sort in memory
+        const activeSubs = subSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(sub =>
+                sub.planType === 'subscription' &&
+                ['active', 'authenticated', 'pending'].includes(sub.status)
+            )
+            .sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+                return dateB - dateA;
+            });
+
+        return activeSubs.length > 0 ? activeSubs[0] : null;
     } catch (error) {
         console.error('Error fetching active subscription:', error);
+        // Do not throw, return null to allow flow to continue
         return null;
     }
 };

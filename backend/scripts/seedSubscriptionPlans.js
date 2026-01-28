@@ -142,18 +142,32 @@ async function seedPlans() {
     const batch = db.batch();
     const now = admin.firestore.Timestamp.now();
 
-    for (const plan of subscriptionPlans) {
-        // Create a deterministic ID based on name and type
-        const planId = `plan_${plan.name.toLowerCase().replace(/\s+/g, '_')}_${plan.billingCycle}`;
-        const planRef = db.collection('subscriptionPlans').doc(planId);
-
-        batch.set(planRef, {
-            ...plan,
+    for (const basePlan of subscriptionPlans) {
+        // Create Monthly Variant
+        const monthlyId = `plan_${basePlan.name.toLowerCase().replace(/\s+/g, '_')}_monthly`;
+        const monthlyRef = db.collection('subscriptionPlans').doc(monthlyId);
+        batch.set(monthlyRef, {
+            ...basePlan,
+            billingCycle: 'monthly',
             createdAt: now,
             updatedAt: now
         });
+        console.log(`  ✅ ${basePlan.displayName} (monthly) - ₹${basePlan.price}`);
 
-        console.log(`  ✅ ${plan.displayName} (${plan.billingCycle}) - ₹${plan.price}`);
+        // Create Yearly Variant (if priceYearly exists)
+        if (basePlan.priceYearly) {
+            const yearlyId = `plan_${basePlan.name.toLowerCase().replace(/\s+/g, '_')}_yearly`;
+            const yearlyRef = db.collection('subscriptionPlans').doc(yearlyId);
+            batch.set(yearlyRef, {
+                ...basePlan,
+                billingCycle: 'yearly',
+                price: basePlan.priceYearly, // Override price with yearly price
+                priceYearly: null,          // Not needed in yearly doc
+                createdAt: now,
+                updatedAt: now
+            });
+            console.log(`  ✅ ${basePlan.displayName} (yearly) - ₹${basePlan.priceYearly}`);
+        }
     }
 
     await batch.commit();

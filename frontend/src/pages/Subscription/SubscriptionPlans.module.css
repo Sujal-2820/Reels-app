@@ -37,10 +37,7 @@
 .header h1 {
     font-size: var(--font-size-xl);
     font-weight: 700;
-    background: var(--color-accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-accent-bold);
 }
 
 .loading {
@@ -132,8 +129,8 @@
 }
 
 .billingToggle button.active {
-    background: var(--color-accent-gradient);
-    color: #1a1a1a;
+    background: var(--color-accent-bold);
+    color: #000;
 }
 
 .saveBadge {
@@ -204,11 +201,11 @@
     left: 50%;
     transform: translateX(-50%);
     padding: 4px 12px;
-    background: var(--color-accent-gradient);
+    background: var(--color-accent-bold);
     border-radius: var(--radius-full);
     font-size: 11px;
     font-weight: 700;
-    color: #1a1a1a;
+    color: #000;
     white-space: nowrap;
 }
 
@@ -254,10 +251,7 @@
 .amount {
     font-size: 48px;
     font-weight: 800;
-    background: var(--color-accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-accent-bold);
     line-height: 1;
 }
 
@@ -313,12 +307,12 @@
 .buyBtn {
     width: 100%;
     padding: var(--space-md);
-    background: var(--color-accent-gradient);
+    background: var(--color-accent-bold);
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--font-size-md);
     font-weight: 700;
-    color: #1a1a1a;
+    color: #000;
     cursor: pointer;
     transition: all var(--transition-fast);
 }
@@ -452,4 +446,118 @@
     .storageCard {
         flex: 1;
     }
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1.5rem;
+    backdrop-filter: blur(8px);
+}
+
+.modal {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 2rem;
+    max-width: 450px;
+    width: 100%;
+}
+
+.modal h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.modal p {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+}
+
+.prorationDetails {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+}
+
+.priceRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+.credit {
+    color: #2bcbba;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--color-accent-bold);
+}
+
+.warningBox {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    padding: 1rem;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 77, 77, 0.2);
+}
+
+.modalActions {
+    display: flex;
+    gap: 1rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.confirmBtn {
+    flex: 2;
+    background: #8833ff;
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.confirmBtn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }

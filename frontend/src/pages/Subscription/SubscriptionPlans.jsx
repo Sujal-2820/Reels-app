@@ -279,6 +279,12 @@ const SubscriptionPlans = () => {
             }
         };
 
+        if (!window.Razorpay) {
+            setError('Payment gateway not loaded. Please refresh the page and try again.');
+            setPurchasing(null);
+            return;
+        }
+
         const rzp = new window.Razorpay(options);
         rzp.open();
     };
@@ -315,6 +321,12 @@ const SubscriptionPlans = () => {
                 color: '#8833ff'
             }
         };
+
+        if (!window.Razorpay) {
+            setError('Payment gateway not loaded. Please refresh the page and try again.');
+            return;
+        }
+
         const rzp = new window.Razorpay(options);
         rzp.open();
     };
@@ -593,97 +605,7 @@ const SubscriptionPlans = () => {
                 </div>
             )}
 
-            <style jsx>{`
-                .modalOverlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 2000;
-                    padding: 1.5rem;
-                    backdrop-filter: blur(8px);
-                }
-                .modal {
-                    background: #1a1a1a;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 24px;
-                    padding: 2rem;
-                    max-width: 450px;
-                    width: 100%;
-                }
-                .modal h3 {
-                    margin-top: 0;
-                    font-size: 1.5rem;
-                }
-                .modal p {
-                    color: rgba(255, 255, 255, 0.7);
-                    line-height: 1.5;
-                }
-                .prorationDetails {
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 16px;
-                    padding: 1.25rem;
-                    margin: 1.5rem 0;
-                }
-                .priceRow {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 0.75rem;
-                    font-size: 0.95rem;
-                }
-                .credit {
-                    color: #2bcbba;
-                }
-                .totalRow {
-                    display: flex;
-                    justify-content: space-between;
-                    padding-top: 1rem;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
-                    font-weight: 700;
-                    font-size: 1.2rem;
-                    color: #ffd60a;
-                }
-                .warningBox {
-                    background: rgba(255, 77, 77, 0.1);
-                    color: #ff4d4d;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    margin: 1.5rem 0;
-                    display: flex;
-                    gap: 1rem;
-                    font-size: 0.85rem;
-                    border: 1px solid rgba(255, 77, 77, 0.2);
-                }
-                .modalActions {
-                    display: flex;
-                    gap: 1rem;
-                }
-                .cancelBtn {
-                    flex: 1;
-                    background: transparent;
-                    color: white;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    padding: 1rem;
-                    border-radius: 12px;
-                    cursor: pointer;
-                    font-weight: 600;
-                }
-                .confirmBtn {
-                    flex: 2;
-                    background: #8833ff;
-                    color: white;
-                    border: none;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    cursor: pointer;
-                    font-weight: 700;
-                }
-            `}</style>
+
         </div>
     );
 };
