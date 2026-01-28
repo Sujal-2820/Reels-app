@@ -144,12 +144,20 @@ const createReel = async (req, res) => {
         // If cover image provided, upload it; otherwise generate from video
         if (coverPath) {
             console.log('Uploading cover image to Cloudinary...');
-            const coverResult = await uploadImage(coverPath);
+            const coverResult = await uploadImage(coverPath, {
+                transformation: contentType === 'video'
+                    ? [{ width: 1280, height: 720, crop: 'fill', gravity: 'center' }]
+                    : [{ width: 720, height: 1280, crop: 'fill', gravity: 'center' }]
+            });
             posterUrl = coverResult.secure_url;
             posterPublicId = coverResult.public_id;
         } else {
             console.log('Generating thumbnail from video...');
-            posterUrl = generateVideoThumbnail(videoResult.public_id, { startOffset: '1' });
+            posterUrl = generateVideoThumbnail(videoResult.public_id, {
+                startOffset: '1',
+                width: contentType === 'video' ? 1280 : 720,
+                height: contentType === 'video' ? 720 : 1280
+            });
         }
 
         // Generate access token for private reels
@@ -794,7 +802,11 @@ const updateReel = async (req, res) => {
                 }
 
                 console.log('Uploading new cover image...');
-                const coverResult = await uploadImage(coverPath);
+                const coverResult = await uploadImage(coverPath, {
+                    transformation: reel.contentType === 'video'
+                        ? [{ width: 1280, height: 720, crop: 'fill', gravity: 'center' }]
+                        : [{ width: 720, height: 1280, crop: 'fill', gravity: 'center' }]
+                });
                 updates.posterUrl = coverResult.secure_url;
                 updates.posterPublicId = coverResult.public_id;
             }

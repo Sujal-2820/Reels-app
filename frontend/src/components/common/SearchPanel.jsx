@@ -182,7 +182,7 @@ const SearchPanel = ({ isOpen, onClose }) => {
                                 {trending.map(item => (
                                     <div
                                         key={item.id}
-                                        className={styles.trendingItem}
+                                        className={`${styles.trendingItem} ${item.contentType === 'video' ? styles.trendingItemHorizontal : ''}`}
                                         onClick={() => handleResultClick('reel', item)}
                                     >
                                         <img src={item.poster} alt="" />
@@ -295,7 +295,7 @@ const SearchPanel = ({ isOpen, onClose }) => {
                                     className={styles.resultItem}
                                     onClick={() => handleResultClick('reel', reel)}
                                 >
-                                    <div className={styles.reelThumb}>
+                                    <div className={`${styles.reelThumb} ${reel.contentType === 'video' ? styles.videoThumb : ''}`}>
                                         <img src={reel.poster} alt="" />
                                     </div>
                                     <div className={styles.resultInfo}>

@@ -252,6 +252,7 @@ export const channelsAPI = {
     create: (data) => api.post('/channels', data),
     join: (id) => api.post(`/channels/${id}/join`),
     leave: (id) => api.post(`/channels/${id}/leave`),
+    update: (id, data) => api.put(`/channels/${id}`, data),
     delete: (id) => api.delete(`/channels/${id}`),
     getPosts: (id, cursor = null, limit = 20) => {
         let url = `/channels/${id}/posts?limit=${limit}`;
@@ -259,6 +260,7 @@ export const channelsAPI = {
         return api.get(url);
     },
     getMembers: (id) => api.get(`/channels/${id}/members`),
+    removeMember: (channelId, userId) => api.delete(`/channels/${channelId}/members/${userId}`),
     createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),

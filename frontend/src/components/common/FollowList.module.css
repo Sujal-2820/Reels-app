@@ -1,0 +1,177 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: var(--space-md);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.container {
+    background: var(--color-bg-secondary);
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header {
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeBtn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.spacer {
+    width: 32px;
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm) 0;
+}
+
+.userItem {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.userItem:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar span {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--color-text-secondary);
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.usernameRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.username {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.verifyIcon {
+    width: 14px;
+    height: 14px;
+    color: var(--color-accent-primary);
+}
+
+.name {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-lg);
+}
+
+.empty {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+
+.loadMore {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--color-accent-primary);
+    font-weight: 700;
+    padding: var(--space-md);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

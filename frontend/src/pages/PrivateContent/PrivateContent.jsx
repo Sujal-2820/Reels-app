@@ -218,7 +218,7 @@ const PrivateContent = () => {
                             {privateReels.map(reel => (
                                 <div
                                     key={reel.id}
-                                    className={styles.gridItem}
+                                    className={`${styles.gridItem} ${reel.contentType === 'video' ? styles.gridItemHorizontal : ''}`}
                                     onClick={() => setSelectedReel(reel)}
                                 >
                                     <img
@@ -391,11 +391,16 @@ const PrivateContent = () => {
                         </button>
 
                         {uploading && (
-                            <div className={styles.progressBar}>
-                                <div
-                                    className={styles.progressFill}
-                                    style={{ width: `${uploadProgress}%` }}
-                                />
+                            <div className={styles.progressWrapper}>
+                                <div className={styles.progressBar}>
+                                    <div
+                                        className={styles.progressFill}
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
+                                </div>
+                                <span className={styles.progressText}>
+                                    {uploadProgress < 100 ? `${uploadProgress}% Uploading...` : 'Processing on cloud...'}
+                                </span>
                             </div>
                         )}
                     </div>

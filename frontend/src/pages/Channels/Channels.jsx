@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAppSettings } from '../../context/AppSettingsContext';
@@ -7,6 +7,7 @@ import styles from './Channels.module.css';
 
 const Channels = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isAuthenticated, user } = useAuth();
     const { settings } = useAppSettings();
 
@@ -67,7 +68,7 @@ const Channels = () => {
 
     const handleJoinChannel = async (channelId) => {
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -169,8 +170,8 @@ const Channels = () => {
                         {channels.map(channel => (
                             <div
                                 key={channel.id}
-                                className={styles.channelCard}
-                                onClick={() => handleChannelClick(channel)}
+                                className={`${styles.channelCard} ${(channel.isMember || channel.isCreator) ? styles.clickableCard : ''}`}
+                                onClick={() => (channel.isMember || channel.isCreator) && handleChannelClick(channel)}
                             >
                                 <div className={styles.channelAvatar}>
                                     {channel.profilePic ? (
@@ -204,16 +205,25 @@ const Channels = () => {
                                         )}
                                     </div>
                                 </div>
-                                {activeTab === 'explore' && !channel.isCreator && !channel.isMember && (
-                                    <button
-                                        className={styles.joinBtn}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleJoinChannel(channel.id);
-                                        }}
-                                    >
-                                        Join
-                                    </button>
+                                {(activeTab === 'explore' || activeTab === 'joined') && !channel.isCreator && (
+                                    channel.isMember ? (
+                                        <div className={styles.joinedTag}>
+                                            <svg className={styles.tagIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                            Joined
+                                        </div>
+                                    ) : (
+                                        <button
+                                            className={styles.joinBtn}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleJoinChannel(channel.id);
+                                            }}
+                                        >
+                                            Join
+                                        </button>
+                                    )
                                 )}
                             </div>
                         ))}

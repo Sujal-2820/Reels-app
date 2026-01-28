@@ -151,12 +151,15 @@ const getChannels = async (req, res) => {
         }));
 
         // Filter and Hydrate
+        const userId = req.userId;
         allDocs = allDocs.filter(item => {
             const data = item.data;
             // Default to true/active if missing, hide ONLY if explicitly false
             if (data.isActive === false) return false;
             // Hide private channels from explore ONLY if explicitly true
             if (data.isPrivate === true && !creatorId) return false;
+            // Hide self created channels from explore
+            if (userId && data.creatorId === userId) return false;
             return true;
         });
 
@@ -173,7 +176,6 @@ const getChannels = async (req, res) => {
         const hasMore = allDocs.length > parsedCursor + parsedLimit;
 
         const channels = [];
-        const userId = req.userId;
 
         for (const { doc, data } of paginatedDocs) {
             // Get creator info
@@ -741,6 +743,8 @@ const getMyChannels = async (req, res) => {
         let channels = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
+            isCreator: true,
+            isMember: true, // Creator is always a member
             createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
         }));
         channels.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -783,10 +787,16 @@ const getJoinedChannels = async (req, res) => {
             const channelDoc = await db.collection('channels').doc(channelId).get();
             if (channelDoc.exists && channelDoc.data().isActive !== false) {
                 const data = channelDoc.data();
+
+                // Hide self-owned channels from "Joined" tab
+                if (data.creatorId === userId) continue;
+
                 const creatorDoc = await db.collection('users').doc(data.creatorId).get();
                 channels.push({
                     id: channelDoc.id,
                     ...data,
+                    isMember: true,
+                    isCreator: data.creatorId === userId,
                     creator: creatorDoc.exists ? {
                         id: creatorDoc.id,
                         name: creatorDoc.data().name,
@@ -889,12 +899,22 @@ const getChannelMembers = async (req, res) => {
 
         const memberSnapshot = await db.collection('channelMembers')
             .where('channelId', '==', id)
-            .orderBy('joinedAt', 'desc')
             .get();
 
+        // Sort in-memory to avoid index requirement
+        const memberDocs = memberSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        memberDocs.sort((a, b) => {
+            const timeA = a.joinedAt?.toDate?.()?.getTime() || 0;
+            const timeB = b.joinedAt?.toDate?.()?.getTime() || 0;
+            return timeB - timeA;
+        });
+
         const members = [];
-        for (const doc of memberSnapshot.docs) {
-            const memberData = doc.data();
+        for (const memberData of memberDocs) {
             const userDoc = await db.collection('users').doc(memberData.userId).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
@@ -917,6 +937,65 @@ const getChannelMembers = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch channel members',
+            error: error.message
+        });
+    }
+};
+
+// Remove a member (creator only)
+// DELETE /api/channels/:id/members/:userId
+const removeChannelMember = async (req, res) => {
+    try {
+        const { id, userId: targetUserId } = req.params;
+        const requesterId = req.userId;
+
+        const channelRef = db.collection('channels').doc(id);
+        const channelDoc = await channelRef.get();
+
+        if (!channelDoc.exists) {
+            return res.status(404).json({ success: false, message: 'Channel not found' });
+        }
+
+        // Only creator can remove members
+        if (channelDoc.data().creatorId !== requesterId) {
+            return res.status(403).json({ success: false, message: 'Only the creator can remove members' });
+        }
+
+        // Cannot remove self (creator)
+        if (targetUserId === requesterId) {
+            return res.status(400).json({ success: false, message: 'You cannot remove yourself from your own channel' });
+        }
+
+        // Check if member exists
+        const memberSnapshot = await db.collection('channelMembers')
+            .where('channelId', '==', id)
+            .where('userId', '==', targetUserId)
+            .get();
+
+        if (memberSnapshot.empty) {
+            return res.status(404).json({ success: false, message: 'Member not found in this channel' });
+        }
+
+        // Remove membership
+        const batch = db.batch();
+        memberSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+        // Decrement count
+        batch.update(channelRef, {
+            memberCount: admin.firestore.FieldValue.increment(-1)
+        });
+
+        await batch.commit();
+
+        res.json({
+            success: true,
+            message: 'Member removed successfully'
+        });
+    } catch (error) {
+        console.error('Remove channel member error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove member',
             error: error.message
         });
     }
@@ -1162,6 +1241,46 @@ const handleAdminAction = async (req, res) => {
     }
 };
 
+// Update channel (creator only)
+// PUT /api/channels/:id
+const updateChannel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+        const userId = req.userId;
+
+        const channelRef = db.collection('channels').doc(id);
+        const channelDoc = await channelRef.get();
+
+        if (!channelDoc.exists) {
+            return res.status(404).json({ success: false, message: 'Channel not found' });
+        }
+
+        if (channelDoc.data().creatorId !== userId) {
+            return res.status(403).json({ success: false, message: 'Only the creator can update settings' });
+        }
+
+        const updateData = {};
+        if (name) updateData.name = name.trim();
+        if (description !== undefined) updateData.description = description.trim();
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ success: false, message: 'No updates provided' });
+        }
+
+        await channelRef.update(updateData);
+
+        res.json({
+            success: true,
+            message: 'Channel updated successfully',
+            data: updateData
+        });
+    } catch (error) {
+        console.error('Update channel error:', error);
+        res.status(500).json({ success: false, message: 'Failed to update channel' });
+    }
+};
+
 module.exports = {
     createChannel,
     getChannels,
@@ -1175,6 +1294,8 @@ module.exports = {
     getJoinedChannels,
     updateChannelSettings,
     getChannelMembers,
+    removeChannelMember,
+    updateChannel,
     reportPost,
     reportChannel,
     appealBan,

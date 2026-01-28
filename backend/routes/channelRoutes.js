@@ -15,6 +15,8 @@ const {
     getJoinedChannels,
     updateChannelSettings,
     getChannelMembers,
+    removeChannelMember,
+    updateChannel,
     reportChannel,
     reportPost,
     appealBan,
@@ -33,11 +35,13 @@ router.post('/', auth, createChannel);
 router.post('/settings', auth, updateChannelSettings); // Admin only check inside controller
 router.post('/:id/join', auth, joinChannel);
 router.post('/:id/leave', auth, leaveChannel);
+router.put('/:id', auth, updateChannel);
 router.delete('/:id', auth, deleteChannel);
 
 // Channel posts & members
 router.get('/:id/posts', auth, getChannelPosts);
 router.get('/:id/members', auth, getChannelMembers);
+router.delete('/:id/members/:userId', auth, removeChannelMember);
 router.post('/:id/posts', auth, upload.array('files', 15), createChannelPost);
 
 // Reporting & Appeals

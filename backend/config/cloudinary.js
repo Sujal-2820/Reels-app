@@ -53,8 +53,9 @@ const uploadImage = async (filePath, options = {}) => {
         const { transformation, ...otherOptions } = options;
 
         // Default transformation (e.g., for reel covers) if none provided
-        const defaultTransformation = [
-            { width: 720, height: 1280, crop: 'fill', gravity: 'center' },
+        // We now make it optional or customizable
+        const defaultTransformation = transformation || [
+            { width: 720, height: 1280, crop: 'limit' }, // Changed to limit to preserve original if smaller
             { quality: 'auto:good' },
             { fetch_format: 'auto' }
         ];
@@ -62,7 +63,7 @@ const uploadImage = async (filePath, options = {}) => {
         const uploadParams = {
             resource_type: 'image',
             folder: 'reelbox/covers',
-            transformation: transformation || defaultTransformation,
+            transformation: defaultTransformation,
             ...otherOptions
         };
 
@@ -81,14 +82,14 @@ const uploadImage = async (filePath, options = {}) => {
  * @returns {string} Thumbnail URL
  */
 const generateVideoThumbnail = (publicId, options = {}) => {
-    const { startOffset = '0' } = options;
+    const { startOffset = '0', width = 720, height = 1280 } = options;
 
     return cloudinary.url(publicId, {
         resource_type: 'video',
         format: 'jpg',
         transformation: [
             { start_offset: startOffset },
-            { width: 720, height: 1280, crop: 'fill', gravity: 'center' },
+            { width: width, height: height, crop: 'fill', gravity: 'center' },
             { quality: 'auto:good' }
         ]
     });

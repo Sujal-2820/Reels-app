@@ -10,7 +10,7 @@
 }
 
 .with-bottom-nav {
-  padding-bottom: var(--bottom-nav-height);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }
 
 .loading-screen {

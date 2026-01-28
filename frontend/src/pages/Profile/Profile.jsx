@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { authAPI, reelsAPI, followAPI, channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Profile.module.css';
+import FollowList from '../../components/common/FollowList';
 
 const Profile = () => {
     const { userId } = useParams();
@@ -25,6 +26,7 @@ const Profile = () => {
     const [showFullProfilePic, setShowFullProfilePic] = useState(false);
     const [creatorChannel, setCreatorChannel] = useState(null);
     const [isJoined, setIsJoined] = useState(false);
+    const [followListConfig, setFollowListConfig] = useState(null); // { type: 'followers'|'following', userId, title }
 
     const formatCount = (count, reelCreatorId) => {
         const isCreator = currentUser?.id === reelCreatorId;
@@ -137,6 +139,8 @@ const Profile = () => {
                 setIsFollowing(true);
                 setFollowersCount(prev => prev + 1);
             }
+            // Keep current user stats in sync
+            refreshUser();
         } catch (err) {
             alert(err.message || 'Failed to update follow status');
         } finally {
@@ -344,13 +348,27 @@ const Profile = () => {
                                 </span>
                                 <span className={styles.statLabel}>posts</span>
                             </div>
-                            <div className={styles.statItem}>
+                            <div
+                                className={`${styles.statItem} ${styles.clickableStat}`}
+                                onClick={() => setFollowListConfig({
+                                    type: 'followers',
+                                    userId: isOwnProfile ? currentUser.id : userId,
+                                    title: 'Followers'
+                                })}
+                            >
                                 <span className={styles.statValue}>
                                     {isOwnProfile ? (profileUser.followersCount || 0) : followersCount}
                                 </span>
                                 <span className={styles.statLabel}>followers</span>
                             </div>
-                            <div className={styles.statItem}>
+                            <div
+                                className={`${styles.statItem} ${styles.clickableStat}`}
+                                onClick={() => setFollowListConfig({
+                                    type: 'following',
+                                    userId: isOwnProfile ? currentUser.id : userId,
+                                    title: 'Following'
+                                })}
+                            >
                                 <span className={styles.statValue}>
                                     {isOwnProfile ? (profileUser.followingCount || 0) : followingCount}
                                 </span>
@@ -524,6 +542,13 @@ const Profile = () => {
                         </button>
                     </div>
                 </div>
+            )}
+            {/* Followers/Following List */}
+            {followListConfig && (
+                <FollowList
+                    {...followListConfig}
+                    onClose={() => setFollowListConfig(null)}
+                />
             )}
         </div>
     );

@@ -64,7 +64,7 @@
     border-radius: var(--radius-md);
     color: var(--color-error);
     font-size: var(--font-size-sm);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
     animation: fadeIn var(--transition-fast) ease;
 }
 

@@ -7,6 +7,7 @@ import styles from './ChannelView.module.css';
 const ChannelView = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { isAuthenticated, user } = useAuth();
     const postsContainerRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -29,8 +30,9 @@ const ChannelView = () => {
     const [appealModal, setAppealModal] = useState({ show: false, reasoning: '' });
     const [reporting, setReporting] = useState(false);
     const [appealing, setAppealing] = useState(false);
+    const [editModal, setEditModal] = useState({ show: false, name: '', description: '' });
+    const [updating, setUpdating] = useState(false);
 
-    const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const token = queryParams.get('token');
 
@@ -145,7 +147,7 @@ const ChannelView = () => {
 
     const handleJoin = async () => {
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -204,6 +206,53 @@ const ChannelView = () => {
             alert(error.message || 'Failed to submit appeal');
         } finally {
             setAppealing(false);
+        }
+    };
+
+    const handleUpdateChannel = async () => {
+        if (!editModal.name.trim()) return;
+        setUpdating(true);
+        try {
+            const response = await channelsAPI.update(id, {
+                name: editModal.name,
+                description: editModal.description
+            });
+            if (response.success) {
+                alert('Channel updated successfully');
+                setEditModal({ ...editModal, show: false });
+                fetchChannel(); // Refresh data
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to update channel');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleRemoveMember = async (memberId) => {
+        if (!window.confirm('Are you sure you want to remove this member?')) return;
+        try {
+            const response = await channelsAPI.removeMember(id, memberId);
+            if (response.success) {
+                setMembers(prev => prev.filter(m => m.id !== memberId));
+                setChannel(prev => ({ ...prev, memberCount: (prev.memberCount || 1) - 1 }));
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to remove member');
+        }
+    };
+
+    const handleDeleteChannel = async () => {
+        if (!window.confirm('WARNING: Are you sure you want to delete this channel? This action cannot be undone and will delete all posts and members.')) return;
+
+        try {
+            const response = await channelsAPI.delete(id);
+            if (response.success) {
+                alert('Channel deleted successfully');
+                navigate('/channels');
+            }
+        } catch (error) {
+            alert(error.message || 'Failed to delete channel');
         }
     };
 
@@ -488,7 +537,16 @@ const ChannelView = () => {
 
                         {channel.isCreator && (
                             <div className={styles.creatorActions}>
-                                <button className={styles.settingsBtn}>Update Settings</button>
+                                <button
+                                    className={styles.settingsBtn}
+                                    onClick={() => setEditModal({
+                                        show: true,
+                                        name: channel.name,
+                                        description: channel.description
+                                    })}
+                                >
+                                    Update Settings
+                                </button>
                                 <button
                                     className={styles.membersBtn}
                                     onClick={() => {
@@ -500,7 +558,7 @@ const ChannelView = () => {
                                 </button>
                                 <button
                                     className={styles.deleteBtn}
-                                    onClick={() => alert('Feature coming soon')}
+                                    onClick={handleDeleteChannel}
                                 >
                                     Delete Channel
                                 </button>
@@ -546,9 +604,17 @@ const ChannelView = () => {
                                         <span className={styles.memberName}>{member.name}</span>
                                         <span className={styles.memberHandle}>@{member.username}</span>
                                     </div>
-                                    <Link to={`/profile/${member.id}`} className={styles.memberLink}>
-                                        View
-                                    </Link>
+                                    <div className={styles.memberActions}>
+                                        <Link to={`/profile/${member.username}`} className={styles.memberLink}>
+                                            View
+                                        </Link>
+                                        <button
+                                            className={styles.removeMemberBtn}
+                                            onClick={() => handleRemoveMember(member.id)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -776,7 +842,7 @@ const ChannelView = () => {
                         </div>
                         <div className={styles.modalFooter}>
                             <button
-                                className={styles.reportSubmitBtn}
+                                className={styles.submitBtn}
                                 onClick={handleReport}
                                 disabled={reporting || !reportModal.reason}
                             >
@@ -809,11 +875,60 @@ const ChannelView = () => {
                         </div>
                         <div className={styles.modalFooter}>
                             <button
-                                className={styles.appealSubmitBtn}
+                                className={styles.submitBtn}
                                 onClick={handleAppeal}
                                 disabled={appealing || !appealModal.reasoning.trim()}
                             >
                                 {appealing ? 'Submitting...' : 'Submit Appeal'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Channel Modal */}
+            {editModal.show && (
+                <div className={styles.modalOverlay} onClick={() => setEditModal({ ...editModal, show: false })}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2>Edit Channel</h2>
+                            <button className={styles.modalCloseBtn} onClick={() => setEditModal({ ...editModal, show: false })}>×</button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <div className={styles.formGroupModal}>
+                                <label>Channel Name</label>
+                                <input
+                                    type="text"
+                                    className={styles.modalInput}
+                                    value={editModal.name}
+                                    onChange={(e) => setEditModal({ ...editModal, name: e.target.value })}
+                                    maxLength={50}
+                                />
+                            </div>
+                            <div className={styles.formGroupModal}>
+                                <label>Description</label>
+                                <textarea
+                                    className={styles.modalTextarea}
+                                    value={editModal.description}
+                                    onChange={(e) => setEditModal({ ...editModal, description: e.target.value })}
+                                    rows={4}
+                                    maxLength={200}
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setEditModal({ ...editModal, show: false })}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.submitBtn}
+                                onClick={handleUpdateChannel}
+                                disabled={updating || !editModal.name.trim()}
+                            >
+                                {updating ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>

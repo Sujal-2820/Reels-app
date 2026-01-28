@@ -130,7 +130,9 @@
   --font-size-3xl: 32px;
 
   --header-height: 70px;
-  --bottom-nav-height: 64px;
+  --bottom-nav-height: 72px;
+  /* Increased from 64px */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --max-content-width: 480px;
 
   /* Principle 4: Smooth Transitions (0.3s) */
@@ -533,7 +535,7 @@ video {
 /* Toast / Notifications */
 .toast {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height) + var(--space-md));
+  bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + var(--space-md));
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-sm) var(--space-md);

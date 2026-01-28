@@ -256,7 +256,7 @@ const EditReel = () => {
                     <div className={styles.sectionCard}>
                         <h2 className={styles.sectionTitle}>Thumbnail & Visibility</h2>
                         <div className={styles.thumbnailGrid}>
-                            <div className={styles.thumbnailActive}>
+                            <div className={`${styles.thumbnailActive} ${isVideo ? styles.thumbnailActiveHorizontal : ''}`}>
                                 <img src={coverPreview} alt="Current" />
                             </div>
                             <div className={styles.thumbnailChange} onClick={() => coverInputRef.current?.click()}>

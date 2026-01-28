@@ -126,6 +126,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
                     }
 
                     setVideo(videoData);
+                    setDuration(videoData.duration || 0);
                     setLikesCount(Math.max(0, videoData.likesCount || 0));
                     setCommentsCount(Math.max(0, videoData.commentsCount || 0));
 
@@ -307,7 +308,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const handleBellToggle = async (e) => {
         if (e) e.stopPropagation();
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -354,7 +355,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
 
     const handleLike = async () => {
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -369,7 +370,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
 
     const handleSave = async () => {
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -408,7 +409,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const handleFollowToggle = async (e) => {
         if (e) e.stopPropagation();
         if (!isAuthenticated) {
-            navigate('/login');
+            navigate('/login', { state: { from: location } });
             return;
         }
 
@@ -463,7 +464,11 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         }}
                         onPause={() => setIsPlaying(false)}
                         onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-                        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+                        onLoadedMetadata={() => {
+                            if (!duration && videoRef.current?.duration) {
+                                setDuration(videoRef.current.duration);
+                            }
+                        }}
                     />
                 </div>
 

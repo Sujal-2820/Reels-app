@@ -16,7 +16,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const [likesCount, setLikesCount] = useState(reel?.likesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
+    const [duration, setDuration] = useState(reel?.duration || 0);
     const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
     const [isCommentsOpen, setIsCommentsOpen] = useState(false);
     const [commentsCount, setCommentsCount] = useState(reel?.commentsCount || 0);
@@ -65,6 +65,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
         setIsSaved(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
         setCommentsCount(reel?.commentsCount || 0);
         setFollowersCount(reel.creator?.followersCount || 0);
+        if (reel?.duration) setDuration(reel.duration);
 
         // Check follow status
         const checkFollow = async () => {
@@ -160,10 +161,10 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     }, []);
 
     const handleLoadedMetadata = useCallback(() => {
-        if (videoRef.current) {
+        if (videoRef.current && !duration) {
             setDuration(videoRef.current.duration);
         }
-    }, []);
+    }, [duration]);
 
     // Seek logic
     const handleSeek = useCallback((e) => {
@@ -201,7 +202,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const handleLike = useCallback(async () => {
         if (!isAuthenticated) {
             // Redirect to login for action
-            window.location.href = '/login';
+            navigate('/login', { state: { from: window.location.pathname } });
             return;
         }
 
@@ -234,7 +235,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const handleFollowToggle = useCallback(async (e) => {
         e.stopPropagation();
         if (!isAuthenticated) {
-            window.location.href = '/login';
+            navigate('/login', { state: { from: window.location.pathname } });
             return;
         }
 
@@ -264,7 +265,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions }) => {
     const handleSave = useCallback(async (e) => {
         if (e) e.stopPropagation();
         if (!isAuthenticated) {
-            window.location.href = '/login';
+            navigate('/login', { state: { from: window.location.pathname } });
             return;
         }
 

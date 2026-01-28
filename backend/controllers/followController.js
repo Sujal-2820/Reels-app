@@ -203,8 +203,10 @@ const getFollowers = async (req, res) => {
     try {
         const { userId: targetUserId } = req.params;
         const { cursor = 0, limit = 20 } = req.query;
-        const parsedLimit = Math.min(parseInt(limit), 50);
-        const parsedCursor = parseInt(cursor);
+        const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 20, 50));
+        const parsedCursor = Math.max(0, parseInt(cursor) || 0);
+
+        console.log(`[FOLLOWERS] Fetching for user: ${targetUserId}, cursor: ${parsedCursor}, limit: ${parsedLimit}`);
 
         const snapshot = await db.collection('follows')
             .where('followingId', '==', targetUserId)
@@ -239,11 +241,12 @@ const getFollowers = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Get followers error:', error);
+        console.error('Get followers error details:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to get followers',
-            error: error.message
+            message: 'Failed to get followers: ' + (error.message || 'Unknown error'),
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
@@ -254,8 +257,10 @@ const getFollowing = async (req, res) => {
     try {
         const { userId: targetUserId } = req.params;
         const { cursor = 0, limit = 20 } = req.query;
-        const parsedLimit = Math.min(parseInt(limit), 50);
-        const parsedCursor = parseInt(cursor);
+        const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 20, 50));
+        const parsedCursor = Math.max(0, parseInt(cursor) || 0);
+
+        console.log(`[FOLLOWING] Fetching for user: ${targetUserId}, cursor: ${parsedCursor}, limit: ${parsedLimit}`);
 
         const snapshot = await db.collection('follows')
             .where('followerId', '==', targetUserId)
@@ -290,11 +295,12 @@ const getFollowing = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Get following error:', error);
+        console.error('Get following error details:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to get following',
-            error: error.message
+            message: 'Failed to get following: ' + (error.message || 'Unknown error'),
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

@@ -105,7 +105,8 @@ const trackReferralClick = async (req, res) => {
                 const rData = reelSnap.data();
                 reelInfo = {
                     poster: rData.posterUrl,
-                    caption: rData.caption
+                    caption: rData.caption,
+                    contentType: rData.contentType || 'reel'
                 };
             }
         }

@@ -110,16 +110,23 @@
 .gridItem {
     position: relative;
     aspect-ratio: 9/16;
-    background: var(--color-bg-tertiary);
+    background: #000;
     cursor: pointer;
     overflow: hidden;
     border-radius: 4px;
 }
 
+.gridItemHorizontal {
+    aspect-ratio: 16/9;
+}
+
 .thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .itemOverlay {
@@ -333,8 +340,15 @@
     transform: scale(1.02);
 }
 
-.progressBar {
+.progressWrapper {
     margin-top: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.progressBar {
+    width: 100%;
     height: 6px;
     background: var(--color-bg-tertiary);
     border-radius: 3px;
@@ -345,6 +359,13 @@
     height: 100%;
     background: var(--color-accent-gradient);
     transition: width 0.3s;
+}
+
+.progressText {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: right;
 }
 
 /* Modal */
