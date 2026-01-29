@@ -16,7 +16,9 @@ const {
     deleteReel,
     getFlaggedReels,
     getContentStats,
-    getViralAnalytics
+    getViralAnalytics,
+    getContentRankings,
+    toggleBanContent
 } = require('../controllers/adminReelController');
 const {
     getAllComments,
@@ -87,10 +89,12 @@ router.post('/users/:userId/verify', isAdmin, verifyUser);
 // Reel/Content management routes
 router.get('/reels', isAdmin, getAllReels);
 router.get('/reels/stats', isAdmin, getContentStats);
+router.get('/reels/rankings', isAdmin, getContentRankings);
 router.get('/reels/flagged', isAdmin, getFlaggedReels);
 router.get('/reels/viral', isAdmin, getViralAnalytics);
 router.get('/reels/:reelId', isAdmin, getReelDetails);
 router.delete('/reels/:reelId', isAdmin, deleteReel);
+router.post('/reels/:reelId/toggle-ban', isAdmin, toggleBanContent);
 router.post('/reels/:reelId/unban', isAdmin, unbanContent);
 
 // Channel management routes

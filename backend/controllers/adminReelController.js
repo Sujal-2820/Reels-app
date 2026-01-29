@@ -10,55 +10,99 @@ const getAllReels = async (req, res) => {
     try {
         const {
             limit = 20,
-            privacy = 'all', // all, public, private
-            contentType = 'all', // all, reel, video
+            privacy = 'all',
+            contentType = 'all',
+            isBanned,
             sortBy = 'createdAt',
-            sortOrder = 'desc'
+            sortOrder = 'desc',
+            search = ''
         } = req.query;
 
-        let query = db.collection('reels');
+        // Fetch ALL reels and filter in memory to avoid composite index issues
+        // For production, create proper Firestore indexes
+        const snapshot = await db.collection('reels').get();
 
-        // Content Type filter
-        if (contentType === 'reel' || contentType === 'video') {
-            query = query.where('contentType', '==', contentType);
-        }
-
-        // Privacy filter
-        if (privacy === 'public') {
-            query = query.where('isPrivate', '==', false);
-        } else if (privacy === 'private') {
-            query = query.where('isPrivate', '==', true);
-        }
-
-        const snapshot = await query.orderBy(sortBy, sortOrder === 'asc' ? 'asc' : 'desc')
-            .limit(parseInt(limit))
-            .get();
-
-        const reels = await Promise.all(snapshot.docs.map(async (doc) => {
+        let reels = await Promise.all(snapshot.docs.map(async (doc) => {
             const data = doc.data();
-            const userSnap = await db.collection('users').doc(data.userId).get();
-            const userData = userSnap.exists ? userSnap.data() : null;
 
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate(),
-                user: userData ? {
-                    name: userData.name,
-                    username: userData.username,
-                    profilePic: userData.profilePic,
-                    verificationType: userData.verificationType
-                } : null
-            };
+            try {
+                const userSnap = await db.collection('users').doc(data.userId).get();
+                const userData = userSnap.exists ? userSnap.data() : null;
+
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate(),
+                    user: userData ? {
+                        id: userSnap.id,
+                        name: userData.name,
+                        username: userData.username,
+                        profilePic: userData.profilePic,
+                        verificationType: userData.verificationType,
+                        email: userData.email,
+                        phone: userData.phone
+                    } : null
+                };
+            } catch (err) {
+                console.error('Error fetching user for reel:', doc.id, err);
+                return null;
+            }
         }));
+
+        // Filter out nulls
+        reels = reels.filter(r => r !== null);
+
+        // Apply filters in memory
+        if (contentType === 'reel' || contentType === 'video') {
+            reels = reels.filter(r => r.contentType === contentType);
+        }
+
+        if (privacy === 'public') {
+            reels = reels.filter(r => r.isPrivate === false);
+        } else if (privacy === 'private') {
+            reels = reels.filter(r => r.isPrivate === true);
+        }
+
+        if (isBanned === 'true') {
+            reels = reels.filter(r => r.isBanned === true);
+        } else if (isBanned === 'false') {
+            reels = reels.filter(r => !r.isBanned);
+        }
+
+        // Search filter
+        if (search) {
+            const searchLower = search.toLowerCase();
+            reels = reels.filter(reel =>
+                reel.caption?.toLowerCase().includes(searchLower) ||
+                reel.user?.name?.toLowerCase().includes(searchLower) ||
+                reel.user?.username?.toLowerCase().includes(searchLower)
+            );
+        }
+
+        // Sort
+        reels.sort((a, b) => {
+            let aVal = a[sortBy];
+            let bVal = b[sortBy];
+
+            // Handle dates
+            if (sortBy === 'createdAt') {
+                aVal = aVal ? new Date(aVal).getTime() : 0;
+                bVal = bVal ? new Date(bVal).getTime() : 0;
+            } else {
+                aVal = aVal || 0;
+                bVal = bVal || 0;
+            }
+
+            return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
+        });
 
         res.json({
             success: true,
             data: {
-                reels,
+                reels: reels.slice(0, parseInt(limit)),
                 pagination: {
-                    totalReels: snapshot.size,
-                    hasMore: snapshot.size === parseInt(limit)
+                    totalReels: reels.length,
+                    hasMore: reels.length > parseInt(limit)
                 }
             }
         });
@@ -68,6 +112,98 @@ const getAllReels = async (req, res) => {
             success: false,
             message: 'Failed to fetch reels',
             error: error.message
+        });
+    }
+};
+
+/**
+ * Get Content Rankings (Top Creators and Top Content)
+ * GET /api/admin/reels/rankings
+ */
+const getContentRankings = async (req, res) => {
+    try {
+        const { privacy = 'public', contentType = 'reel', metric = 'viewsCount', limit = 10 } = req.query;
+
+        // Fetch all reels and filter in memory
+        const snapshot = await db.collection('reels').get();
+
+        let allReels = await Promise.all(snapshot.docs.map(async (doc) => {
+            const data = doc.data();
+
+            try {
+                const userSnap = await db.collection('users').doc(data.userId).get();
+                const userData = userSnap.exists ? userSnap.data() : null;
+
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate(),
+                    user: userData ? {
+                        name: userData.name,
+                        username: userData.username,
+                        profilePic: userData.profilePic,
+                        verificationType: userData.verificationType
+                    } : null
+                };
+            } catch (err) {
+                console.error('Error fetching user:', err);
+                return null;
+            }
+        }));
+
+        // Filter out nulls
+        allReels = allReels.filter(r => r !== null);
+
+        // Apply filters
+        let filteredReels = allReels.filter(reel => {
+            if (contentType === 'reel' || contentType === 'video') {
+                if (reel.contentType !== contentType) return false;
+            }
+            if (privacy === 'public' && reel.isPrivate !== false) return false;
+            if (privacy === 'private' && reel.isPrivate !== true) return false;
+            return true;
+        });
+
+        // Sort by metric
+        filteredReels.sort((a, b) => (b[metric] || 0) - (a[metric] || 0));
+
+        // Top Content
+        const topContent = filteredReels.slice(0, parseInt(limit));
+
+        // Top Creators - aggregate by userId
+        const creatorEngagement = {};
+        filteredReels.forEach(reel => {
+            if (!creatorEngagement[reel.userId]) {
+                creatorEngagement[reel.userId] = {
+                    userId: reel.userId,
+                    totalScore: 0,
+                    contentCount: 0,
+                    user: reel.user
+                };
+            }
+            creatorEngagement[reel.userId].totalScore += (reel[metric] || 0);
+            creatorEngagement[reel.userId].contentCount += 1;
+        });
+
+        const topCreators = Object.values(creatorEngagement)
+            .sort((a, b) => b.totalScore - a.totalScore)
+            .slice(0, parseInt(limit));
+
+        res.json({
+            success: true,
+            data: {
+                topContent: topContent || [],
+                topCreators: topCreators || []
+            }
+        });
+    } catch (error) {
+        console.error('Get rankings error:', error);
+        res.json({
+            success: true,
+            data: {
+                topContent: [],
+                topCreators: []
+            }
         });
     }
 };
@@ -120,6 +256,7 @@ const getReelDetails = async (req, res) => {
                         username: userData.username,
                         profilePic: userData.profilePic,
                         phone: userData.phone,
+                        email: userData.email,
                         verificationType: userData.verificationType
                     } : null
                 },
@@ -243,48 +380,105 @@ const getViralAnalytics = async (req, res) => {
     try {
         const { limit = 20 } = req.query;
 
-        // In Firestore, we should have a pre-calculated viralityScore field
-        // which we already implemented in reelController
-        const snapshot = await db.collection('reels')
-            .where('isPrivate', '==', false)
-            .orderBy('viralityScore', 'desc')
-            .limit(parseInt(limit))
-            .get();
+        // Fetch all reels and filter in memory
+        const snapshot = await db.collection('reels').get();
 
-        const topViralReels = await Promise.all(snapshot.docs.map(async (doc) => {
+        let allReels = await Promise.all(snapshot.docs.map(async (doc) => {
             const data = doc.data();
-            const userSnap = await db.collection('users').doc(data.userId).get();
-            const creator = userSnap.exists ? userSnap.data() : null;
 
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate(),
-                creator: creator ? {
-                    id: userSnap.id,
-                    name: creator.name,
-                    username: creator.username,
-                    profilePic: creator.profilePic,
-                    verificationType: creator.verificationType
-                } : null
-            };
+            try {
+                const userSnap = await db.collection('users').doc(data.userId).get();
+                const creator = userSnap.exists ? userSnap.data() : null;
+
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate(),
+                    creator: creator ? {
+                        id: data.userId,
+                        name: creator.name,
+                        username: creator.username,
+                        profilePic: creator.profilePic,
+                        verificationType: creator.verificationType
+                    } : null
+                };
+            } catch (err) {
+                console.error('Error fetching creator:', err);
+                return null;
+            }
         }));
+
+        // Filter out nulls and only public reels
+        allReels = allReels.filter(r => r !== null && r.isPrivate === false);
+
+        // Sort by viewsCount
+        allReels.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
+
+        const topViralReels = allReels.slice(0, parseInt(limit));
 
         res.json({
             success: true,
             data: {
-                topViralReels,
+                topViralReels: topViralReels || [],
                 stats: {
-                    totalReels: snapshot.size,
+                    totalReels: allReels.length,
                     viralThreshold: 100
                 }
             }
         });
     } catch (error) {
         console.error('Get viral analytics error:', error);
+        res.json({
+            success: true,
+            data: {
+                topViralReels: [],
+                stats: {
+                    totalReels: 0,
+                    viralThreshold: 100
+                }
+            }
+        });
+    }
+};
+
+/**
+ * Ban/Unban content with reason
+ * POST /api/admin/reels/:reelId/toggle-ban
+ */
+const toggleBanContent = async (req, res) => {
+    try {
+        const { reelId } = req.params;
+        const { isBanned, reason } = req.body;
+        const adminId = req.userId;
+
+        const reelRef = db.collection('reels').doc(reelId);
+        const reelSnap = await reelRef.get();
+
+        if (!reelSnap.exists) {
+            return res.status(404).json({ success: false, message: 'Content not found' });
+        }
+
+        const updates = {
+            isBanned: !!isBanned,
+            banReason: isBanned ? reason || 'Banned by administrator' : null,
+            bannedAt: isBanned ? serverTimestamp() : null,
+            bannedBy: isBanned ? adminId : null,
+            updatedAt: serverTimestamp()
+        };
+
+        await reelRef.update(updates);
+
+        res.json({
+            success: true,
+            message: `Content ${isBanned ? 'banned' : 'unbanned'} successfully`,
+            data: updates
+        });
+    } catch (error) {
+        console.error('Toggle ban error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 module.exports = {
     getAllReels,
@@ -292,5 +486,7 @@ module.exports = {
     deleteReel,
     getContentStats,
     getViralAnalytics,
+    getContentRankings,
+    toggleBanContent,
     getFlaggedReels: async (req, res) => res.json({ success: true, data: [] })
 };

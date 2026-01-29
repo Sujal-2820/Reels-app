@@ -7,32 +7,103 @@ const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
  */
 const getAllPlans = async (req, res) => {
     try {
-        const plansSnap = await db.collection('plans').orderBy('price', 'asc').get();
-        const plans = plansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const plansSnap = await db.collection('subscriptionPlans').get();
+
+        if (plansSnap.empty) {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        const plans = plansSnap.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                // Basic Info
+                name: data.name || data.displayName || 'Unnamed Plan',
+                displayName: data.displayName || data.name || 'Unnamed Plan',
+                type: data.type || 'subscription',
+                tier: data.tier || 0,
+                sortOrder: data.sortOrder || 0,
+                isActive: data.isActive !== undefined ? data.isActive : true,
+                isBestValue: data.isBestValue || false,
+
+                // Billing Cycle
+                billingCycle: data.billingCycle || 'monthly',
+
+                // Monthly Pricing
+                price: data.price || 0,
+                durationDays: data.durationDays || 30,
+
+                // Yearly Pricing
+                priceYearly: data.priceYearly || 0,
+                durationDaysYearly: data.durationDaysYearly || 365,
+
+                // Storage & Limits
+                storageGB: data.storageGB || 0,
+                uploadLimit: data.uploadLimit || 0,
+                storageLimit: data.storageLimit || 0,
+
+                // Features
+                features: {
+                    noAds: data.features?.noAds || false,
+                    blueTick: data.features?.blueTick || false,
+                    goldTick: data.features?.goldTick || false,
+                    customTheme: data.features?.customTheme || false,
+                    bioLinksLimit: data.features?.bioLinksLimit || 0,
+                    captionLinksLimit: data.features?.captionLinksLimit || 0,
+                    engagementBoost: data.features?.engagementBoost || 1.0
+                },
+
+                // Razorpay
+                razorpayPlanId: data.razorpayPlanId || null,
+                razorpayPlanCreatedAt: data.razorpayPlanCreatedAt?.toDate() || null,
+
+                // Timestamps
+                createdAt: data.createdAt?.toDate() || null,
+                updatedAt: data.updatedAt?.toDate() || null
+            };
+        });
+
+        // Sort by sortOrder, then tier
+        plans.sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+            return a.tier - b.tier;
+        });
 
         // Get subscriber counts and revenue for each plan
         const plansWithCounts = await Promise.all(plans.map(async (plan) => {
-            const subscribersSnap = await db.collection('userPlans')
-                .where('planId', '==', plan.id)
-                .where('isActive', '==', true)
-                .where('expiresAt', '>', admin.firestore.Timestamp.now())
-                .get();
+            try {
+                const subscribersSnap = await db.collection('userPlans')
+                    .where('planId', '==', plan.id)
+                    .where('isActive', '==', true)
+                    .where('expiresAt', '>', admin.firestore.Timestamp.now())
+                    .get();
 
-            const paymentsSnap = await db.collection('payments')
-                .where('planId', '==', plan.id)
-                .where('status', '==', 'completed')
-                .get();
+                const paymentsSnap = await db.collection('payments')
+                    .where('planId', '==', plan.id)
+                    .where('status', '==', 'completed')
+                    .get();
 
-            let totalRevenue = 0;
-            paymentsSnap.forEach(doc => {
-                totalRevenue += doc.data().amount || 0;
-            });
+                let totalRevenue = 0;
+                paymentsSnap.forEach(doc => {
+                    totalRevenue += doc.data().amount || 0;
+                });
 
-            return {
-                ...plan,
-                activeSubscribers: subscribersSnap.size,
-                totalRevenue
-            };
+                return {
+                    ...plan,
+                    activeSubscribers: subscribersSnap.size || 0,
+                    totalRevenue: totalRevenue || 0
+                };
+            } catch (err) {
+                console.error(`Error fetching stats for plan ${plan.id}:`, err);
+                return {
+                    ...plan,
+                    activeSubscribers: 0,
+                    totalRevenue: 0
+                };
+            }
         }));
 
         res.json({
@@ -78,7 +149,7 @@ const createPlan = async (req, res) => {
             updatedAt: serverTimestamp
         };
 
-        const planRef = await db.collection('plans').add(planData);
+        const planRef = await db.collection('subscriptionPlans').add(planData);
 
         res.status(201).json({
             success: true,
@@ -105,7 +176,7 @@ const updatePlan = async (req, res) => {
         const updates = req.body;
         updates.updatedAt = serverTimestamp;
 
-        const planRef = db.collection('plans').doc(planId);
+        const planRef = db.collection('subscriptionPlans').doc(planId);
         await planRef.update(updates);
 
         res.json({
@@ -145,7 +216,7 @@ const deletePlan = async (req, res) => {
         }
 
         // Soft delete
-        await db.collection('plans').doc(planId).update({ isActive: false, updatedAt: serverTimestamp });
+        await db.collection('subscriptionPlans').doc(planId).update({ isActive: false, updatedAt: serverTimestamp });
 
         res.json({
             success: true,
@@ -252,7 +323,7 @@ const getSubscribers = async (req, res) => {
             const data = doc.data();
             const [userSnap, planSnap] = await Promise.all([
                 db.collection('users').doc(data.userId).get(),
-                db.collection('plans').doc(data.planId).get()
+                db.collection('subscriptionPlans').doc(data.planId).get()
             ]);
 
             const user = userSnap.exists ? userSnap.data() : null;
@@ -305,7 +376,7 @@ const assignPlanToUser = async (req, res) => {
     try {
         const { userId, planId, durationDays } = req.body;
 
-        const planSnap = await db.collection('plans').doc(planId).get();
+        const planSnap = await db.collection('subscriptionPlans').doc(planId).get();
         if (!planSnap.exists) {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }

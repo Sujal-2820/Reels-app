@@ -35,13 +35,14 @@ const AdminLayout = () => {
         },
         {
             id: 'content',
-            label: 'Content',
+            label: 'Content Control',
             icon: '🎬',
             path: '/admin/reels',
             subItems: [
-                { label: 'All Reels', path: '/admin/reels' },
-                { label: 'Videos', path: '/admin/videos' },
-                { label: 'Private Content', path: '/admin/private' },
+                { label: 'Public Reels', path: '/admin/reels/public' },
+                { label: 'Private Reels', path: '/admin/reels/private' },
+                { label: 'Public Videos', path: '/admin/videos/public' },
+                { label: 'Private Videos', path: '/admin/videos/private' },
                 { label: 'Viral Tracking', path: '/admin/reels/viral' }
             ]
         },

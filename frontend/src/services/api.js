@@ -194,6 +194,8 @@ export const adminAPI = {
     getFlaggedReels: () => api.get('/admin/reels/flagged'),
     getContentStats: () => api.get('/admin/reels/stats'),
     getViralAnalytics: (params) => api.get('/admin/reels/viral', { params }),
+    getContentRankings: (params) => api.get('/admin/reels/rankings', { params }),
+    toggleBanContent: (reelId, data) => api.post(`/admin/reels/${reelId}/toggle-ban`, data),
 
     // Comments
     getComments: (params) => api.get('/admin/comments', { params }),

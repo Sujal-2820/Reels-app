@@ -574,46 +574,57 @@ const toggleLike = async (req, res) => {
         const userId = req.userId;
 
         const reelRef = db.collection('reels').doc(id);
-        const reelSnap = await reelRef.get();
 
-        if (!reelSnap.exists) {
-            return res.status(404).json({ success: false, message: 'Reel not found.' });
-        }
+        // Use transaction to prevent negative counts
+        const result = await db.runTransaction(async (transaction) => {
+            const reelSnap = await transaction.get(reelRef);
 
-        const reel = reelSnap.data();
-        const likes = reel.likes || [];
-        const isLiked = likes.includes(userId);
+            if (!reelSnap.exists) {
+                throw new Error('Reel not found');
+            }
 
-        if (!isLiked) {
-            // Like
-            await reelRef.update({
-                likes: admin.firestore.FieldValue.arrayUnion(userId),
-                likesCount: admin.firestore.FieldValue.increment(1),
-                viralityScore: admin.firestore.FieldValue.increment(1),
-                updatedAt: serverTimestamp
-            });
-        } else {
-            // Unlike
-            await reelRef.update({
-                likes: admin.firestore.FieldValue.arrayRemove(userId),
-                likesCount: admin.firestore.FieldValue.increment(-1),
-                viralityScore: admin.firestore.FieldValue.increment(-1),
-                updatedAt: serverTimestamp
-            });
-        }
+            const reel = reelSnap.data();
+            const likes = reel.likes || [];
+            const isLiked = likes.includes(userId);
+            const currentLikesCount = reel.likesCount || 0;
+
+            if (!isLiked) {
+                // Like
+                transaction.update(reelRef, {
+                    likes: admin.firestore.FieldValue.arrayUnion(userId),
+                    likesCount: admin.firestore.FieldValue.increment(1),
+                    viralityScore: admin.firestore.FieldValue.increment(1),
+                    updatedAt: serverTimestamp
+                });
+                return {
+                    isLiked: true,
+                    likesCount: currentLikesCount + 1
+                };
+            } else {
+                // Unlike - only decrement if count is greater than 0
+                const newCount = Math.max(0, currentLikesCount - 1);
+                transaction.update(reelRef, {
+                    likes: admin.firestore.FieldValue.arrayRemove(userId),
+                    likesCount: newCount,
+                    viralityScore: Math.max(0, (reel.viralityScore || 0) - 1),
+                    updatedAt: serverTimestamp
+                });
+                return {
+                    isLiked: false,
+                    likesCount: newCount
+                };
+            }
+        });
 
         res.json({
             success: true,
-            data: {
-                isLiked: !isLiked,
-                likesCount: (reel.likesCount || 0) + (isLiked ? -1 : 1)
-            }
+            data: result
         });
     } catch (error) {
         console.error('Toggle like error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update like.',
+            message: error.message === 'Reel not found' ? 'Reel not found.' : 'Failed to update like.',
             error: error.message
         });
     }
@@ -896,40 +907,62 @@ const processBatchActivity = async (req, res) => {
         const { likes = {}, views = {} } = req.body;
         const userId = req.userId;
 
-        const batch = db.batch();
-
-        // 1. Process Views
-        const viewEntries = Object.entries(views);
-        for (const [reelId, count] of viewEntries) {
-            const reelRef = db.collection('reels').doc(reelId);
-            batch.update(reelRef, {
-                viewsCount: admin.firestore.FieldValue.increment(count),
-                viralityScore: admin.firestore.FieldValue.increment(count * 0.1)
-            });
+        // Process views in batch (safe to increment)
+        if (Object.keys(views).length > 0) {
+            const batch = db.batch();
+            const viewEntries = Object.entries(views);
+            for (const [reelId, count] of viewEntries) {
+                const reelRef = db.collection('reels').doc(reelId);
+                batch.update(reelRef, {
+                    viewsCount: admin.firestore.FieldValue.increment(count),
+                    viralityScore: admin.firestore.FieldValue.increment(count * 0.1)
+                });
+            }
+            await batch.commit();
         }
 
-        // 2. Process Likes (Only if user is authenticated)
-        if (userId) {
+        // Process likes individually with transactions to prevent negative counts
+        if (userId && Object.keys(likes).length > 0) {
             const likeEntries = Object.entries(likes);
             for (const [reelId, isLiked] of likeEntries) {
                 const reelRef = db.collection('reels').doc(reelId);
-                if (isLiked) {
-                    batch.update(reelRef, {
-                        likes: admin.firestore.FieldValue.arrayUnion(userId),
-                        likesCount: admin.firestore.FieldValue.increment(1),
-                        viralityScore: admin.firestore.FieldValue.increment(1)
+
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const reelSnap = await transaction.get(reelRef);
+
+                        if (!reelSnap.exists) {
+                            return; // Skip if reel doesn't exist
+                        }
+
+                        const reel = reelSnap.data();
+                        const currentLikes = reel.likes || [];
+                        const currentLikesCount = reel.likesCount || 0;
+                        const alreadyLiked = currentLikes.includes(userId);
+
+                        if (isLiked && !alreadyLiked) {
+                            // Add like
+                            transaction.update(reelRef, {
+                                likes: admin.firestore.FieldValue.arrayUnion(userId),
+                                likesCount: admin.firestore.FieldValue.increment(1),
+                                viralityScore: admin.firestore.FieldValue.increment(1)
+                            });
+                        } else if (!isLiked && alreadyLiked) {
+                            // Remove like - ensure count doesn't go negative
+                            const newCount = Math.max(0, currentLikesCount - 1);
+                            transaction.update(reelRef, {
+                                likes: admin.firestore.FieldValue.arrayRemove(userId),
+                                likesCount: newCount,
+                                viralityScore: Math.max(0, (reel.viralityScore || 0) - 1)
+                            });
+                        }
                     });
-                } else {
-                    batch.update(reelRef, {
-                        likes: admin.firestore.FieldValue.arrayRemove(userId),
-                        likesCount: admin.firestore.FieldValue.increment(-1),
-                        viralityScore: admin.firestore.FieldValue.increment(-1)
-                    });
+                } catch (err) {
+                    console.error(`Error processing like for reel ${reelId}:`, err);
+                    // Continue processing other likes even if one fails
                 }
             }
         }
-
-        await batch.commit();
 
         res.json({
             success: true,

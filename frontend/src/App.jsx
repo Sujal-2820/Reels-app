@@ -41,6 +41,7 @@ import AdminChannels from './pages/Admin/Channels/AdminChannels';
 import AdminAnalytics from './pages/Admin/Dashboard/AdminAnalytics';
 import AdminPrivateContent from './pages/Admin/Reels/AdminPrivateContent';
 import AdminReports from './pages/Admin/Channels/AdminReports';
+import ContentControl from './pages/Admin/Reels/ContentControl';
 import AdminLogin from './pages/Admin/AdminLogin/AdminLogin';
 import Support from './pages/Support/Support';
 import TicketDetail from './pages/Support/TicketDetail';
@@ -497,9 +498,10 @@ function AppContent() {
         <Route path="users/:userId" element={<AdminUserDetail />} />
         <Route path="channels" element={<AdminChannels />} />
         <Route path="referrals" element={<AdminReferrals />} />
-        <Route path="reels" element={<AdminReels />} />
-        <Route path="videos" element={<AdminVideos />} />
-        <Route path="private" element={<AdminPrivateContent />} />
+        <Route path="reels/public" element={<ContentControl type="reel" privacy="public" />} />
+        <Route path="reels/private" element={<ContentControl type="reel" privacy="private" />} />
+        <Route path="videos/public" element={<ContentControl type="video" privacy="public" />} />
+        <Route path="videos/private" element={<ContentControl type="video" privacy="private" />} />
         <Route path="reels/viral" element={<AdminViral />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="comments" element={<AdminComments />} />
