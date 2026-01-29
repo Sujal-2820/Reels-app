@@ -170,7 +170,7 @@ const AdminSupport = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {tickets.map(ticket => (
                         <div
-                            key={ticket._id}
+                            key={ticket.id}
                             className={styles.card}
                             style={{
                                 padding: '12px 16px',
@@ -180,7 +180,7 @@ const AdminSupport = () => {
                                 cursor: 'pointer',
                                 borderLeft: ticket.needsResponse ? '4px solid #d63638' : '4px solid transparent'
                             }}
-                            onClick={() => navigate(`/admin/support/${ticket._id}`)}
+                            onClick={() => navigate(`/admin/support/${ticket.id}`)}
                         >
                             {/* User Avatar */}
                             <div style={{
@@ -191,15 +191,15 @@ const AdminSupport = () => {
                                 overflow: 'hidden',
                                 flexShrink: 0
                             }}>
-                                {ticket.userId?.profilePic && (
-                                    <img src={ticket.userId.profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {ticket.user?.profilePic && (
+                                    <img src={ticket.user.profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
                             </div>
 
                             {/* User & Subject */}
                             <div style={{ flex: 2, minWidth: 0 }}>
                                 <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--admin-accent)' }}>
-                                    {ticket.userId?.name || 'Unknown User'}
+                                    {ticket.user?.name || 'Unknown User'}
                                     {ticket.needsResponse && <span style={{ marginLeft: '8px', fontSize: '10px', color: '#d63638' }}>⚠️ AWAITING REPLY</span>}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

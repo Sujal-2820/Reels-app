@@ -379,3 +379,51 @@
     color: var(--color-text-secondary);
     font-size: 14px;
 }
+
+/* New Message Styles */
+.message.newMessage {
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+    animation: pulse 2s ease-in-out;
+}
+
+.messageContent {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.5);
+    }
+}
