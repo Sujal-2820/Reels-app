@@ -1,5 +1,5 @@
 const { db, admin } = require('../config/firebase');
-const { uploadImage, uploadVideo, deleteResource } = require('../config/cloudinary');
+const { uploadImage, uploadVideo, uploadAvatar, deleteResource } = require('../config/cloudinary');
 const { cleanupFile } = require('../middleware/upload');
 const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
@@ -89,13 +89,28 @@ const createChannel = async (req, res) => {
         const creatorDoc = await db.collection('users').doc(creatorId).get();
         const creator = creatorDoc.exists ? creatorDoc.data() : {};
 
+        let profilePic = creator.profilePic || null;
+
+        // If a file is uploaded, use it instead
+        if (req.file) {
+            try {
+                const uploadResult = await uploadAvatar(req.file.path, { folder: 'reelbox/channel_profiles' });
+                profilePic = uploadResult.secure_url;
+                cleanupFile(req.file.path);
+            } catch (uploadError) {
+                console.error('Channel pic upload error:', uploadError);
+                cleanupFile(req.file.path);
+                // Continue with default pic if upload fails
+            }
+        }
+
         const accessToken = isPrivateChannel ? require('crypto').randomBytes(16).toString('hex') : null;
 
         const channelData = {
             creatorId,
             name: name.trim(),
             description: description?.trim() || '',
-            profilePic: creator.profilePic || null,
+            profilePic,
             createdAt: serverTimestamp(),
             memberCount: 0,
             isActive: true,
@@ -118,6 +133,7 @@ const createChannel = async (req, res) => {
             }
         });
     } catch (error) {
+        if (req.file) cleanupFile(req.file.path);
         console.error('Create channel error:', error);
         res.status(500).json({
             success: false,
@@ -1256,13 +1272,37 @@ const updateChannel = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Channel not found' });
         }
 
-        if (channelDoc.data().creatorId !== userId) {
+        const channelData = channelDoc.data();
+        if (channelData.creatorId !== userId) {
             return res.status(403).json({ success: false, message: 'Only the creator can update settings' });
         }
 
         const updateData = {};
         if (name) updateData.name = name.trim();
         if (description !== undefined) updateData.description = description.trim();
+
+        // Handle profile pic update
+        if (req.file) {
+            try {
+                // Upload new pic
+                const uploadResult = await uploadAvatar(req.file.path, { folder: 'reelbox/channel_profiles' });
+                updateData.profilePic = uploadResult.secure_url;
+                cleanupFile(req.file.path);
+
+                // Delete old pic if it exists and is a channel-specific upload
+                if (channelData.profilePic && channelData.profilePic.includes('channel_profiles')) {
+                    try {
+                        const oldId = channelData.profilePic.split('/').pop().split('.')[0];
+                        await deleteResource(`reelbox/channel_profiles/${oldId}`, 'image');
+                    } catch (err) {
+                        console.error('Failed to delete old channel pic:', err);
+                    }
+                }
+            } catch (uploadError) {
+                console.error('Channel pic upload error:', uploadError);
+                cleanupFile(req.file.path);
+            }
+        }
 
         if (Object.keys(updateData).length === 0) {
             return res.status(400).json({ success: false, message: 'No updates provided' });
@@ -1273,9 +1313,13 @@ const updateChannel = async (req, res) => {
         res.json({
             success: true,
             message: 'Channel updated successfully',
-            data: updateData
+            data: {
+                ...updateData,
+                id
+            }
         });
     } catch (error) {
+        if (req.file) cleanupFile(req.file.path);
         console.error('Update channel error:', error);
         res.status(500).json({ success: false, message: 'Failed to update channel' });
     }

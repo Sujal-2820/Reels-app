@@ -249,10 +249,24 @@ export const channelsAPI = {
     },
     getMyChannels: () => api.get('/channels/my'),
     getJoinedChannels: () => api.get('/channels/joined'),
-    create: (data) => api.post('/channels', data),
+    create: (data) => {
+        if (data instanceof FormData) {
+            return api.post('/channels', data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        }
+        return api.post('/channels', data);
+    },
     join: (id) => api.post(`/channels/${id}/join`),
     leave: (id) => api.post(`/channels/${id}/leave`),
-    update: (id, data) => api.put(`/channels/${id}`, data),
+    update: (id, data) => {
+        if (data instanceof FormData) {
+            return api.put(`/channels/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        }
+        return api.put(`/channels/${id}`, data);
+    },
     delete: (id) => api.delete(`/channels/${id}`),
     getPosts: (id, cursor = null, limit = 20) => {
         let url = `/channels/${id}/posts?limit=${limit}`;

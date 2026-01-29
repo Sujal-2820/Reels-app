@@ -31,7 +31,26 @@ const ChannelView = () => {
     const [reporting, setReporting] = useState(false);
     const [appealing, setAppealing] = useState(false);
     const [editModal, setEditModal] = useState({ show: false, name: '', description: '' });
+    const [editAvatarFile, setEditAvatarFile] = useState(null);
+    const [editAvatarPreview, setEditAvatarPreview] = useState(null);
     const [updating, setUpdating] = useState(false);
+    const editAvatarInputRef = useRef(null);
+
+    const handleEditAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size exceeds 5MB limit');
+                return;
+            }
+            setEditAvatarFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditAvatarPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const queryParams = new URLSearchParams(location.search);
     const token = queryParams.get('token');
@@ -213,13 +232,19 @@ const ChannelView = () => {
         if (!editModal.name.trim()) return;
         setUpdating(true);
         try {
-            const response = await channelsAPI.update(id, {
-                name: editModal.name,
-                description: editModal.description
-            });
+            const formData = new FormData();
+            formData.append('name', editModal.name);
+            formData.append('description', editModal.description);
+            if (editAvatarFile) {
+                formData.append('profilePic', editAvatarFile);
+            }
+
+            const response = await channelsAPI.update(id, formData);
             if (response.success) {
                 alert('Channel updated successfully');
                 setEditModal({ ...editModal, show: false });
+                setEditAvatarFile(null);
+                setEditAvatarPreview(null);
                 fetchChannel(); // Refresh data
             }
         } catch (error) {
@@ -539,11 +564,15 @@ const ChannelView = () => {
                             <div className={styles.creatorActions}>
                                 <button
                                     className={styles.settingsBtn}
-                                    onClick={() => setEditModal({
-                                        show: true,
-                                        name: channel.name,
-                                        description: channel.description
-                                    })}
+                                    onClick={() => {
+                                        setEditModal({
+                                            show: true,
+                                            name: channel.name,
+                                            description: channel.description
+                                        });
+                                        setEditAvatarPreview(channel.profilePic);
+                                        setEditAvatarFile(null);
+                                    }}
                                 >
                                     Update Settings
                                 </button>
@@ -895,6 +924,35 @@ const ChannelView = () => {
                             <button className={styles.modalCloseBtn} onClick={() => setEditModal({ ...editModal, show: false })}>×</button>
                         </div>
                         <div className={styles.modalBody}>
+                            <div className={styles.avatarUploadSection}>
+                                <div
+                                    className={styles.avatarCircle}
+                                    onClick={() => editAvatarInputRef.current?.click()}
+                                >
+                                    {editAvatarPreview ? (
+                                        <img src={editAvatarPreview} alt="Preview" className={styles.avatarPreview} />
+                                    ) : (
+                                        <>
+                                            <svg className={styles.uploadIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                                                <circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                            <span className={styles.uploadLabel}>Change Photo</span>
+                                        </>
+                                    )}
+                                    <div className={styles.changeOverlay}>
+                                        <span>Change</span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="file"
+                                    ref={editAvatarInputRef}
+                                    onChange={handleEditAvatarChange}
+                                    accept="image/*"
+                                    className={styles.hiddenInput}
+                                />
+                            </div>
+
                             <div className={styles.formGroupModal}>
                                 <label>Channel Name</label>
                                 <input

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +17,32 @@ const Channels = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newChannel, setNewChannel] = useState({ name: '', description: '', isPrivate: false });
     const [creating, setCreating] = useState(false);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    const avatarInputRef = useRef(null);
+
+    useEffect(() => {
+        if (showCreateModal) {
+            setAvatarPreview(user?.profilePic);
+            setAvatarFile(null);
+        }
+    }, [showCreateModal, user]);
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size exceeds 5MB limit');
+                return;
+            }
+            setAvatarFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     useEffect(() => {
         if (settings.allowChannels !== false) {
@@ -53,10 +79,20 @@ const Channels = () => {
 
         setCreating(true);
         try {
-            const response = await channelsAPI.create(newChannel);
+            const formData = new FormData();
+            formData.append('name', newChannel.name);
+            formData.append('description', newChannel.description);
+            formData.append('isPrivate', newChannel.isPrivate);
+            if (avatarFile) {
+                formData.append('profilePic', avatarFile);
+            }
+
+            const response = await channelsAPI.create(formData);
             if (response.success) {
                 setShowCreateModal(false);
                 setNewChannel({ name: '', description: '', isPrivate: false });
+                setAvatarFile(null);
+                setAvatarPreview(null);
                 fetchChannels();
             }
         } catch (error) {
@@ -247,6 +283,35 @@ const Channels = () => {
                             </button>
                         </div>
                         <div className={styles.modalBody}>
+                            <div className={styles.avatarUploadSection}>
+                                <div
+                                    className={styles.avatarCircle}
+                                    onClick={() => avatarInputRef.current?.click()}
+                                >
+                                    {avatarPreview ? (
+                                        <img src={avatarPreview} alt="Preview" className={styles.avatarPreview} />
+                                    ) : (
+                                        <>
+                                            <svg className={styles.uploadIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                                                <circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                            <span className={styles.uploadLabel}>Add Photo</span>
+                                        </>
+                                    )}
+                                    <div className={styles.changeOverlay}>
+                                        <span>Change</span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="file"
+                                    ref={avatarInputRef}
+                                    onChange={handleAvatarChange}
+                                    accept="image/*"
+                                    className={styles.hiddenInput}
+                                />
+                            </div>
+
                             <div className={styles.formGroup}>
                                 <label>Channel Name</label>
                                 <input

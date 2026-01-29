@@ -31,11 +31,11 @@ router.get('/joined', auth, getJoinedChannels);
 router.get('/:id', optionalAuth, getChannelById);
 
 // Authenticated routes  
-router.post('/', auth, createChannel);
+router.post('/', auth, upload.single('profilePic'), createChannel);
 router.post('/settings', auth, updateChannelSettings); // Admin only check inside controller
 router.post('/:id/join', auth, joinChannel);
 router.post('/:id/leave', auth, leaveChannel);
-router.put('/:id', auth, updateChannel);
+router.put('/:id', auth, upload.single('profilePic'), updateChannel);
 router.delete('/:id', auth, deleteChannel);
 
 // Channel posts & members

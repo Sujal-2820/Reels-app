@@ -1079,3 +1079,77 @@
     opacity: 1;
     color: #ef4444;
 }
+
+/* Avatar Upload Section */
+.avatarUploadSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.avatarCircle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--color-bg-tertiary);
+    border: 2px dashed var(--color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.avatarCircle:hover {
+    border-color: var(--color-accent-primary);
+    background: rgba(255, 215, 0, 0.05);
+}
+
+.avatarPreview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.uploadIcon {
+    width: 24px;
+    height: 24px;
+    color: var(--color-text-tertiary);
+    margin-bottom: 4px;
+}
+
+.uploadLabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+    text-align: center;
+}
+
+.changeOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.avatarCircle:hover .changeOverlay {
+    opacity: 1;
+}
+
+.changeOverlay span {
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.hiddenInput {
+    display: none;
+}
