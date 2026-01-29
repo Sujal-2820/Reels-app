@@ -275,13 +275,16 @@ const getReelsFeed = async (req, res) => {
             })
             .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
 
-        console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, count=${reels.length}`);
+        console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, totalCount=${reels.length}, cursor=${parsedCursor}, limit=${fetchLimit}`);
 
-        // Apply pagination
-        const startIndex = parsedCursor * fetchLimit;
-        const paginatedReels = reels.slice(startIndex, startIndex + fetchLimit + 1);
+        // Apply pagination - cursor is the offset (number of items already fetched)
+        const startIndex = parsedCursor;
+        const endIndex = startIndex + fetchLimit;
+        const paginatedReels = reels.slice(startIndex, endIndex + 1); // +1 to check if there's more
         const hasMore = paginatedReels.length > fetchLimit;
-        if (hasMore) paginatedReels.pop();
+        if (hasMore) paginatedReels.pop(); // Remove the extra item
+
+        console.log(`[DEBUG] Pagination: startIndex=${startIndex}, endIndex=${endIndex}, fetched=${paginatedReels.length}, hasMore=${hasMore}`);
 
         // Fetch user info for each reel
         const items = await Promise.all(paginatedReels.map(async (reel) => {
@@ -318,11 +321,15 @@ const getReelsFeed = async (req, res) => {
             };
         }));
 
+        // Next cursor is the current offset + number of items returned
+        const nextCursor = hasMore ? (parsedCursor + paginatedReels.length) : null;
+        console.log(`[DEBUG] Response: items=${items.length}, nextCursor=${nextCursor}`);
+
         res.json({
             success: true,
             data: {
                 items,
-                nextCursor: hasMore ? parsedCursor + 1 : null
+                nextCursor
             }
         });
     } catch (error) {

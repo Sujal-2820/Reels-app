@@ -35,11 +35,18 @@ const VideoList = ({ videos, loading, hasMore, lastVideoRef, onOpenOptions, sele
             {videos.map((video, index) => (
                 <div
                     key={video.id}
-                    ref={index === videos.length - 2 ? lastVideoRef : null}
+                    ref={index === videos.length - 3 ? lastVideoRef : null}
                 >
                     <VideoCard video={video} onOpenOptions={onOpenOptions} />
                 </div>
             ))}
+            {/* Sentinel element for intersection observer */}
+            {hasMore && (
+                <div
+                    ref={videos.length < 3 ? lastVideoRef : null}
+                    style={{ height: '20px', width: '100%' }}
+                />
+            )}
         </div>
     );
 };

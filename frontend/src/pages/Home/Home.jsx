@@ -113,7 +113,9 @@ const Home = () => {
     const handleObserver = useCallback((entries) => {
         const [entry] = entries;
         if (entry.isIntersecting) {
+            console.log('Intersection detected:', { activeTab, videoHasMore, videoLoadingMore, videoCursor });
             if (activeTab === 'video' && videoHasMore && !videoLoadingMore) {
+                console.log('Loading more videos...');
                 fetchVideos(videoCursor, selectedCategory);
             } else if (activeTab === 'reel' && reelHasMore && !reelLoadingMore) {
                 fetchReels(reelCursor);
@@ -122,8 +124,14 @@ const Home = () => {
     }, [activeTab, videoHasMore, videoLoadingMore, videoCursor, reelHasMore, reelLoadingMore, reelCursor, selectedCategory]);
 
     useEffect(() => {
-        const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
-        if (lastItemRef.current) observer.observe(lastItemRef.current);
+        const observer = new IntersectionObserver(handleObserver, {
+            threshold: 0.5,
+            rootMargin: '100px'
+        });
+        if (lastItemRef.current) {
+            console.log('Observer attached to element');
+            observer.observe(lastItemRef.current);
+        }
         return () => observer.disconnect();
     }, [handleObserver, lastItemRef, activeTab]);
 

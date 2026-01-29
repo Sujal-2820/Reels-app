@@ -167,20 +167,20 @@ const VideoShowcase = ({ isPrivate = false }) => {
         const fetchRelatedVideos = async (category) => {
             try {
                 setRelatedLoading(true);
-                // Fetch first page of related category
-                const response = await reelsAPI.getFeed(0, 10, 'video', category);
+                // Fetch more related videos for a better list
+                const response = await reelsAPI.getFeed(0, 20, 'video', category);
                 if (response.success) {
                     // Filter out current video
                     const filtered = response.data.items.filter(item => item.id !== id);
 
-                    // If not enough related, fetch general feed
-                    if (filtered.length < 5) {
-                        const generalResponse = await reelsAPI.getFeed(0, 10, 'video', 'All');
+                    // If not enough related, fetch general feed to fill up to 20
+                    if (filtered.length < 10) {
+                        const generalResponse = await reelsAPI.getFeed(0, 20, 'video', 'All');
                         if (generalResponse.success) {
                             const more = generalResponse.data.items.filter(
                                 item => item.id !== id && !filtered.find(f => f.id === item.id)
                             );
-                            setRelatedVideos([...filtered, ...more].slice(0, 10));
+                            setRelatedVideos([...filtered, ...more].slice(0, 20));
                         } else {
                             setRelatedVideos(filtered);
                         }

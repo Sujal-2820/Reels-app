@@ -33,7 +33,6 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
     // 2. Lifecycle: Portal Mount/Unmount & Global Side Effects
     useEffect(() => {
         document.body.appendChild(portalContainer.current);
-        document.body.classList.add('modal-open');
 
         return () => {
             if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -45,6 +44,15 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
             }
         };
     }, []);
+
+    // Effect to handle scroll lock based on isOpen
+    useEffect(() => {
+        if (isOpen) {
+            document.body.classList.add('modal-open');
+        } else {
+            document.body.classList.remove('modal-open');
+        }
+    }, [isOpen]);
 
     // 3. Data Fetching
     useEffect(() => {
