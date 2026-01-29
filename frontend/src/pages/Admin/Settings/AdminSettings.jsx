@@ -44,27 +44,44 @@ const AdminSettings = () => {
         requireEmailVerification: false
     });
 
+    const [authConfig, setAuthConfig] = useState({
+        authorizedNumbers: [],
+        secretKey: ''
+    });
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [savingAuth, setSavingAuth] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [newReason, setNewReason] = useState('');
+    const [newPhoneNumber, setNewPhoneNumber] = useState('');
 
     useEffect(() => {
-        fetchSettings();
+        fetchData();
     }, []);
 
-    const fetchSettings = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await adminAPI.getSettings();
-            if (response.success && response.data) {
-                setSettings(prev => ({ ...prev, ...response.data }));
+
+            // Fetch platform settings and auth config in parallel
+            const [settingsRes, authRes] = await Promise.all([
+                adminAPI.getSettings(),
+                adminAPI.getAuthConfig()
+            ]);
+
+            if (settingsRes.success && settingsRes.data) {
+                setSettings(prev => ({ ...prev, ...settingsRes.data }));
+            }
+
+            if (authRes.success && authRes.data) {
+                setAuthConfig(authRes.data);
             }
         } catch (err) {
-            console.error('Failed to fetch settings:', err);
-            setError('Failed to load settings. Using defaults.');
+            console.error('Failed to fetch data:', err);
+            setError('Failed to load some settings. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -83,7 +100,7 @@ const AdminSettings = () => {
 
             const response = await adminAPI.updateSettings(settings);
             if (response.success) {
-                setSuccessMessage('Settings saved successfully! Changes are now live.');
+                setSuccessMessage('Platform settings saved successfully!');
             } else {
                 throw new Error(response.message || 'Failed to save');
             }
@@ -93,6 +110,75 @@ const AdminSettings = () => {
             setSaving(false);
         }
     };
+
+    const handleSaveAuth = async () => {
+        try {
+            // Basic validation
+            if (authConfig.authorizedNumbers.length === 0) {
+                alert('At least one authorized number is required');
+                return;
+            }
+
+            setSavingAuth(true);
+            setError(null);
+            setSuccessMessage(null);
+
+            // We only send the full secret key if it was changed (not the obfuscated initial value)
+            const payload = { ...authConfig };
+            if (payload.secretKey.includes('****')) {
+                delete payload.secretKey;
+            }
+
+            const response = await adminAPI.updateAuthConfig(payload);
+            if (response.success) {
+                setSuccessMessage('Admin security configuration updated successfully!');
+                // Refresh to get obfuscated key back
+                const freshAuth = await adminAPI.getAuthConfig();
+                if (freshAuth.success) setAuthConfig(freshAuth.data);
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to update security config');
+        } finally {
+            setSavingAuth(false);
+        }
+    };
+
+    const handleAddNumber = () => {
+        if (!newPhoneNumber.trim() || newPhoneNumber.trim().length < 10) {
+            alert('Please enter a valid phone number');
+            return;
+        }
+        if (authConfig.authorizedNumbers.includes(newPhoneNumber.trim())) {
+            alert('This number is already authorized');
+            return;
+        }
+
+        setAuthConfig(prev => ({
+            ...prev,
+            authorizedNumbers: [...prev.authorizedNumbers, newPhoneNumber.trim()]
+        }));
+        setNewPhoneNumber('');
+    };
+
+    const handleRemoveNumber = (number) => {
+        if (authConfig.authorizedNumbers.length <= 1) {
+            alert('Platform must have at least one authorized administrator number');
+            return;
+        }
+        setAuthConfig(prev => ({
+            ...prev,
+            authorizedNumbers: prev.authorizedNumbers.filter(n => n !== number)
+        }));
+    };
+
+    if (loading) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="spinner spinner-large"></div>
+                <p style={{ marginTop: '16px' }}>Loading platform administration...</p>
+            </div>
+        );
+    }
 
     const handleAddReason = () => {
         if (!newReason.trim()) return;
@@ -165,6 +251,99 @@ const AdminSettings = () => {
                     ✅ {successMessage}
                 </div>
             )}
+
+            {/* Admin Security Settings */}
+            <div className={styles.card} style={{ marginBottom: '20px', border: '1px solid #93c5fd', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #bfdbfe', paddingBottom: '12px' }}>
+                    <h2 style={{ fontSize: '18px', margin: 0 }}>
+                        🔐 Administrative Access & Security
+                    </h2>
+                    <button
+                        onClick={handleSaveAuth}
+                        disabled={savingAuth}
+                        style={{
+                            padding: '8px 20px',
+                            background: savingAuth ? '#94a3b8' : '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: savingAuth ? 'not-allowed' : 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                        }}
+                    >
+                        {savingAuth ? 'Updating...' : 'Update Security Access'}
+                    </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '12px', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                            Authorized Administrator Phone Numbers
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                            {authConfig.authorizedNumbers.map((number, index) => (
+                                <div key={index} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '6px 12px',
+                                    background: 'white',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '6px',
+                                    fontSize: '13px',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                }}>
+                                    <span style={{ fontWeight: '500' }}>{number}</span>
+                                    <button
+                                        onClick={() => handleRemoveNumber(number)}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '16px', padding: '0 2px' }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                type="tel"
+                                placeholder="Add new phone number..."
+                                value={newPhoneNumber}
+                                onChange={(e) => setNewPhoneNumber(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddNumber()}
+                                style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }}
+                            />
+                            <button
+                                onClick={handleAddNumber}
+                                style={{ padding: '0 15px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                            >
+                                Add Contact
+                            </button>
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>
+                            Only these numbers can sign in to the administrative portal.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '12px', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                            Portal Secret Key
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                value={authConfig.secretKey}
+                                onChange={(e) => setAuthConfig(prev => ({ ...prev, secretKey: e.target.value }))}
+                                placeholder="Enter at least 6 characters"
+                                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px', background: 'white' }}
+                            />
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>
+                            <strong>CAUTION:</strong> Changing this key will require all active administrators to re-login.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             {/* General Settings */}
             <div className={styles.card} style={{ marginBottom: '20px' }}>
@@ -537,7 +716,7 @@ const AdminSettings = () => {
             {/* Save Button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
                 <button
-                    onClick={fetchSettings}
+                    onClick={fetchData}
                     style={{
                         padding: '12px 24px',
                         background: '#666',

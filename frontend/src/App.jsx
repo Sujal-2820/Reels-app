@@ -41,6 +41,7 @@ import AdminChannels from './pages/Admin/Channels/AdminChannels';
 import AdminAnalytics from './pages/Admin/Dashboard/AdminAnalytics';
 import AdminPrivateContent from './pages/Admin/Reels/AdminPrivateContent';
 import AdminReports from './pages/Admin/Channels/AdminReports';
+import AdminLogin from './pages/Admin/AdminLogin/AdminLogin';
 import Support from './pages/Support/Support';
 import TicketDetail from './pages/Support/TicketDetail';
 import CompleteProfile from './pages/CompleteProfile/CompleteProfile';
@@ -79,6 +80,18 @@ const ProtectedRoute = ({ children }) => {
   // Check if onboarding is complete (has username)
   if (user && !user.username && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  return children;
+};
+
+// Admin Route Wrapper
+const AdminRoute = ({ children }) => {
+  const adminToken = localStorage.getItem('reelbox_admin_token');
+  const location = useLocation();
+
+  if (!adminToken) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   return children;
@@ -467,7 +480,16 @@ function AppContent() {
       />
 
       {/* Admin Routes */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="analytics" element={<AdminAnalytics />} />

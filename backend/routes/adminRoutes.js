@@ -66,81 +66,81 @@ const {
     getStats: getSubscriptionStats2,
     getUserLockedContent
 } = require('../controllers/adminSubscriptionController');
-const { auth, optionalAuth, skipAuth } = require('../middleware/auth');
+const { auth, isAdmin } = require('../middleware/auth');
 
-// All admin routes require authentication (TEMPORARILY DISABLED AS PER USER REQUEST)
-// TODO: Restore auth for production
+// All admin routes require authentication
+// Admin access is controlled via session JWT verified by isAdmin middleware
 
 // Dashboard routes
-router.get('/dashboard/stats', skipAuth, getDashboardStats);
-router.get('/dashboard/analytics', skipAuth, getDailyAnalytics);
+router.get('/dashboard/stats', isAdmin, getDashboardStats);
+router.get('/dashboard/analytics', isAdmin, getDailyAnalytics);
 
 // User management routes
-router.get('/users', skipAuth, getAllUsers);
-router.get('/users/:userId', skipAuth, getUserDetails);
-router.put('/users/:userId', skipAuth, updateUser);
-router.delete('/users/:userId', skipAuth, deleteUser);
-router.post('/users/:userId/ban', skipAuth, banUser);
-router.post('/users/:userId/unban', skipAuth, unbanUser);
-router.post('/users/:userId/verify', skipAuth, verifyUser);
+router.get('/users', isAdmin, getAllUsers);
+router.get('/users/:userId', isAdmin, getUserDetails);
+router.put('/users/:userId', isAdmin, updateUser);
+router.delete('/users/:userId', isAdmin, deleteUser);
+router.post('/users/:userId/ban', isAdmin, banUser);
+router.post('/users/:userId/unban', isAdmin, unbanUser);
+router.post('/users/:userId/verify', isAdmin, verifyUser);
 
 // Reel/Content management routes
-router.get('/reels', skipAuth, getAllReels);
-router.get('/reels/stats', skipAuth, getContentStats);
-router.get('/reels/flagged', skipAuth, getFlaggedReels);
-router.get('/reels/viral', skipAuth, getViralAnalytics);
-router.get('/reels/:reelId', skipAuth, getReelDetails);
-router.delete('/reels/:reelId', skipAuth, deleteReel);
-router.post('/reels/:reelId/unban', skipAuth, unbanContent);
+router.get('/reels', isAdmin, getAllReels);
+router.get('/reels/stats', isAdmin, getContentStats);
+router.get('/reels/flagged', isAdmin, getFlaggedReels);
+router.get('/reels/viral', isAdmin, getViralAnalytics);
+router.get('/reels/:reelId', isAdmin, getReelDetails);
+router.delete('/reels/:reelId', isAdmin, deleteReel);
+router.post('/reels/:reelId/unban', isAdmin, unbanContent);
 
 // Channel management routes
-router.get('/channels', skipAuth, getAllChannels);
-router.get('/channels/stats', skipAuth, getChannelStats);
-router.delete('/channels/:channelId', skipAuth, deleteChannel);
+router.get('/channels', isAdmin, getAllChannels);
+router.get('/channels/stats', isAdmin, getChannelStats);
+router.delete('/channels/:channelId', isAdmin, deleteChannel);
 
 // Comment moderation routes
-router.get('/comments', skipAuth, getAllComments);
-router.get('/comments/stats', skipAuth, getCommentStats);
-router.delete('/comments/:commentId', skipAuth, deleteComment);
-router.post('/comments/bulk-delete', skipAuth, bulkDeleteComments);
+router.get('/comments', isAdmin, getAllComments);
+router.get('/comments/stats', isAdmin, getCommentStats);
+router.delete('/comments/:commentId', isAdmin, deleteComment);
+router.post('/comments/bulk-delete', isAdmin, bulkDeleteComments);
 
 // Plan & Subscription management routes (LEGACY - kept for backward compatibility)
-router.get('/plans', skipAuth, getAllPlans);
-router.post('/plans', skipAuth, createPlan);
-router.put('/plans/:planId', skipAuth, updatePlan);
-router.delete('/plans/:planId', skipAuth, deletePlan);
-router.get('/transactions', skipAuth, getAllTransactions);
-router.get('/subscribers', skipAuth, getSubscribers);
-router.post('/subscribers/assign', skipAuth, assignPlanToUser);
-router.get('/subscriptions/stats', skipAuth, getSubscriptionStats);
+router.get('/plans', isAdmin, getAllPlans);
+router.post('/plans', isAdmin, createPlan);
+router.put('/plans/:planId', isAdmin, updatePlan);
+router.delete('/plans/:planId', isAdmin, deletePlan);
+router.get('/transactions', isAdmin, getAllTransactions);
+router.get('/subscribers', isAdmin, getSubscribers);
+router.post('/subscribers/assign', isAdmin, assignPlanToUser);
+router.get('/subscriptions/stats', isAdmin, getSubscriptionStats);
 
 // NEW Subscription management routes (comprehensive system)
-router.get('/subscriptions/plans', skipAuth, getAllSubscriptionPlans);
-router.post('/subscriptions/plans', skipAuth, createSubscriptionPlan);
-router.put('/subscriptions/plans/:planId', skipAuth, updateSubscriptionPlan);
-router.delete('/subscriptions/plans/:planId', skipAuth, deactivatePlan);
-router.get('/subscriptions/subscribers', skipAuth, getSubscriptionSubscribers);
-router.post('/subscriptions/grant', skipAuth, grantSubscription);
-router.post('/subscriptions/extend/:subscriptionId', skipAuth, extendSubscription);
-router.post('/subscriptions/cancel/:subscriptionId', skipAuth, cancelSubscription);
-router.get('/subscriptions/stats-v2', skipAuth, getSubscriptionStats2);
-router.get('/subscriptions/locked-content/:userId', skipAuth, getUserLockedContent);
+router.get('/subscriptions/plans', isAdmin, getAllSubscriptionPlans);
+router.post('/subscriptions/plans', isAdmin, createSubscriptionPlan);
+router.put('/subscriptions/plans/:planId', isAdmin, updateSubscriptionPlan);
+router.delete('/subscriptions/plans/:planId', isAdmin, deactivatePlan);
+router.get('/subscriptions/subscribers', isAdmin, getSubscriptionSubscribers);
+router.post('/subscriptions/grant', isAdmin, grantSubscription);
+router.post('/subscriptions/extend/:subscriptionId', isAdmin, extendSubscription);
+router.post('/subscriptions/cancel/:subscriptionId', isAdmin, cancelSubscription);
+router.get('/subscriptions/stats-v2', isAdmin, getSubscriptionStats2);
+router.get('/subscriptions/locked-content/:userId', isAdmin, getUserLockedContent);
 
 
 // Support ticket management routes
-router.get('/support/tickets', skipAuth, getAllTickets);
-router.get('/support/stats', skipAuth, getSupportStats);
-router.get('/support/tickets/:ticketId', skipAuth, getTicketDetails);
-router.post('/support/tickets/:ticketId/reply', skipAuth, replyToTicket);
-router.put('/support/tickets/:ticketId/status', skipAuth, updateTicketStatus);
+router.get('/support/tickets', isAdmin, getAllTickets);
+router.get('/support/stats', isAdmin, getSupportStats);
+router.get('/support/tickets/:ticketId', isAdmin, getTicketDetails);
+router.post('/support/tickets/:ticketId/reply', isAdmin, replyToTicket);
+router.put('/support/tickets/:ticketId/status', isAdmin, updateTicketStatus);
 
 // Report management routes
-router.get('/reports', skipAuth, getReports);
-router.get('/reports/stats', skipAuth, getReportStats);
-router.put('/reports/:id', skipAuth, resolveReport);
+router.get('/reports', isAdmin, getReports);
+router.get('/reports/stats', isAdmin, getReportStats);
+router.put('/reports/:id', isAdmin, resolveReport);
 
 // App settings routes
-router.get('/settings', skipAuth, getSettings);
-router.put('/settings', skipAuth, updateSettings);
+router.get('/settings', isAdmin, getSettings);
+router.put('/settings', isAdmin, updateSettings);
 
 module.exports = router;

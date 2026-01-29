@@ -84,8 +84,21 @@ textarea {
     color: #72aee6;
 }
 
+.logoutBtn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--admin-sidebar-text);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
 .logoutBtn:hover {
+    background: rgba(239, 68, 68, 0.1);
     color: #ef4444 !important;
+    border-color: #ef4444;
 }
 
 /* Sidebar Styles */

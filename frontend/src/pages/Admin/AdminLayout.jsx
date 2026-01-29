@@ -107,6 +107,16 @@ const AdminLayout = () => {
                 </div>
                 <div className={styles.headerRight}>
                     <div className={styles.headerItem}>Howdy, Admin 👤</div>
+                    <button
+                        className={styles.logoutBtn}
+                        onClick={() => {
+                            localStorage.removeItem('reelbox_admin_token');
+                            localStorage.removeItem('reelbox_admin_user');
+                            window.location.href = '/admin/login';
+                        }}
+                    >
+                        Logout
+                    </button>
                 </div>
             </header>
 

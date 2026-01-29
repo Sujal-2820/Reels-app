@@ -10,6 +10,7 @@ const {
     commentRoutes,
     referralRoutes,
     adminRoutes,
+    adminAuthRoutes,
     supportRoutes,
     channelRoutes,
     followRoutes,
@@ -72,6 +73,7 @@ app.use('/api/referrals', referralRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/search', searchRoutes);

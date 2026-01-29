@@ -15,7 +15,18 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     async (config) => {
-        // Get fresh token from Firebase
+        // 1. Check if this is an admin request
+        const isAdminRequest = config.url.startsWith('/admin');
+
+        if (isAdminRequest) {
+            const adminToken = localStorage.getItem('reelbox_admin_token');
+            if (adminToken) {
+                config.headers.Authorization = `Bearer ${adminToken}`;
+                return config;
+            }
+        }
+
+        // 2. Regular user authentication (Firebase)
         const currentUser = auth.currentUser;
         if (currentUser) {
             try {
@@ -25,7 +36,7 @@ api.interceptors.request.use(
                 console.error('Failed to get Firebase token:', err);
             }
         } else {
-            // Fallback to localStorage if any (for transition)
+            // Fallback to localStorage if any
             const token = localStorage.getItem('reelbox_token');
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
@@ -46,10 +57,15 @@ api.interceptors.response.use(
 
         // Handle 401 - Unauthorized
         if (error.response?.status === 401) {
-            localStorage.removeItem('reelbox_token');
-            localStorage.removeItem('reelbox_user');
-            // Removed: window.location.href = '/login';
-            // Pages should handle redirects based on auth context
+            // Check if it was an admin request that failed
+            if (error.config.url.startsWith('/admin')) {
+                localStorage.removeItem('reelbox_admin_token');
+                localStorage.removeItem('reelbox_admin_user');
+                // Could trigger a redirect to /admin/login here or let components handle it
+            } else {
+                localStorage.removeItem('reelbox_token');
+                localStorage.removeItem('reelbox_user');
+            }
         }
 
         return Promise.reject({ message, status: error.response?.status });
