@@ -4,7 +4,7 @@ import { commentsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './CommentSection.module.css';
 
-const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
+const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate, isInlineMode = false }) => {
     const { user, isAuthenticated } = useAuth();
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
@@ -184,10 +184,10 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate }) => {
 
     // 5. Render with Portal to the stable container
     return createPortal(
-        <div className={`${styles.overlay} animate-fade-in`} onClick={onClose}>
+        <div className={`${styles.overlay} ${isInlineMode ? styles.inlineOverlay : ''} animate-fade-in`} onClick={onClose}>
             <div
                 ref={sheetRef}
-                className={`${styles.sheet} animate-fade-in-up`}
+                className={`${styles.sheet} ${isInlineMode ? styles.inlineSheet : ''} animate-fade-in-up`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header / Drag Handle */}

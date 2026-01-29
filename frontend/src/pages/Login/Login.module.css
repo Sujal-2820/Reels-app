@@ -520,3 +520,31 @@
     opacity: 0.8;
     text-decoration: underline;
 }
+
+.legalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--color-border);
+}
+
+.legalFooter button {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.legalFooter button:hover {
+    color: var(--color-text-secondary);
+}
+
+.legalFooter span {
+    color: var(--color-border);
+    font-size: var(--font-size-xs);
+}

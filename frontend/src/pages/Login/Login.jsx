@@ -254,8 +254,52 @@ const Login = () => {
     // Form submission handler
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError(null);
+
+        // Blank and Mandatory Field Validation
+        if (mode === 'login') {
+            if (!formData.email.trim()) {
+                setError('Email address is mandatory');
+                return;
+            }
+            if (!formData.password) {
+                setError('Password cannot be blank');
+                return;
+            }
+        } else if (mode === 'register') {
+            if (!formData.name.trim()) {
+                setError('Full Name is mandatory');
+                return;
+            }
+            if (!formData.email.trim()) {
+                setError('Email address is mandatory');
+                return;
+            }
+            if (!formData.password) {
+                setError('Password cannot be blank');
+                return;
+            }
+            if (!formData.confirmPassword) {
+                setError('Please confirm your password');
+                return;
+            }
+            // Mismatched Password Validation
+            if (formData.password !== formData.confirmPassword) {
+                setError('Passwords do not match. Please verify.');
+                return;
+            }
+            if (formData.password.length < 6) {
+                setError('Password must be at least 6 characters long');
+                return;
+            }
+        } else if (mode === 'forgot') {
+            if (!formData.email.trim()) {
+                setError('Email address is required to reset password');
+                return;
+            }
+        }
+
+        setLoading(true);
 
         try {
             if (mode === 'login') {
@@ -592,6 +636,11 @@ const Login = () => {
                         </>
                     )}
                 </p>
+                <div className={styles.legalFooter}>
+                    <button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button>
+                    <span>•</span>
+                    <button type="button" onClick={() => navigate('/terms')}>Terms of Service</button>
+                </div>
             </div>
         </div>
     );

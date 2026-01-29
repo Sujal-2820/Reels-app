@@ -733,6 +733,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
             <CommentSection
                 reelId={isPrivate ? video.id : id}
                 isOpen={isCommentsOpen}
+                isInlineMode={true}
                 onClose={() => setIsCommentsOpen(false)}
                 onCommentCountUpdate={(delta) => setCommentsCount(prev => prev + delta)}
             />

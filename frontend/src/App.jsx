@@ -17,7 +17,7 @@ import Security from './pages/Settings/SubScreens/Security';
 import About from './pages/Settings/SubScreens/About';
 import Help from './pages/Settings/SubScreens/Help';
 import Notifications from './pages/Settings/SubScreens/Notifications';
-import Language from './pages/Settings/SubScreens/Language';
+
 import Analytics from './pages/Settings/SubScreens/Analytics';
 import SettingsPrivateContent from './pages/Settings/SubScreens/PrivateContent';
 import Subscription from './pages/Settings/SubScreens/Subscription';
@@ -52,6 +52,8 @@ import ChannelView from './pages/Channels/ChannelView';
 import PrivateContent from './pages/PrivateContent/PrivateContent';
 import Onboarding from './pages/Onboarding/Onboarding';
 import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
+import PrivacyPolicy from './pages/Legal/PrivacyPolicy';
+import TermsOfService from './pages/Legal/TermsOfService';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import ToastContainer from './components/common/ToastContainer';
@@ -200,6 +202,23 @@ function AppContent() {
         element={
           <AppLayout>
             <VideoShowcase isPrivate={true} />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/privacy"
+        element={
+          <AppLayout>
+            <PrivacyPolicy />
+          </AppLayout>
+        }
+      />
+
+      <Route
+        path="/terms"
+        element={
+          <AppLayout>
+            <TermsOfService />
           </AppLayout>
         }
       />
@@ -353,16 +372,7 @@ function AppContent() {
         }
       />
 
-      <Route
-        path="/settings/language"
-        element={
-          <ProtectedRoute>
-            <AppLayout>
-              <Language />
-            </AppLayout>
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/settings/analytics"
         element={

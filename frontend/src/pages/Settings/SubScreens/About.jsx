@@ -36,11 +36,11 @@ const About = () => {
                 <div className={styles.settingsSection} style={{ textAlign: 'left' }}>
                     <h3 className={styles.sectionTitle}>Legal</h3>
                     <div className={styles.settingsList}>
-                        <button className={styles.settingsItem}>
+                        <button className={styles.settingsItem} onClick={() => navigate('/privacy')}>
                             <span className={styles.itemLabel}>Privacy Policy</span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                         </button>
-                        <button className={styles.settingsItem}>
+                        <button className={styles.settingsItem} onClick={() => navigate('/terms')}>
                             <span className={styles.itemLabel}>Terms of Service</span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                         </button>
