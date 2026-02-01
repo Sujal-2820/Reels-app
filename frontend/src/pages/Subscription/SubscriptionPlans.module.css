@@ -40,6 +40,10 @@
     color: var(--color-accent-bold);
 }
 
+:global(.dark-theme) .header h1 {
+    color: var(--color-accent-primary) !important;
+}
+
 .loading {
     display: flex;
     flex-direction: column;
@@ -130,7 +134,7 @@
 
 .billingToggle button.active {
     background: var(--color-accent-bold);
-    color: #000;
+    color: var(--color-bg-primary);
 }
 
 .saveBadge {
@@ -143,7 +147,7 @@
 
 .billingToggle button.active .saveBadge {
     background: rgba(0, 0, 0, 0.2);
-    color: #1a1a1a;
+    color: var(--color-bg-primary);
 }
 
 .plansSection {
@@ -158,6 +162,10 @@
     font-weight: 700;
     margin-bottom: var(--space-lg);
     color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .plansSection h2 {
+    color: var(--color-text-primary) !important;
 }
 
 .plansSection h2 svg {
@@ -205,7 +213,7 @@
     border-radius: var(--radius-full);
     font-size: 11px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-bg-primary);
     white-space: nowrap;
 }
 
@@ -233,6 +241,10 @@
     font-weight: 700;
     color: var(--color-text-primary);
     margin-bottom: var(--space-md);
+}
+
+:global(.dark-theme) .planHeader h3 {
+    color: var(--color-text-primary) !important;
 }
 
 .price {
@@ -312,7 +324,7 @@
     border-radius: var(--radius-md);
     font-size: var(--font-size-md);
     font-weight: 700;
-    color: #000;
+    color: var(--color-bg-primary);
     cursor: pointer;
     transition: all var(--transition-fast);
 }
@@ -362,6 +374,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .storageInfo h4 {
+    color: var(--color-text-primary) !important;
+}
+
 .storageInfo p {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
@@ -396,7 +412,7 @@
 
 .addBtn:hover:not(:disabled) {
     background: var(--color-accent-primary);
-    color: #1a1a1a;
+    color: var(--color-bg-primary);
 }
 
 .addBtn:disabled {
