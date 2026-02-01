@@ -18,6 +18,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .uploadCards {
     display: flex;
     flex-direction: column;
