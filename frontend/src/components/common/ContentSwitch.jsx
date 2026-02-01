@@ -3,7 +3,7 @@ import styles from './ContentSwitch.module.css';
 
 const ContentSwitch = ({ activeTab, onTabChange }) => {
     return (
-        <>
+        <div className="content-switch-root">
             {/* Unified blur backdrop layer (Only on Video tab) */}
             {activeTab === 'video' && <div className={styles.blurBackdrop} />}
 
@@ -24,7 +24,7 @@ const ContentSwitch = ({ activeTab, onTabChange }) => {
                     </button>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

@@ -143,6 +143,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .creatorDetails h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .creatorDetails p {
     font-size: 13px;
     color: var(--color-text-secondary);
@@ -467,6 +471,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .panelHeader h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .panelHeader button {
     background: none;
     border: none;
@@ -703,6 +711,11 @@
     font-size: 24px;
     font-weight: 800;
     margin-bottom: var(--space-sm);
+    color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .lockedContent h2 {
+    color: var(--color-text-primary) !important;
 }
 
 .lockedContent p {
@@ -826,6 +839,16 @@
     border-bottom: 1px solid var(--color-border);
 }
 
+.modalHeader h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .modalHeader h2 {
+    color: var(--color-text-primary) !important;
+}
+
 .modalCloseBtn {
     background: none;
     border: none;
@@ -842,6 +865,10 @@
     font-size: 14px;
     color: var(--color-text-secondary);
     margin-bottom: var(--space-md);
+}
+
+:global(.dark-theme) .modalSubtext {
+    color: var(--color-text-secondary) !important;
 }
 
 .reportOptions {
@@ -901,6 +928,10 @@
     margin-bottom: 6px;
 }
 
+:global(.dark-theme) .formGroupModal label {
+    color: var(--color-text-secondary) !important;
+}
+
 .modalFooter {
     padding: var(--space-lg);
     border-top: 1px solid var(--color-border);
@@ -954,6 +985,11 @@
     margin-bottom: var(--space-xs);
 }
 
+:global(.dark-theme) .infoSection label {
+    color: var(--color-text-secondary) !important;
+    /* Brighter than tertiary in dark mode */
+}
+
 .copyLink {
     display: flex;
     gap: var(--space-sm);
@@ -999,6 +1035,10 @@
     display: block;
     font-weight: 700;
     color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .creatorNameText {
+    color: var(--color-text-primary) !important;
 }
 
 .creatorHandle {
