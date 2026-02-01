@@ -79,6 +79,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .headerContent h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .closeBtn {
     padding: var(--space-xs);
     color: var(--color-text-secondary);
@@ -167,6 +171,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .username {
+    color: var(--color-text-primary) !important;
+}
+
 .time {
     font-size: 11px;
     color: var(--color-text-tertiary);
@@ -177,6 +185,11 @@
     color: var(--color-text-secondary);
     line-height: 1.4;
     word-wrap: break-word;
+}
+
+:global(.dark-theme) .text {
+    color: var(--color-text-primary) !important;
+    /* Force to primary (lighter) in dark mode for better legibility */
 }
 
 .deleteBtn {
@@ -251,6 +264,10 @@
     height: 36px;
     font-size: 14px;
     color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .input {
+    color: var(--color-text-primary) !important;
 }
 
 .input::placeholder {

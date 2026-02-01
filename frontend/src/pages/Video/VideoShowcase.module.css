@@ -12,7 +12,7 @@
     aspect-ratio: 16/9;
     background: #000;
     position: sticky;
-    top: var(--header-height);
+    top: 0;
     z-index: 10;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     overflow: hidden;
@@ -63,6 +63,10 @@
     margin-bottom: 6px;
     color: var(--color-text-primary);
     letter-spacing: -0.01em;
+}
+
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
 }
 
 .meta {
@@ -189,6 +193,10 @@
     cursor: pointer;
 }
 
+:global(.dark-theme) .username {
+    color: var(--color-text-primary) !important;
+}
+
 .followLink {
     background: transparent;
     border: none;
@@ -252,6 +260,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .description {
+    color: var(--color-text-primary) !important;
+}
+
 .seeMoreBtn {
     background: transparent;
     border: none;
@@ -305,6 +317,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+:global(.dark-theme) .sectionTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .sectionTitle::before {
@@ -383,6 +399,10 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+:global(.dark-theme) .relatedTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .relatedMeta {
