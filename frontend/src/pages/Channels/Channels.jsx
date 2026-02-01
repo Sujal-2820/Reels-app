@@ -19,6 +19,8 @@ const Channels = () => {
     const [creating, setCreating] = useState(false);
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const avatarInputRef = useRef(null);
 
     useEffect(() => {
@@ -44,20 +46,28 @@ const Channels = () => {
         }
     };
 
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     useEffect(() => {
         if (settings.allowChannels !== false) {
             fetchChannels();
         } else {
             setLoading(false);
         }
-    }, [activeTab, settings.allowChannels]);
+    }, [activeTab, settings.allowChannels, debouncedSearch]);
 
     const fetchChannels = async () => {
         setLoading(true);
         try {
             let response;
             if (activeTab === 'explore') {
-                response = await channelsAPI.getAll();
+                response = await channelsAPI.getAll(0, 50, null, debouncedSearch);
             } else if (activeTab === 'joined') {
                 response = await channelsAPI.getJoinedChannels();
             } else {
@@ -65,7 +75,16 @@ const Channels = () => {
             }
 
             if (response.success) {
-                setChannels(response.data.items || []);
+                let items = response.data.items || [];
+                // Frontend filtering for joined/my if search is active (since these endpoints might not support search yet)
+                if (debouncedSearch && activeTab !== 'explore') {
+                    const searchLower = debouncedSearch.toLowerCase();
+                    items = items.filter(ch =>
+                        ch.name?.toLowerCase().includes(searchLower) ||
+                        ch.description?.toLowerCase().includes(searchLower)
+                    );
+                }
+                setChannels(items);
             }
         } catch (error) {
             console.error('Failed to fetch channels:', error);
@@ -140,18 +159,46 @@ const Channels = () => {
         <div className={styles.container}>
             {/* Header */}
             <div className={styles.header}>
-                <h1 className={styles.title}>Channels</h1>
-                {isAuthenticated && (
-                    <button
-                        className={styles.createBtn}
-                        onClick={() => setShowCreateModal(true)}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+                <div className={styles.headerTop}>
+                    <h1 className={styles.title}>Channels</h1>
+                    {isAuthenticated && (
+                        <button
+                            className={styles.createBtn}
+                            onClick={() => setShowCreateModal(true)}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Create
+                        </button>
+                    )}
+                </div>
+
+                <div className={styles.searchBar}>
+                    <div className={styles.searchInputWrapper}>
+                        <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="M21 21l-4.35-4.35" />
                         </svg>
-                        Create
-                    </button>
-                )}
+                        <input
+                            type="text"
+                            placeholder="Search channels..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className={styles.searchInput}
+                        />
+                        {searchQuery && (
+                            <button
+                                className={styles.clearSearch}
+                                onClick={() => setSearchQuery('')}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Tab Navigation */}

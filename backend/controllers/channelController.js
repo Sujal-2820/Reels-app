@@ -147,8 +147,8 @@ const createChannel = async (req, res) => {
 // GET /api/channels?cursor=0&limit=20
 const getChannels = async (req, res) => {
     try {
-        const { cursor = 0, limit = 20, creatorId } = req.query;
-        const parsedLimit = Math.min(parseInt(limit), 50);
+        const { cursor = 0, limit = 50, creatorId, search } = req.query;
+        const parsedLimit = Math.min(parseInt(limit), 100);
         const parsedCursor = parseInt(cursor);
 
         let query = db.collection('channels');
@@ -161,74 +161,92 @@ const getChannels = async (req, res) => {
 
         // Sort in-memory to avoid composite index requirement
         let allDocs = snapshot.docs.map(doc => ({
-            doc,
-            data: doc.data(),
-            id: doc.id
+            id: doc.id,
+            ...doc.data()
         }));
 
-        // Filter and Hydrate
+        // Filter
         const userId = req.userId;
-        allDocs = allDocs.filter(item => {
-            const data = item.data;
+        allDocs = allDocs.filter(data => {
             // Default to true/active if missing, hide ONLY if explicitly false
             if (data.isActive === false) return false;
+
             // Hide private channels from explore ONLY if explicitly true
+            // UNLESS it's a specific creator's list
             if (data.isPrivate === true && !creatorId) return false;
-            // Hide self created channels from explore
-            if (userId && data.creatorId === userId) return false;
+
+            // Search filter
+            if (search && search.trim()) {
+                const searchLower = search.toLowerCase().trim();
+                const nameMatch = data.name?.toLowerCase().includes(searchLower);
+                const descMatch = data.description?.toLowerCase().includes(searchLower);
+                if (!nameMatch && !descMatch) return false;
+            }
+
             return true;
         });
 
-        // Add createdAt for sorting
-        allDocs = allDocs.map(item => ({
-            ...item,
-            createdAt: item.data.createdAt?.toDate?.() || new Date(item.data.createdAt || 0)
-        }));
-
-        allDocs.sort((a, b) => b.createdAt - a.createdAt);
-
-        // Apply pagination
-        const paginatedDocs = allDocs.slice(parsedCursor, parsedCursor + parsedLimit);
-        const hasMore = allDocs.length > parsedCursor + parsedLimit;
-
-        const channels = [];
-
-        for (const { doc, data } of paginatedDocs) {
-            // Get creator info
+        // Add creator info and check membership
+        const hydratedChannels = [];
+        for (const data of allDocs) {
+            // Get creator info (cached in actual production, but here we do it per request for simplicity)
             const creatorDoc = await db.collection('users').doc(data.creatorId).get();
-            const creator = creatorDoc.exists ? {
+            const creatorData = creatorDoc.exists ? creatorDoc.data() : null;
+            const creator = creatorData ? {
                 id: creatorDoc.id,
-                name: creatorDoc.data().name,
-                username: creatorDoc.data().username,
-                profilePic: creatorDoc.data().profilePic
+                name: creatorData.name,
+                username: creatorData.username || creatorData.name?.toLowerCase().replace(/\s+/g, '_'),
+                profilePic: creatorData.profilePic
             } : null;
 
-            // Check if current user is a member/creator
+            // Check membership
             let isMember = false;
             let isCreator = false;
             if (userId) {
                 isCreator = userId === data.creatorId;
-                const memberSnap = await db.collection('channelMembers')
-                    .where('channelId', '==', doc.id)
-                    .where('userId', '==', userId)
-                    .get();
-                isMember = !memberSnap.empty;
+                // If the user is the creator, they are effectively a member
+                if (isCreator) {
+                    isMember = true;
+                } else {
+                    const memberId = `${data.id}_${userId}`;
+                    const memberDoc = await db.collection('channelMembers').doc(memberId).get();
+                    isMember = memberDoc.exists;
+                }
             }
 
-            channels.push({
-                id: doc.id,
+            hydratedChannels.push({
                 ...data,
                 creator,
                 isMember,
                 isCreator,
-                createdAt: data.createdAt?.toDate?.()?.toISOString() || null
+                createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null
             });
         }
+
+        // Custom Sorting for Explore Tab:
+        // 1. Non-joined channels sorted by memberCount descending
+        // 2. Joined channels at last
+        hydratedChannels.sort((a, b) => {
+            const aJoined = a.isMember || a.isCreator;
+            const bJoined = b.isMember || b.isCreator;
+
+            // If one is joined and other isn't, non-joined comes first
+            if (!aJoined && bJoined) return -1;
+            if (aJoined && !bJoined) return 1;
+
+            // If both are same status (both non-joined or both joined), sort by memberCount
+            return (b.memberCount || 0) - (a.memberCount || 0);
+        });
+
+        // Apply pagination
+        const paginatedItems = hydratedChannels.slice(parsedCursor, parsedCursor + parsedLimit);
+        const hasMore = hydratedChannels.length > parsedCursor + parsedLimit;
 
         res.json({
             success: true,
             data: {
-                items: channels,
+                items: paginatedItems,
+                total: hydratedChannels.length,
                 nextCursor: hasMore ? parsedCursor + parsedLimit : null
             }
         });

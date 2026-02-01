@@ -21,9 +21,14 @@ class ActivitySyncService {
     loadBuffer() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            return saved ? JSON.parse(saved) : { likes: {}, views: {} };
+            const data = saved ? JSON.parse(saved) : {};
+            return {
+                likes: data.likes || {},
+                views: data.views || {},
+                saves: data.saves || {}
+            };
         } catch (e) {
-            return { likes: {}, views: {} };
+            return { likes: {}, views: {}, saves: {} };
         }
     }
 
@@ -54,12 +59,34 @@ class ActivitySyncService {
     }
 
     /**
+     * Buffer a save toggle (Optimistic only)
+     */
+    trackSave(reelId, isSaved) {
+        if (!this.buffer.saves) this.buffer.saves = {};
+        this.buffer.saves[reelId] = isSaved;
+        this.saveBuffer();
+        // Note: individual saves are still handled by individual API calls, 
+        // but this buffer keeps the UI consistent across reloads.
+    }
+
+    /**
+     * Clear a save toggle from buffer (Internal use)
+     */
+    clearSave(reelId) {
+        if (this.buffer.saves && this.buffer.saves[reelId] !== undefined) {
+            delete this.buffer.saves[reelId];
+            this.saveBuffer();
+        }
+    }
+
+    /**
      * Get optimistic state for a reel
      */
     getOptimisticState(reelId) {
         return {
-            isLiked: this.buffer.likes[reelId],
-            viewBuffered: !!this.buffer.views[reelId]
+            isLiked: this.buffer.likes ? this.buffer.likes[reelId] : undefined,
+            isSaved: this.buffer.saves ? this.buffer.saves[reelId] : undefined,
+            viewBuffered: this.buffer.views ? !!this.buffer.views[reelId] : false
         };
     }
 

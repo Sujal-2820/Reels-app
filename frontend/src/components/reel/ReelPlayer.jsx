@@ -49,7 +49,14 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClic
             setLikesCount(reel?.likesCount || 0);
         }
 
-        setIsSaved(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
+        if (buffered.isSaved !== undefined) {
+            setIsSaved(buffered.isSaved);
+            if (buffered.isSaved === (reel?.isSaved || reel?.savedBy?.includes(user?.id) || false)) {
+                activitySync.clearSave(reel.id);
+            }
+        } else {
+            setIsSaved(reel?.isSaved || reel?.savedBy?.includes(user?.id) || false);
+        }
         setCommentsCount(reel?.commentsCount || 0);
         setFollowersCount(reel.creator?.followersCount || 0);
         if (reel?.duration) setDuration(reel.duration);
@@ -258,7 +265,11 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClic
 
         try {
             const currentSaved = isSaved;
-            setIsSaved(!currentSaved); // Optimistic
+            const newIsSaved = !currentSaved;
+            setIsSaved(newIsSaved); // Optimistic
+
+            // Track in activity buffer for persistence across reloads/swipes
+            activitySync.trackSave(reel.id, newIsSaved);
 
             const { reelsAPI } = await import('../../services/api');
             const response = await reelsAPI.toggleSave(reel.id);

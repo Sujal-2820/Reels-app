@@ -258,8 +258,8 @@ export const supportAPI = {
 // ========================================
 
 export const channelsAPI = {
-    getAll: (cursor = 0, limit = 20, creatorId = null) =>
-        api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}`),
+    getAll: (cursor = 0, limit = 20, creatorId = null, search = '') =>
+        api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`),
     getById: (id, token = null) => {
         let url = `/channels/${id}`;
         if (token) url += `?token=${token}`;

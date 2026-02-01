@@ -141,7 +141,15 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         setIsLiked(videoData.isLiked || false);
                     }
 
-                    setIsSaved(videoData.isSaved || false);
+                    if (optimistic.isSaved !== undefined) {
+                        setIsSaved(optimistic.isSaved);
+                        // If server has caught up to our optimistic state, clear it from buffer
+                        if (optimistic.isSaved === (videoData.isSaved || false)) {
+                            activitySync.clearSave(videoData.id);
+                        }
+                    } else {
+                        setIsSaved(videoData.isSaved || false);
+                    }
                     setFollowersCount(Math.max(0, videoData.creator?.followersCount || 0));
 
                     // Check follow status
@@ -377,6 +385,9 @@ const VideoShowcase = ({ isPrivate = false }) => {
         const videoId = isPrivate ? video?.id : id;
         const newIsSaved = !isSaved;
         setIsSaved(newIsSaved);
+
+        // Optimistic tracking
+        activitySync.trackSave(videoId, newIsSaved);
 
         try {
             const { reelsAPI: api } = await import('../../services/api');
