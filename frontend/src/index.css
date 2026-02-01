@@ -6,7 +6,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* CSS Variables - Design Tokens */
-:root.light-theme {
+:root {
+  /* ========================================
+     Base Variables (Light Theme Default)
+     ======================================== */
+
   /* Colors - Modern Yellow-White Theme */
   --color-bg-primary: #FFFFFF;
   --color-bg-secondary: #F8F9FA;
@@ -40,71 +44,6 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
   --shadow-glow: 0 0 15px rgba(255, 215, 0, 0.2);
-}
-
-:root.dark-theme {
-  /* Colors - Deep Premium Theme (Principle 1: No pure black) */
-  --color-bg-primary: #121212;
-  --color-bg-secondary: #1E1E1E;
-  --color-bg-tertiary: #2C2C2C;
-  --color-bg-elevated: #333333;
-  /* Principle 2: Elevation via lightness */
-  --color-bg-overlay: rgba(0, 0, 0, 0.7);
-
-  /* Text Colors (Principle 1: Off-white for reduced eye fatigue) */
-  --color-text-primary: #E4E6EB;
-  --color-text-secondary: #B0B3B8;
-  --color-text-tertiary: #8A8D91;
-  --color-text-muted: #4B4B4B;
-
-  /* Accent Colors - Desaturated for Dark Mode (Principle 1: -20% Saturation) */
-  --color-accent-primary: #E6C200;
-  --color-accent-secondary: #D4A017;
-  --color-accent-tertiary: #3D3D2D;
-  --color-accent-bold: #E6B800;
-  --color-accent-gradient: linear-gradient(135deg, #E6C200 0%, #B86500 100%);
-
-  /* UI Colors */
-  --color-like: #FF4B6B;
-  --color-success: #34C759;
-  --color-warning: #FFD60A;
-  --color-error: #FF453A;
-  --color-border: #2C2C2C;
-  --color-border-light: #333333;
-
-  /* Shadows (Principle 2: Subtle separation) */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 15px rgba(230, 194, 0, 0.1);
-}
-
-:root {
-  /* Fallback colors (light theme by default) */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8F9FA;
-  --color-bg-tertiary: #F1F3F5;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-overlay: rgba(0, 0, 0, 0.4);
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #4A4A4A;
-  --color-text-tertiary: #8E8E8E;
-  --color-text-muted: #CED4DA;
-  --color-accent-primary: #FFD700;
-  --color-accent-secondary: #FFC107;
-  --color-accent-tertiary: #FFF3CD;
-  --color-accent-bold: #B8860B;
-  --color-accent-gradient: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
-  --color-like: #FF3B5C;
-  --color-success: #28A745;
-  --color-warning: #FFC107;
-  --color-error: #DC3545;
-  --color-border: #E9ECEF;
-  --color-border-light: #F1F3F5;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 15px rgba(255, 215, 0, 0.2);
 
   /* Layout & Shared Tokens */
   --space-xs: 4px;
@@ -131,11 +70,9 @@
 
   --header-height: 70px;
   --bottom-nav-height: 72px;
-  /* Increased from 64px */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --max-content-width: 480px;
 
-  /* Principle 4: Smooth Transitions (0.3s) */
   --transition-fast: 150ms ease;
   --transition-normal: 300ms ease;
   --transition-slow: 500ms ease;
@@ -146,6 +83,65 @@
   --z-overlay: 300;
   --z-modal: 400;
   --z-toast: 500;
+}
+
+:root.dark-theme {
+  /* ========================================
+     Dark Theme Overrides
+     ======================================== */
+
+  /* Colors - Deep Premium Theme (Principle 1: No pure black) */
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1E1E1E;
+  --color-bg-tertiary: #2C2C2C;
+  --color-bg-elevated: #333333;
+  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Text Colors (Principle 1: Off-white for reduced eye fatigue) */
+  --color-text-primary: #E4E6EB;
+  --color-text-secondary: #B0B3B8;
+  --color-text-tertiary: #8A8D91;
+  --color-text-muted: #4B4B4B;
+
+  /* Accent Colors - Desaturated for Dark Mode (Principle 1: -20% Saturation) */
+  --color-accent-primary: #E6C200;
+  --color-accent-secondary: #D4A017;
+  /* Darker tertiary for better contrast */
+  --color-accent-tertiary: #3D3D2D;
+  --color-accent-bold: #E6B800;
+  --color-accent-gradient: linear-gradient(135deg, #E6C200 0%, #B86500 100%);
+
+  /* UI Colors */
+  --color-like: #FF4B6B;
+  --color-success: #34C759;
+  --color-warning: #FFD60A;
+  --color-error: #FF453A;
+  --color-border: #2C2C2C;
+  --color-border-light: #333333;
+
+  /* Shadows (Principle 2: Subtle separation) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 15px rgba(230, 194, 0, 0.1);
+}
+
+/* Explicit text color enforcement for Dark Theme */
+:root.dark-theme h1,
+:root.dark-theme h2,
+:root.dark-theme h3,
+:root.dark-theme h4,
+:root.dark-theme h5,
+:root.dark-theme h6,
+:root.dark-theme p,
+:root.dark-theme span,
+:root.dark-theme div {
+  /* Allow specific overrides via classes but set default */
+  color: inherit;
+}
+
+:root.dark-theme body {
+  color: var(--color-text-primary);
 }
 
 /* Principle 4: Global background & color transitions */
