@@ -121,6 +121,10 @@
     margin-bottom: 2px;
 }
 
+:global(.dark-theme) .fullName {
+    color: var(--color-text-primary) !important;
+}
+
 .bio {
     font-size: 14px;
     color: var(--color-text-primary);
@@ -260,6 +264,10 @@
     line-height: 1.4;
     flex: 1;
     margin-top: 6px;
+}
+
+:global(.dark-theme) .videoTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .moreBtn {
