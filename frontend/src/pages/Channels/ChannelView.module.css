@@ -773,6 +773,10 @@
     font-weight: 700;
 }
 
+:global(.dark-theme) .channelName {
+    color: var(--color-text-primary) !important;
+}
+
 .memberCountSmall {
     font-size: 11px;
     color: var(--color-text-tertiary);

@@ -18,6 +18,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .createBtn {
     display: flex;
     align-items: center;
@@ -200,6 +204,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .channelName {
+    color: var(--color-text-primary) !important;
 }
 
 .channelDesc {
