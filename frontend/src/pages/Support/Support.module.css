@@ -17,6 +17,10 @@
     font-weight: 700;
 }
 
+:global(.dark-theme) .header h1 {
+    color: var(--color-text-primary) !important;
+}
+
 .newTicketBtn {
     padding: 10px 20px;
     background: var(--color-accent-gradient);
@@ -46,6 +50,7 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
+    color: var(--color-text-primary);
 }
 
 .tab.active {
@@ -90,6 +95,10 @@
     font-weight: 600;
     margin: 0;
     flex: 1;
+}
+
+:global(.dark-theme) .ticketSubject {
+    color: var(--color-text-primary) !important;
 }
 
 .statusBadge {
@@ -160,6 +169,10 @@
     font-size: 18px;
 }
 
+:global(.dark-theme) .emptyState h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .emptyState p {
     font-size: 14px;
 }
@@ -199,6 +212,10 @@
 .modalHeader h2 {
     font-size: 18px;
     margin: 0;
+}
+
+:global(.dark-theme) .modalHeader h2 {
+    color: var(--color-text-primary) !important;
 }
 
 .closeBtn {
@@ -289,6 +306,10 @@
     margin: 0 0 10px 0;
 }
 
+:global(.dark-theme) .ticketInfo h1 {
+    color: var(--color-text-primary) !important;
+}
+
 .ticketInfoMeta {
     display: flex;
     flex-wrap: wrap;
@@ -322,6 +343,11 @@
     border: 1px solid var(--color-border);
     align-self: flex-start;
     border-bottom-left-radius: 4px;
+    color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .message.admin {
+    color: var(--color-text-primary) !important;
 }
 
 .messageTime {

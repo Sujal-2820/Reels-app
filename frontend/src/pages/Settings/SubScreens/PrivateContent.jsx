@@ -127,7 +127,7 @@ const PrivateContent = () => {
                         </div>
                         <h3>No private {activeType} yet</h3>
                         <p>When you upload content as private, it will appear here.</p>
-                        <button className={styles.uploadCta} onClick={() => navigate('/upload')}>
+                        <button className={styles.uploadCta} onClick={() => navigate('/private-content')}>
                             Upload Content
                         </button>
                     </div>

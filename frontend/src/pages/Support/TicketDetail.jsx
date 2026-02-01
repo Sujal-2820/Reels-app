@@ -156,7 +156,7 @@ const TicketDetail = () => {
             <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
                 <div style={{ textAlign: 'center' }}>
                     <div className="spinner spinner-large"></div>
-                    <p style={{ marginTop: '16px', color: '#64748b' }}>Loading ticket...</p>
+                    <p style={{ marginTop: '16px', color: 'var(--color-text-secondary)' }}>Loading ticket...</p>
                 </div>
             </div>
         );
@@ -216,8 +216,8 @@ const TicketDetail = () => {
                                     borderRadius: '12px',
                                     fontSize: '12px',
                                     fontWeight: '600',
-                                    background: ticket.priority === 'high' ? '#fee2e2' : ticket.priority === 'medium' ? '#fef3c7' : '#f0f9ff',
-                                    color: ticket.priority === 'high' ? '#dc2626' : ticket.priority === 'medium' ? '#d97706' : '#0284c7'
+                                    background: ticket.priority === 'high' ? 'rgba(239, 68, 68, 0.15)' : ticket.priority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(14, 165, 233, 0.15)',
+                                    color: ticket.priority === 'high' ? '#ff6b6b' : ticket.priority === 'medium' ? '#fbbf24' : '#38bdf8'
                                 }}>
                                     {ticket.priority.toUpperCase()} PRIORITY
                                 </span>
@@ -278,8 +278,8 @@ const TicketDetail = () => {
                                 {msg.content}
                             </div>
                             <div className={styles.messageTime}>
-                                {isAdmin && <span style={{ fontWeight: '700', color: '#2563eb' }}>🔵 Support Team</span>}
-                                {!isAdmin && <span style={{ color: '#64748b' }}>You</span>}
+                                {isAdmin && <span style={{ fontWeight: '700', color: 'var(--color-accent-primary)' }}>🔵 Support Team</span>}
+                                {!isAdmin && <span style={{ color: 'var(--color-text-tertiary)' }}>You</span>}
                                 <span style={{ margin: '0 6px', color: '#cbd5e1' }}>•</span>
                                 {formatTime(msg.createdAt)}
                             </div>
@@ -319,7 +319,7 @@ const TicketDetail = () => {
                 textAlign: 'center',
                 marginTop: '12px',
                 fontSize: '11px',
-                color: '#94a3b8'
+                color: 'var(--color-text-muted)'
             }}>
                 🔄 Auto-refreshing every 10 seconds for new responses
             </div>

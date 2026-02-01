@@ -47,7 +47,7 @@ const About = () => {
                     </div>
                 </div>
 
-                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '40px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', marginTop: '40px' }}>
                     &copy; 2026 ReelBox Inc. All rights reserved.
                 </p>
             </div>
