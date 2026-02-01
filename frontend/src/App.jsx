@@ -59,6 +59,8 @@ import TermsOfService from './pages/Legal/TermsOfService';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import ToastContainer from './components/common/ToastContainer';
+import { notificationService } from './services/notificationService';
+import { useEffect } from 'react';
 import './App.css';
 
 // Protected Route Wrapper
@@ -134,6 +136,10 @@ const AppLayout = ({ children, showNav = true }) => {
 
 // Main App Component
 function AppContent() {
+  useEffect(() => {
+    notificationService.initForegroundHandler();
+  }, []);
+
   return (
     <Routes>
       {/* Public Routes */}

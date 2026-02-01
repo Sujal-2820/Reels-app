@@ -12,6 +12,7 @@ const searchRoutes = require('./searchRoutes');
 const reportRoutes = require('./reportRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const subscriptionRoutes = require('./subscriptionRoutes');
+const notificationRoutes = require('./notificationRoutes');
 
 module.exports = {
     authRoutes,
@@ -27,5 +28,6 @@ module.exports = {
     searchRoutes,
     reportRoutes,
     settingsRoutes,
-    subscriptionRoutes
+    subscriptionRoutes,
+    notificationRoutes
 };

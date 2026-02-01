@@ -405,5 +405,14 @@ export const subscriptionAPI = {
         api.post('/subscriptions/verify-upgrade', { orderId, paymentId, signature })
 };
 
+// ========================================
+// NOTIFICATIONS API
+// ========================================
+
+export const notificationAPI = {
+    registerToken: (token, platform = 'web') => api.post('/fcm/register', { token, platform }),
+    unregisterToken: (token, platform = 'web') => api.post('/fcm/unregister', { token, platform })
+};
+
 export default api;
 

@@ -9,6 +9,7 @@
 
 const { db, admin } = require('../config/firebase');
 const subscriptionService = require('./subscriptionService');
+const notificationService = require('./notificationService');
 
 // Processing lock to prevent concurrent execution
 let isProcessing = false;
@@ -277,8 +278,29 @@ const processSendNotification = async ({ userId, type, data }) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // TODO: Integrate with push notification service
-        // For now, just store in database
+        // Push notification logic
+        let title = 'New Notification';
+        let body = 'You have a new notification';
+
+        if (type === 'content_locked') {
+            title = 'Content Locked';
+            body = `Your storage limit was exceeded. ${data.lockedCount} items were locked.`;
+        } else if (type === 'content_unlocked') {
+            title = 'Content Unlocked';
+            body = 'Your content has been unlocked after subscription renewal.';
+        } else if (type === 'new_follower') {
+            title = 'New Follower';
+            body = `${data.followerName || 'Someone'} started following you!`;
+        } else if (type === 'new_comment') {
+            title = 'New Comment';
+            body = `${data.commenterName || 'Someone'} commented on your reel!`;
+        }
+
+        await notificationService.sendNotificationToUser(userId, {
+            title,
+            body,
+            data: { ...data, type }
+        });
 
         console.log(`[BackgroundJob] Notification sent to user ${userId}`);
     } catch (error) {

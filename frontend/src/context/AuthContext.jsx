@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { notificationService } from '../services/notificationService';
 
 // Create context
 const AuthContext = createContext(null);
@@ -28,6 +29,9 @@ export const AuthProvider = ({ children }) => {
                         const userData = { id: firebaseUser.uid, ...userSnap.data() };
                         setUser(userData);
                         localStorage.setItem('reelbox_user', JSON.stringify(userData));
+
+                        // Initialize Push Notifications
+                        notificationService.requestPermission();
                     } else {
                         // User document doesn't exist (shouldn't happen normally)
                         console.warn('User document not found in Firestore');
@@ -53,6 +57,8 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(async () => {
         try {
             await signOut(auth);
+            // Unregister FCM token from backend
+            await notificationService.unregisterToken();
             setUser(null);
             setFirebaseUser(null);
             localStorage.removeItem('reelbox_user');

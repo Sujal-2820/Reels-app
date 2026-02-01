@@ -28,6 +28,42 @@ exports.addComment = async (req, res) => {
             viralityScore: admin.firestore.FieldValue.increment(2) // Comments weigh more
         });
 
+        // Send notification to Reel owner via background job
+        (async () => {
+            try {
+                const reelSnap = await reelRef.get();
+                if (reelSnap.exists) {
+                    const reelData = reelSnap.data();
+                    const reelOwnerId = reelData.userId;
+
+                    // Don't notify if commenting on own reel
+                    if (reelOwnerId !== userId) {
+                        const commenterSnap = await db.collection('users').doc(userId).get();
+                        const commenterName = commenterSnap.exists ? (commenterSnap.data().name || commenterSnap.data().username) : 'Someone';
+
+                        await db.collection('backgroundJobs').add({
+                            type: 'send_notification',
+                            data: {
+                                userId: reelOwnerId,
+                                type: 'new_comment',
+                                data: {
+                                    reelId,
+                                    commenterId: userId,
+                                    commenterName,
+                                    commentContent: content
+                                }
+                            },
+                            status: 'pending',
+                            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            attempts: 0
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error queuing comment notification:', err);
+            }
+        })();
+
         // Fetch user info for return
         const userSnap = await db.collection('users').doc(userId).get();
         const userData = userSnap.exists ? userSnap.data() : null;

@@ -59,6 +59,32 @@ const followUser = async (req, res) => {
 
         await batch.commit();
 
+        // Send notification via background job (non-blocking)
+        // Wrapped in an async IIFE or handled via promise to avoid delaying the response
+        (async () => {
+            try {
+                const followerDoc = await db.collection('users').doc(followerId).get();
+                const followerName = followerDoc.exists ? (followerDoc.data().name || followerDoc.data().username) : 'Someone';
+
+                await db.collection('backgroundJobs').add({
+                    type: 'send_notification',
+                    data: {
+                        userId: targetUserId,
+                        type: 'new_follower',
+                        data: {
+                            followerId,
+                            followerName
+                        }
+                    },
+                    status: 'pending',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    attempts: 0
+                });
+            } catch (notifyErr) {
+                console.error('Error queuing follow notification:', notifyErr);
+            }
+        })();
+
         res.json({
             success: true,
             message: 'Followed successfully'

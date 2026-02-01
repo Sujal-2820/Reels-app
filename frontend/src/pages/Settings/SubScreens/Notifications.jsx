@@ -29,10 +29,7 @@ const Notifications = () => {
                             <div className={styles.itemLabel}>Direct Messages</div>
                             <input type="checkbox" defaultChecked />
                         </div>
-                        <div className={styles.settingsItem}>
-                            <div className={styles.itemLabel}>Video Suggestions</div>
-                            <input type="checkbox" />
-                        </div>
+
                     </div>
                 </div>
 
