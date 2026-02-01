@@ -146,7 +146,7 @@
     border-radius: var(--radius-md);
     font-size: 14px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-bg-primary);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -289,7 +289,7 @@
 .gridItem {
     position: relative;
     aspect-ratio: 9/16;
-    background: #000;
+    background: var(--color-bg-primary);
     overflow: hidden;
     cursor: pointer;
     border-radius: 4px;
@@ -353,7 +353,7 @@
 
 .mgBtnShare {
     background: var(--color-accent-primary);
-    color: #1A1A1A;
+    color: var(--color-bg-primary);
 }
 
 .mgBtnView {
@@ -371,7 +371,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    color: white;
+    color: var(--color-text-primary);
     font-weight: 600;
     font-size: 13px;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);

@@ -143,7 +143,7 @@
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    background: #000;
+    background: var(--color-bg-secondary);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -169,7 +169,7 @@
 .trendingOverlay span {
     font-size: 12px;
     font-weight: 600;
-    color: #fff;
+    color: var(--color-text-primary);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -243,7 +243,7 @@
     justify-content: center;
     font-size: 18px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-bg-primary);
     overflow: hidden;
 }
 
@@ -259,7 +259,7 @@
     aspect-ratio: 9/16;
     border-radius: var(--radius-sm);
     overflow: hidden;
-    background: #000;
+    background: var(--color-bg-secondary);
     flex-shrink: 0;
 }
 

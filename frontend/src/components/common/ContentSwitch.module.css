@@ -63,8 +63,8 @@
 
 .active {
     background: var(--color-accent-primary);
-    color: #000 !important;
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+    color: var(--color-bg-primary) !important;
+    box-shadow: var(--shadow-glow);
 }
 
 @keyframes fadeInDown {

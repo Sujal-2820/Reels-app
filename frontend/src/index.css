@@ -85,7 +85,7 @@
   --z-toast: 500;
 }
 
-:root.dark-theme {
+.dark-theme {
   /* ========================================
      Dark Theme Overrides
      ======================================== */
@@ -126,22 +126,9 @@
   --shadow-glow: 0 0 15px rgba(230, 194, 0, 0.1);
 }
 
-/* Explicit text color enforcement for Dark Theme */
-:root.dark-theme h1,
-:root.dark-theme h2,
-:root.dark-theme h3,
-:root.dark-theme h4,
-:root.dark-theme h5,
-:root.dark-theme h6,
-:root.dark-theme p,
-:root.dark-theme span,
-:root.dark-theme div {
-  /* Allow specific overrides via classes but set default */
-  color: inherit;
-}
-
-:root.dark-theme body {
+.dark-theme body {
   color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
 }
 
 /* Principle 4: Global background & color transitions */
