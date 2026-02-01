@@ -20,7 +20,7 @@ const Help = () => {
                 <h1 className={styles.title}>Help Center</h1>
             </div>
 
-            <div style={{ padding: '0 4px' }}>
+            <div>
                 <div className={styles.settingsSection}>
                     <h3 className={styles.sectionTitle}>Frequently Asked Questions</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

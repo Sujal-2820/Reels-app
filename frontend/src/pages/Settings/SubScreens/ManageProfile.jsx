@@ -67,7 +67,7 @@ const ManageProfile = () => {
                 <h1 className={styles.title}>Edit Profile</h1>
             </div>
 
-            <div className={styles.editForm} style={{ padding: '0 4px' }}>
+            <div className={styles.editForm}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
                     <input
                         type="file"

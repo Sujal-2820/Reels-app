@@ -13,7 +13,7 @@ const Notifications = () => {
                 <h1 className={styles.title}>Notifications</h1>
             </div>
 
-            <div style={{ padding: '0 4px' }}>
+            <div>
                 <div className={styles.settingsSection}>
                     <h3 className={styles.sectionTitle}>Push Notifications</h3>
                     <div className={styles.settingsList}>
@@ -36,19 +36,7 @@ const Notifications = () => {
                     </div>
                 </div>
 
-                <div className={styles.settingsSection}>
-                    <h3 className={styles.sectionTitle}>Email Notifications</h3>
-                    <div className={styles.settingsList}>
-                        <div className={styles.settingsItem}>
-                            <div className={styles.itemLabel}>Security Alerts</div>
-                            <input type="checkbox" defaultChecked />
-                        </div>
-                        <div className={styles.settingsItem}>
-                            <div className={styles.itemLabel}>Marketing Emails</div>
-                            <input type="checkbox" />
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
     );

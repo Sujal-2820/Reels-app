@@ -3,8 +3,6 @@
     padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
     background-color: var(--color-bg-primary);
     min-height: 100vh;
-    max-width: var(--max-content-width);
-    margin: 0 auto;
 }
 
 .header {

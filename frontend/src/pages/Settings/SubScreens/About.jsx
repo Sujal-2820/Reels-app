@@ -13,7 +13,7 @@ const About = () => {
                 <h1 className={styles.title}>About Us</h1>
             </div>
 
-            <div style={{ padding: '0 4px', textAlign: 'center' }}>
+            <div style={{ padding: '0', textAlign: 'center' }}>
                 <div style={{ marginBottom: '40px', marginTop: '20px' }}>
                     <div style={{ width: '80px', height: '80px', background: 'var(--color-accent-gradient)', borderRadius: '20px', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

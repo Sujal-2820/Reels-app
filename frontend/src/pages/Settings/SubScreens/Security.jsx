@@ -44,7 +44,7 @@ const Security = () => {
                 <h1 className={styles.title}>Password & Security</h1>
             </div>
 
-            <div style={{ padding: '0 4px' }}>
+            <div>
                 <div className={styles.settingsSection}>
                     <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '24px' }}>
                         Ensure your account is using a long, random password to stay secure.
