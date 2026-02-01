@@ -410,8 +410,12 @@ export const subscriptionAPI = {
 // ========================================
 
 export const notificationAPI = {
-    registerToken: (token, platform = 'web') => api.post('/fcm/register', { token, platform }),
-    unregisterToken: (token, platform = 'web') => api.post('/fcm/unregister', { token, platform })
+    registerToken: (token, platform = 'web') => api.post('/notifications/register', { token, platform }),
+    unregisterToken: (token, platform = 'web') => api.post('/notifications/unregister', { token, platform }),
+    getNotifications: (cursor = null) => api.get(`/notifications${cursor ? `?cursor=${cursor}` : ''}`),
+    markAsRead: (id) => api.put(`/notifications/${id}/read`),
+    markAllAsRead: () => api.put('/notifications/read-all'),
+    test: () => api.post('/notifications/test')
 };
 
 export default api;

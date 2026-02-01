@@ -52,9 +52,22 @@ const sendPushNotification = async (tokens, payload) => {
  */
 const sendNotificationToUser = async (userId, payload) => {
     try {
+        // 1. Save to database for in-app inbox
+        const notificationData = {
+            userId,
+            title: payload.title,
+            body: payload.body,
+            data: payload.data || {},
+            isRead: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('notifications').add(notificationData);
+
+        // 2. Fetch tokens for push notification
         const userDoc = await db.collection('users').doc(userId).get();
         if (!userDoc.exists) {
-            console.log(`User ${userId} not found for notification`);
+            console.log(`User ${userId} not found for push notification`);
             return;
         }
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import SearchPanel from '../common/SearchPanel';
+import NotificationPanel from '../common/NotificationPanel';
 import styles from './Header.module.css';
 
 const Header = () => {
@@ -9,6 +10,8 @@ const Header = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [showSearch, setShowSearch] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // Only show hamburger if we are on the vanity '/profile' route which belongs to the logged in user
     const isMyProfilePage = location.pathname === '/profile';
@@ -69,12 +72,16 @@ const Header = () => {
                         ) : (
                             <button
                                 className={styles.actionBtn}
+                                onClick={() => setShowNotifications(true)}
                                 aria-label="Notifications"
                             >
                                 <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                 </svg>
+                                {unreadCount > 0 && (
+                                    <span className={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                )}
                             </button>
                         )}
                     </div>
@@ -85,6 +92,13 @@ const Header = () => {
             <SearchPanel
                 isOpen={showSearch}
                 onClose={() => setShowSearch(false)}
+            />
+
+            {/* Notification Panel */}
+            <NotificationPanel
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onUnreadUpdate={setUnreadCount}
             />
         </>
     );

@@ -57,6 +57,41 @@
     color: var(--color-text-primary);
     border-radius: var(--radius-full);
     transition: background 0.2s;
+    position: relative;
+}
+
+.badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--color-error);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-bg-primary);
+    animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .actionBtn:active {

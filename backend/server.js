@@ -81,7 +81,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/fcm', notificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Webhook routes (no auth required - verified via signature)
 app.use('/api/webhooks', webhookRoutes);

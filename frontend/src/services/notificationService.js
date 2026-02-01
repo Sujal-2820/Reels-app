@@ -4,7 +4,7 @@ import { notificationAPI } from './api';
 
 // IMPORTANT: Replace this with your actual VAPID key from Firebase Console
 // Project Settings > Cloud Messaging > Web Push certificates
-const VAPID_KEY = 'YOUR_VAPID_KEY_HERE';
+const VAPID_KEY = 'BKnsXFpZe6ofpb6KnL2NyNWFjNFPhWu-SdP_lAC1Md-xg1ezE3nM5JR3xkLLhpXmhiB3ryGr9SRb6Uy1BS5va74';
 
 export const notificationService = {
     /**
