@@ -320,6 +320,10 @@
     font-weight: 700;
 }
 
+:global(.dark-theme) .modalHeader h2 {
+    color: var(--color-text-primary) !important;
+}
+
 .closeBtn {
     background: none;
     border: none;
