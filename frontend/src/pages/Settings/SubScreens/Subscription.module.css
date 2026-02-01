@@ -44,6 +44,15 @@
     background-clip: text;
 }
 
+:global(.dark-theme) .title {
+    background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Explicitly ensuring no filter or inherit affects this */
+
 .statsGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -95,6 +104,10 @@
     margin-bottom: 8px;
 }
 
+:global(.dark-theme) .statLabel {
+    color: var(--color-text-secondary) !important;
+}
+
 .statValue {
     font-size: 24px;
     font-weight: 900;
@@ -130,6 +143,10 @@
     font-weight: 800;
     margin-bottom: 20px;
     color: var(--color-text-primary);
+}
+
+:global(.dark-theme) .sectionTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .detailsList {
@@ -201,7 +218,7 @@
 
 .primaryBtn {
     background: linear-gradient(135deg, #DAA520 0%, #B88601 100%);
-    color: #000;
+    color: var(--color-bg-primary);
     border: none;
     padding: 20px;
     border-radius: 22px;
@@ -242,7 +259,7 @@
 
 .premiumBadge {
     background: linear-gradient(135deg, #DAA520 0%, #B8860B 100%);
-    color: #000;
+    color: var(--color-bg-primary);
     font-size: 10px;
     padding: 2px 8px;
     border-radius: 6px;

@@ -18,6 +18,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .backBtn {
     background: none;
     border: none;
@@ -55,7 +59,7 @@
 
 .activeType {
     background: var(--color-accent-primary);
-    color: #1A1A1A;
+    color: var(--color-bg-primary);
 }
 
 .statsGrid {
@@ -87,6 +91,10 @@
     color: var(--color-accent-primary);
 }
 
+:global(.dark-theme) .statValue {
+    color: var(--color-accent-primary) !important;
+}
+
 .subStatsRow {
     display: flex;
     flex-direction: column;
@@ -105,6 +113,10 @@
     margin-bottom: var(--space-md);
     padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--color-border);
+}
+
+:global(.dark-theme) .boxTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .boxRow {
@@ -177,6 +189,10 @@
     line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+:global(.dark-theme) .itemTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .itemMetrics {

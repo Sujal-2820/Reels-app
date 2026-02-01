@@ -35,6 +35,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .settingsSection {
     margin-bottom: var(--space-xl);
 }
@@ -47,6 +51,10 @@
     padding-left: 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+:global(.dark-theme) .sectionTitle {
+    color: var(--color-text-secondary) !important;
 }
 
 .settingsList {
@@ -85,6 +93,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .itemIcon {
+    color: var(--color-text-primary) !important;
+}
+
 .itemLabel {
     flex: 1;
     text-align: left;
@@ -92,9 +104,17 @@
     font-weight: 500;
 }
 
+:global(.dark-theme) .itemLabel {
+    color: var(--color-text-primary) !important;
+}
+
 .itemValue {
     font-size: 14px;
     color: var(--color-text-secondary);
+}
+
+:global(.dark-theme) .itemValue {
+    color: var(--color-text-secondary) !important;
 }
 
 .chevron {

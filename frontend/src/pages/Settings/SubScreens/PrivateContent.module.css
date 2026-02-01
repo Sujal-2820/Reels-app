@@ -18,6 +18,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .backBtn {
     background: none;
     border: none;
@@ -63,7 +67,7 @@
 
 .activeType {
     background: var(--color-accent-primary);
-    color: #1A1A1A;
+    color: var(--color-bg-primary);
 }
 
 .list {
@@ -130,6 +134,10 @@
     line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+:global(.dark-theme) .cardTitle {
+    color: var(--color-text-primary) !important;
 }
 
 .cardMetrics {
@@ -205,6 +213,10 @@
     margin-bottom: var(--space-sm);
 }
 
+:global(.dark-theme) .emptyState h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .emptyState p {
     font-size: 14px;
     color: var(--color-text-secondary);
@@ -213,7 +225,7 @@
 
 .uploadCta {
     background: var(--color-accent-primary);
-    color: #1A1A1A;
+    color: var(--color-bg-primary);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
