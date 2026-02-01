@@ -10,6 +10,11 @@
     transition: background 0.2s;
 }
 
+:global(.dark-theme) .card {
+    background: var(--color-bg-secondary) !important;
+    color: var(--color-text-primary) !important;
+}
+
 .card:hover {
     background: var(--color-bg-tertiary);
 }
@@ -99,6 +104,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
+}
+
 .meta {
     display: flex;
     align-items: center;
@@ -107,6 +116,14 @@
     color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
+}
+
+:global(.dark-theme) .meta {
+    color: var(--color-text-secondary) !important;
+}
+
+:global(.dark-theme) .meta span {
+    color: var(--color-text-secondary) !important;
 }
 
 .username {
