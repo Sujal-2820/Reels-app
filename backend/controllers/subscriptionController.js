@@ -4,7 +4,7 @@
  */
 
 const { db, admin } = require('../config/firebase');
-const { createOrder, verifyPaymentSignature } = require('../config/razorpay');
+const { createOrder, verifyPaymentSignature, verifySubscriptionSignature } = require('../config/razorpay');
 const subscriptionService = require('../services/subscriptionService');
 const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
@@ -431,9 +431,15 @@ const createRecurringSubscription = async (req, res) => {
         const userId = req.userId;
         const { planId, billingCycle = 'monthly' } = req.body;
 
+        console.log(`[Controller] createRecurringSubscription called for user ${userId}, plan ${planId}, cycle ${billingCycle}`);
+
         // Get user info for Razorpay customer
         const userDoc = await db.collection('users').doc(userId).get();
-        const userInfo = userDoc.exists ? userDoc.data() : {};
+        if (!userDoc.exists) {
+            console.error(`[Controller] User not found: ${userId}`);
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        const userInfo = userDoc.data();
 
         // Check if this is an upgrade
         const currentSub = await razorpaySubscriptionService.getActiveSubscription(userId);
@@ -450,12 +456,18 @@ const createRecurringSubscription = async (req, res) => {
             }
         );
 
+        console.log(`[Controller] Subscription created successfully for user ${userId}`);
         res.json(result);
     } catch (error) {
-        console.error('Create recurring subscription error:', error);
+        console.error('Create recurring subscription error details:', {
+            message: error.message,
+            stack: error.stack,
+            error: error
+        });
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to create subscription'
+            message: error.message || 'Failed to create subscription',
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
@@ -530,6 +542,7 @@ const upgradeSubscription = async (req, res) => {
 
         res.json({
             success: true,
+            isUpgradeOrder: result.isUpgradeOrder || false, // Pass the flag from service
             data: {
                 ...result.data,
                 prorationCredit,
@@ -739,6 +752,111 @@ const getProrationPreview = async (req, res) => {
     }
 };
 
+/**
+ * Verify recurring subscription activation and sync with Firestore
+ * POST /api/subscriptions/verify-subscription
+ */
+const verifySubscriptionActivation = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { subscriptionId, paymentId, signature } = req.body;
+
+        if (!subscriptionId || !paymentId || !signature) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing subscription verification details.'
+            });
+        }
+
+        // 1. Verify Signature
+        const isValid = verifySubscriptionSignature(subscriptionId, paymentId, signature);
+        if (!isValid) {
+            console.error(`[Controller] Invalid subscription signature for user ${userId}`);
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid subscription signature.'
+            });
+        }
+
+        // 2. Fetch latest status from Razorpay
+        const rzpSubscription = await razorpaySubscriptionService.fetchSubscriptionStatus(subscriptionId);
+        console.log(`[Controller] Subscription ${subscriptionId} status: ${rzpSubscription.status}`);
+
+        // 3. Get Plan details from Firestore
+        const planDocId = rzpSubscription.notes.planId;
+        if (!planDocId) {
+            throw new Error('Plan ID not found in subscription notes');
+        }
+
+        const planSnap = await db.collection('subscriptionPlans').doc(planDocId).get();
+        if (!planSnap.exists) {
+            throw new Error('Plan details not found in database');
+        }
+        const plan = planSnap.data();
+
+        // 4. Create/Update userSubscription document
+        const expiryDate = new Date(rzpSubscription.current_end * 1000);
+
+        const subscriptionData = {
+            userId,
+            planId: planDocId,
+            planName: plan.displayName || plan.name,
+            planTier: plan.tier || 0,
+            planType: plan.type || 'subscription',
+            billingCycle: rzpSubscription.notes.billingCycle || 'monthly',
+            razorpaySubscriptionId: subscriptionId,
+            razorpayCustomerId: rzpSubscription.customer_id,
+            status: rzpSubscription.status === 'authenticated' || rzpSubscription.status === 'active' ? 'active' : rzpSubscription.status,
+            startDate: admin.firestore.Timestamp.fromDate(new Date(rzpSubscription.current_start * 1000)),
+            expiryDate: admin.firestore.Timestamp.fromDate(expiryDate),
+            lastPaymentId: paymentId,
+            autoRenew: !rzpSubscription.cancel_at_cycle_end,
+            updatedAt: serverTimestamp()
+        };
+
+        // Find if we already have this subscription record
+        const existingSubSnap = await db.collection('userSubscriptions')
+            .where('razorpaySubscriptionId', '==', subscriptionId)
+            .limit(1)
+            .get();
+
+        let subDocId;
+        if (existingSubSnap.empty) {
+            subscriptionData.createdAt = serverTimestamp();
+            const subRef = await db.collection('userSubscriptions').add(subscriptionData);
+            subDocId = subRef.id;
+        } else {
+            subDocId = existingSubSnap.docs[0].id;
+            await db.collection('userSubscriptions').doc(subDocId).update(subscriptionData);
+        }
+
+        // 5. Update user's cached subscription info
+        await subscriptionService.updateUserSubscriptionCache(userId);
+
+        // 6. Unlock content
+        const unlockedCount = await subscriptionService.unlockAllContent(userId);
+
+        res.json({
+            success: true,
+            message: 'Subscription confirmed and activated!',
+            data: {
+                subscriptionId: subDocId,
+                status: 'active',
+                plan: plan.displayName,
+                expiryDate,
+                unlockedCount
+            }
+        });
+    } catch (error) {
+        console.error('Verify subscription activation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to verify and activate subscription',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getPlans,
     getMySubscriptions,
@@ -751,5 +869,135 @@ module.exports = {
     upgradeSubscription,
     downgradeSubscription,
     cancelSubscription,
-    getProrationPreview
+    getProrationPreview,
+    verifySubscriptionActivation
+};
+
+/**
+ * Verify upgrade payment and create new subscription
+ * POST /api/subscriptions/verify-upgrade
+ */
+const verifyUpgradePayment = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { orderId, paymentId, signature } = req.body;
+
+        console.log(`[Verify Upgrade] User: ${userId}, Order: ${orderId}`);
+
+        // 1. Verify payment signature
+        const isValid = verifyPaymentSignature(orderId, paymentId, signature);
+        if (!isValid) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid payment signature'
+            });
+        }
+
+        // 2. Fetch pending upgrade details
+        const pendingUpgradeQuery = await db.collection('pendingUpgrades')
+            .where('userId', '==', userId)
+            .where('orderId', '==', orderId)
+            .where('status', '==', 'pending')
+            .limit(1)
+            .get();
+
+        if (pendingUpgradeQuery.empty) {
+            return res.status(404).json({
+                success: false,
+                message: 'Pending upgrade not found'
+            });
+        }
+
+        const pendingUpgradeDoc = pendingUpgradeQuery.docs[0];
+        const upgradeData = pendingUpgradeDoc.data();
+
+        // 3. Create the new subscription in Razorpay
+        const newSubscription = await razorpay.subscriptions.create({
+            plan_id: upgradeData.razorpayPlanId,
+            customer_id: upgradeData.customerId,
+            total_count: upgradeData.billingCycle === 'yearly' ? 5 : 12,
+            quantity: 1,
+            customer_notify: 1,
+            notes: {
+                userId: String(userId),
+                planId: String(upgradeData.newPlanId),
+                billingCycle: String(upgradeData.billingCycle),
+                isUpgrade: 'true',
+                upgradeOrderId: String(orderId)
+            }
+        });
+
+        console.log(`[Verify Upgrade] Created subscription: ${newSubscription.id}`);
+
+        // 4. Save to Firestore
+        const now = admin.firestore.Timestamp.now();
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + (upgradeData.billingCycle === 'yearly' ? 365 : 30));
+
+        const newSubDoc = await db.collection('userSubscriptions').add({
+            userId,
+            planId: upgradeData.newPlanId,
+            planName: upgradeData.newPlanName,
+            planType: 'subscription',
+            billingCycle: upgradeData.billingCycle,
+            razorpaySubscriptionId: newSubscription.id,
+            razorpayCustomerId: upgradeData.customerId,
+            status: 'active',
+            startDate: now,
+            expiryDate: admin.firestore.Timestamp.fromDate(expiryDate),
+            createdAt: now,
+            updatedAt: now
+        });
+
+        // 5. Update user entitlements cache
+        const planDoc = await db.collection('subscriptionPlans').doc(upgradeData.newPlanId).get();
+        if (planDoc.exists) {
+            const plan = planDoc.data();
+            await db.collection('users').doc(userId).update({
+                'entitlements.subscriptionTier': plan.tier || 0,
+                'entitlements.subscriptionName': plan.name,
+                'entitlements.lastUpdated': now
+            });
+        }
+
+        // 6. Mark pending upgrade as completed
+        await pendingUpgradeDoc.ref.update({
+            status: 'completed',
+            completedAt: now,
+            newSubscriptionId: newSubscription.id,
+            firestoreDocId: newSubDoc.id
+        });
+
+        res.json({
+            success: true,
+            message: 'Upgrade successful',
+            data: {
+                subscriptionId: newSubscription.id,
+                planName: upgradeData.newPlanName
+            }
+        });
+    } catch (error) {
+        console.error('Verify upgrade payment error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to verify upgrade payment'
+        });
+    }
+};
+
+module.exports = {
+    getPlans,
+    getMySubscriptions,
+    getEntitlements,
+    createPurchaseOrder,
+    verifyPurchase,
+    checkContentLocked,
+    // New recurring subscription endpoints
+    createRecurringSubscription,
+    upgradeSubscription,
+    downgradeSubscription,
+    cancelSubscription,
+    getProrationPreview,
+    verifySubscriptionActivation,
+    verifyUpgradePayment
 };

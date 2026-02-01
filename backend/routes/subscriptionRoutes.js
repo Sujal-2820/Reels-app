@@ -12,7 +12,9 @@ const {
     upgradeSubscription,
     downgradeSubscription,
     cancelSubscription,
-    getProrationPreview
+    getProrationPreview,
+    verifySubscriptionActivation,
+    verifyUpgradePayment
 } = require('../controllers/subscriptionController');
 const { auth, optionalAuth } = require('../middleware/auth');
 
@@ -31,6 +33,8 @@ router.post('/create-recurring', auth, createRecurringSubscription);
 router.post('/upgrade', auth, upgradeSubscription);
 router.post('/downgrade', auth, downgradeSubscription);
 router.post('/cancel', auth, cancelSubscription);
+router.post('/verify-subscription', auth, verifySubscriptionActivation);
+router.post('/verify-upgrade', auth, verifyUpgradePayment);
 router.post('/proration-preview', auth, getProrationPreview);
 
 module.exports = router;

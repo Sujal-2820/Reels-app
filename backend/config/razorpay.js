@@ -54,6 +54,28 @@ const verifyPaymentSignature = (orderId, paymentId, signature) => {
 };
 
 /**
+ * Verify subscription signature
+ * @param {string} subscriptionId - Razorpay subscription ID
+ * @param {string} paymentId - Razorpay payment ID
+ * @param {string} signature - Payment signature
+ * @returns {boolean} Verification result
+ */
+const verifySubscriptionSignature = (subscriptionId, paymentId, signature) => {
+    try {
+        const body = paymentId + '|' + subscriptionId;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body.toString())
+            .digest('hex');
+
+        return expectedSignature === signature;
+    } catch (error) {
+        console.error('Subscription signature verification error:', error);
+        return false;
+    }
+};
+
+/**
  * Fetch payment details
  * @param {string} paymentId - Razorpay payment ID
  * @returns {Promise<Object>} Payment details
@@ -72,5 +94,6 @@ module.exports = {
     razorpay,
     createOrder,
     verifyPaymentSignature,
+    verifySubscriptionSignature,
     fetchPayment
 };

@@ -190,32 +190,11 @@ const Login = () => {
         try {
             setError(null);
             setSocialLoading('google');
-            console.log('Starting Google Sign-In with Popup...');
-            const result = await signInWithPopup(auth, googleProvider);
-
-            if (result) {
-                console.log('Google Sign-In successful:', result.user.email);
-                const userRef = doc(db, 'users', result.user.uid);
-                const userSnap = await getDoc(userRef);
-                const isNewUser = !userSnap.exists();
-
-                const userData = await saveUserToFirestore(result.user, {
-                    authProvider: 'google'
-                });
-                setUser(userData);
-
-                if (isNewUser) {
-                    navigate('/onboarding', { state: { from }, replace: true });
-                } else {
-                    navigate(from, { replace: true });
-                }
-            }
+            console.log('Starting Google Sign-In with Redirect...');
+            await signInWithRedirect(auth, googleProvider);
         } catch (err) {
             console.error('Google sign-in error:', err);
-            if (err.code !== 'auth/popup-closed-by-user') {
-                setError(getFirebaseErrorMessage(err.code));
-            }
-        } finally {
+            setError(getFirebaseErrorMessage(err.code));
             setSocialLoading(null);
         }
     };

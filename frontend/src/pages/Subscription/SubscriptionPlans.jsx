@@ -103,6 +103,18 @@ const SubscriptionPlans = () => {
         }
     }, [isAuthenticated]);
 
+    // Refresh entitlements when user returns to this page/tab
+    useEffect(() => {
+        const handleFocus = () => {
+            if (isAuthenticated) {
+                fetchEntitlements();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [isAuthenticated]);
+
     const fetchPlans = async () => {
         try {
             const response = await subscriptionAPI.getPlans();
@@ -156,8 +168,12 @@ const SubscriptionPlans = () => {
         if (newTier > currentTier && currentTier > 0) {
             try {
                 setLoading(true);
+                console.log('[Upgrade] Fetching proration preview for:', plan.name, billingCycle);
                 const response = await subscriptionAPI.prorationPreview(plan.name, billingCycle);
+                console.log('[Upgrade] Proration preview response:', response);
+
                 if (response.success) {
+                    console.log('[Upgrade] Preview data:', response.data);
                     setProrationPreview(response.data);
                     setPendingPlan(plan);
                     setShowProrationModal(true);
@@ -188,20 +204,26 @@ const SubscriptionPlans = () => {
     const initiateRecurringSubscription = async (plan, cycle) => {
         setPurchasing(plan.name);
         setError(null);
+        console.log(`[Subscription] Initiating ${cycle} subscription for ${plan.name}...`);
 
         try {
             const response = await subscriptionAPI.createRecurringSubscription(plan.name, cycle);
+            console.log('[Subscription] Backend response:', response);
 
-            if (response.success) {
-                // If backend provided a shortUrl but we want to stay in-app
-                if (response.data.subscriptionId) {
+            if (response.success && response.data) {
+                const { subscriptionId } = response.data;
+                if (subscriptionId) {
+                    // Start Checkout only ONCE here
                     openRazorpaySubscription(response.data, cycle);
-                } else if (response.data.shortUrl) {
-                    window.location.href = response.data.shortUrl;
+                } else {
+                    throw new Error('No subscriptionId provided by backend');
                 }
+            } else {
+                throw new Error(response.message || 'Failed to initiate subscription');
             }
         } catch (err) {
-            setError(err.message || 'Failed to initiate subscription');
+            console.error('[Subscription] Initiation error:', err);
+            setError(err.message || 'Failed to initiate subscription. Please check your internet or try again later.');
         } finally {
             setPurchasing(null);
         }
@@ -226,14 +248,22 @@ const SubscriptionPlans = () => {
         setPurchasing(pendingPlan.name);
         try {
             const response = await subscriptionAPI.upgradeSubscription(pendingPlan.name, billingCycle);
+            console.log('[Upgrade] Backend response:', response);
+
             if (response.success) {
-                if (response.data.subscriptionId) {
+                // Check if this is the new hybrid upgrade flow (order-based)
+                if (response.isUpgradeOrder && response.data.orderId) {
+                    console.log('[Upgrade] Using hybrid order-based upgrade flow');
+                    openRazorpayOrder(response.data, true); // Pass true to indicate it's an upgrade
+                } else if (response.data.subscriptionId) {
+                    // Legacy subscription-based upgrade (shouldn't happen now)
                     openRazorpaySubscription(response.data, billingCycle);
-                } else if (response.data.shortUrl) {
-                    window.location.href = response.data.shortUrl;
+                } else {
+                    throw new Error('Could not initiate upgrade. Please try again.');
                 }
             }
         } catch (err) {
+            console.error('[Upgrade] Error:', err);
             setError(err.message || 'Upgrade failed');
         } finally {
             setPurchasing(null);
@@ -258,58 +288,108 @@ const SubscriptionPlans = () => {
     };
 
     const openRazorpaySubscription = (data, cycle) => {
+        if (!data.subscriptionId) {
+            setError('Missing Subscription ID. Please try again.');
+            return;
+        }
         const options = {
             key: data.keyId,
             subscription_id: data.subscriptionId,
             name: 'ReelBox',
             description: `${data.planName || 'Premium'} - ${cycle}`,
-            handler: function (response) {
-                // Razorpay handles the activation via webhooks
-                // We just redirect the user
-                navigate('/settings/subscription', {
-                    state: { message: 'Subscription initiated! It will be active shortly once confirmed.' }
-                });
+            handler: async function (response) {
+                console.log('[Subscription] Payment Success:', response);
+                try {
+                    // VERY IMPORTANT: Verify and sync status with backend immediately
+                    await subscriptionAPI.verifySubscription(
+                        response.razorpay_subscription_id,
+                        response.razorpay_payment_id,
+                        response.razorpay_signature
+                    );
+
+                    navigate('/settings/subscription', {
+                        state: { message: 'Subscription activated successfully!' }
+                    });
+                } catch (err) {
+                    console.error('[Subscription] Verification failed:', err);
+                    setError('Payment was successful, but we couldn\'t update your status automatically. Please refresh the page or contact support if your plan is still not active.');
+                }
             },
             prefill: {
                 name: user?.name || '',
-                email: user?.email || ''
+                email: user?.email || '',
+                contact: user?.phone || ''
             },
             theme: {
                 color: '#8833ff'
+            },
+            modal: {
+                ondismiss: function () {
+                    setPurchasing(null);
+                }
             }
         };
 
-        if (!window.Razorpay) {
-            setError('Payment gateway not loaded. Please refresh the page and try again.');
-            setPurchasing(null);
-            return;
+        try {
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                console.error('[Subscription] Payment Failed:', response.error);
+                setError(`Payment failed: ${response.error.description}`);
+            });
+            rzp.open();
+        } catch (err) {
+            console.error('[Subscription] Modal error:', err);
+            setError('Could not open payment window. Please check your internet connection.');
         }
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
     };
 
-    const openRazorpayOrder = (data) => {
+    const openRazorpayOrder = (data, isUpgrade = false) => {
         const options = {
             key: data.keyId,
             amount: data.amount,
             currency: data.currency,
             name: 'ReelBox',
-            description: data.planName,
+            description: isUpgrade ? `Upgrade to ${data.planName}` : data.planName,
             order_id: data.orderId,
             handler: async function (response) {
                 try {
-                    const verifyRes = await subscriptionAPI.verifyPurchase(
-                        response.razorpay_order_id,
-                        response.razorpay_payment_id,
-                        response.razorpay_signature
-                    );
-                    if (verifyRes.success) {
-                        navigate('/settings/subscription', {
-                            state: { message: 'Purchase successful!' }
-                        });
+                    console.log('[Payment] Success:', response);
+
+                    // For upgrades, call a special verification endpoint
+                    if (isUpgrade) {
+                        const verifyRes = await subscriptionAPI.verifyUpgradePayment(
+                            response.razorpay_order_id,
+                            response.razorpay_payment_id,
+                            response.razorpay_signature
+                        );
+                        if (verifyRes.success) {
+                            // Immediately refresh entitlements to show updated plan
+                            await fetchEntitlements();
+
+                            // Small delay to ensure state updates
+                            setTimeout(() => {
+                                navigate('/settings/subscription', {
+                                    state: { message: 'Upgrade successful! Your new plan is now active.' }
+                                });
+                            }, 500);
+                        } else {
+                            throw new Error(verifyRes.message || 'Upgrade verification failed');
+                        }
+                    } else {
+                        // Regular purchase verification
+                        const verifyRes = await subscriptionAPI.verifyPurchase(
+                            response.razorpay_order_id,
+                            response.razorpay_payment_id,
+                            response.razorpay_signature
+                        );
+                        if (verifyRes.success) {
+                            navigate('/settings/subscription', {
+                                state: { message: 'Purchase successful!' }
+                            });
+                        }
                     }
                 } catch (err) {
+                    console.error('[Payment] Verification error:', err);
                     setError('Verification failed. Please contact support.');
                 }
             },
@@ -559,21 +639,21 @@ const SubscriptionPlans = () => {
             {showProrationModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
-                        <h3>Upgrade to {pendingPlan?.displayName}</h3>
+                        <h3 className={styles.modalTitle}>Upgrade to {pendingPlan?.displayName}</h3>
                         <p>You can upgrade your subscription immediately. We've applied credit for your remaining time on the current plan.</p>
 
                         <div className={styles.prorationDetails}>
                             <div className={styles.priceRow}>
                                 <span>New Plan Price</span>
-                                <span>₹{prorationPreview?.newPrice}</span>
+                                <span>₹{prorationPreview?.newPlanPrice || 0}</span>
                             </div>
                             <div className={styles.priceRow}>
                                 <span>Unused Credit</span>
-                                <span className={styles.credit}>- ₹{prorationPreview?.unusedCredit}</span>
+                                <span className={styles.credit}>- ₹{prorationPreview?.prorationCredit || 0}</span>
                             </div>
                             <div className={styles.totalRow}>
                                 <span>Amount to Pay</span>
-                                <span>₹{prorationPreview?.amountToPay}</span>
+                                <span>₹{prorationPreview?.amountToPay || 0}</span>
                             </div>
                         </div>
 

@@ -394,7 +394,15 @@ export const subscriptionAPI = {
 
     // Get proration preview for upgrade
     prorationPreview: (newPlanId, billingCycle = 'monthly') =>
-        api.post('/subscriptions/proration-preview', { newPlanId, billingCycle })
+        api.post('/subscriptions/proration-preview', { newPlanId, billingCycle }),
+
+    // Verify and sync recurring subscription
+    verifySubscription: (subscriptionId, paymentId, signature) =>
+        api.post('/subscriptions/verify-subscription', { subscriptionId, paymentId, signature }),
+
+    // Verify upgrade payment and create new subscription
+    verifyUpgradePayment: (orderId, paymentId, signature) =>
+        api.post('/subscriptions/verify-upgrade', { orderId, paymentId, signature })
 };
 
 export default api;
