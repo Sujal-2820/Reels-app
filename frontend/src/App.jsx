@@ -61,6 +61,7 @@ import { ToastProvider } from './context/ToastContext';
 import ToastContainer from './components/common/ToastContainer';
 import { notificationService } from './services/notificationService';
 import { useEffect } from 'react';
+import PullToRefresh from './components/common/PullToRefresh';
 import './App.css';
 
 // Protected Route Wrapper
@@ -127,7 +128,9 @@ const AppLayout = ({ children, showNav = true }) => {
         <ContentSwitch activeTab={activeTab} onTabChange={handleTabChange} />
       )}
       <main className={`main-content with-header ${showNav ? 'with-bottom-nav' : ''}`}>
-        {children}
+        <PullToRefresh>
+          {children}
+        </PullToRefresh>
       </main>
       {showNav && <BottomNav />}
     </>
