@@ -39,7 +39,7 @@ router.put('/:id', auth, upload.single('profilePic'), updateChannel);
 router.delete('/:id', auth, deleteChannel);
 
 // Channel posts & members
-router.get('/:id/posts', auth, getChannelPosts);
+router.get('/:id/posts', optionalAuth, getChannelPosts);
 router.get('/:id/members', auth, getChannelMembers);
 router.delete('/:id/members/:userId', auth, removeChannelMember);
 router.post('/:id/posts', auth, upload.array('files', 15), createChannelPost);

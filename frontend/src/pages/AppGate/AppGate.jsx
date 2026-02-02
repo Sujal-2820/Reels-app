@@ -38,6 +38,9 @@ const AppGate = () => {
                     // principle: Redirect directly to source as requested
                     const type = response.data.reel?.contentType === 'video' ? 'video' : 'reel';
                     navigate(`/${type}/${response.data.reelId}`, { replace: true });
+                } else if (response.data.channelId) {
+                    localStorage.setItem('reelbox_pending_channel', response.data.channelId);
+                    navigate(`/channels/${response.data.channelId}`, { replace: true });
                 }
             } else {
                 setError('This link has expired or is invalid.');
@@ -56,7 +59,10 @@ const AppGate = () => {
     const handleContinueToWeb = () => {
         // If they already have the app or want to use web
         if (referralData?.reelId) {
-            navigate(`/reel/${referralData.reelId}`);
+            const type = referralData.reel?.contentType === 'video' ? 'video' : 'reel';
+            navigate(`/${type}/${referralData.reelId}`);
+        } else if (referralData?.channelId) {
+            navigate(`/channels/${referralData.channelId}`);
         } else {
             navigate('/');
         }
@@ -113,15 +119,21 @@ const AppGate = () => {
                     <span>ReelBox</span>
                 </div>
 
-                {/* Reel Preview */}
-                {referralData?.reel?.poster && (
+                {/* Content Preview */}
+                {(referralData?.reel?.poster || referralData?.reel?.profilePic) && (
                     <div className={styles.reelPreview}>
-                        <img src={referralData.reel.poster} alt="Reel" />
-                        <div className={styles.previewOverlay}>
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </div>
+                        <img
+                            src={referralData.reel.poster || referralData.reel.profilePic}
+                            alt={referralData.reel.name || 'Preview'}
+                            style={referralData.reel.type === 'channel' ? { borderRadius: '50%', width: '120px', height: '120px', objectFit: 'cover' } : {}}
+                        />
+                        {referralData.reel.type !== 'channel' && (
+                            <div className={styles.previewOverlay}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -136,7 +148,7 @@ const AppGate = () => {
                             )}
                         </div>
                         <p>
-                            <strong>{referralData.referrer.name}</strong> shared a reel with you
+                            <strong>{referralData.referrer.name}</strong> shared a {referralData.reel?.type === 'channel' ? 'channel' : 'reel'} with you
                         </p>
                     </div>
                 )}
@@ -144,7 +156,9 @@ const AppGate = () => {
                 {/* Main Message */}
                 <div className={styles.messageBox}>
                     <h1>Get the ReelBox App</h1>
-                    <p>Install the app to watch this reel and discover amazing short-form content!</p>
+                    <p>
+                        Install the app to {referralData.reel?.type === 'channel' ? `join the channel "${referralData.reel.name}"` : 'watch this reel'} and discover amazing short-form content!
+                    </p>
                 </div>
 
                 {/* Install Button */}

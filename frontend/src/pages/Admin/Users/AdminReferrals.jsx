@@ -1,29 +1,49 @@
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../../../services/api';
+import { useNavigate } from 'react-router-dom';
 import styles from '../AdminPanel.module.css';
 
 const AdminReferrals = () => {
     const [ranking, setRanking] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleMessage = async (userId, username) => {
+        const message = prompt(`Send a system notification to @${username}:`);
+        if (!message) return;
+
+        try {
+            const response = await adminAPI.notifyUser(userId, {
+                title: 'Referral Reward/Notice',
+                message,
+                type: 'referral'
+            });
+            if (response.success) {
+                alert('Message sent successfully');
+            }
+        } catch (err) {
+            alert('Failed to send message: ' + err.message);
+        }
+    };
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const [rankingRes, statsRes] = await Promise.all([
                 adminAPI.getReferralRanking({ limit: 50 }),
-                adminAPI.getDashboardStats() // Using dashboard stats for conversion totals
+                adminAPI.getGlobalReferralStats()
             ]);
 
             if (rankingRes.success) {
                 setRanking(rankingRes.data.users);
             }
             if (statsRes.success) {
-                setStats(statsRes.data.platform);
+                setStats(statsRes.data);
             }
         } catch (err) {
             console.error('Fetch referral data error:', err);
@@ -42,10 +62,35 @@ const AdminReferrals = () => {
                 <div style={{ display: 'flex', gap: '15px' }}>
                     <div className={styles.statMiniCard}>
                         <span className={styles.statLabel}>Total Conversions</span>
-                        <span className={styles.statValue}>{stats?.referralConversions || 0}</span>
+                        <span className={styles.statValue}>{stats?.totalInstallsFromReferrals || 0}</span>
+                    </div>
+                    <div className={styles.statMiniCard}>
+                        <span className={styles.statLabel}>Avg. Conv. Rate</span>
+                        <span className={styles.statValue}>{stats?.conversionRate || 0}%</span>
                     </div>
                 </div>
             </header>
+
+            {/* Growth Chart Preview */}
+            <div className={styles.card} style={{ marginBottom: '30px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '15px' }}>7-Day Growth Trend</h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '100px', paddingBottom: '20px' }}>
+                    {stats?.dailyAnalytics?.map((day, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                            <div
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--admin-accent)',
+                                    height: `${Math.max(10, (day.value / (Math.max(...stats.dailyAnalytics.map(d => d.value)) || 1)) * 80)}px`,
+                                    borderRadius: '3px 3px 0 0',
+                                    transition: 'height 0.3s'
+                                }}
+                            />
+                            <span style={{ fontSize: '10px', color: '#666' }}>{day.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             <div className={styles.contentGrid}>
                 <div className={styles.card}>
@@ -90,7 +135,21 @@ const AdminReferrals = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            <button className={styles.actionBtnRow}>View Profile</button>
+                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                <button
+                                                    className={styles.actionBtnRow}
+                                                    onClick={() => navigate(`/admin/users/${user.id}`)}
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    className={styles.actionBtnRow}
+                                                    onClick={() => handleMessage(user.id, user.username)}
+                                                    style={{ background: '#f6f7f7', color: '#1a1a1a', border: '1px solid #ddd' }}
+                                                >
+                                                    💬 Message
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

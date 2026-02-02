@@ -70,6 +70,7 @@
 
   --header-height: 70px;
   --bottom-nav-height: 72px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --max-content-width: 480px;
 
@@ -570,4 +571,58 @@ body.modal-open {
   position: fixed;
   width: 100%;
   overflow: hidden;
+}
+
+/* ========================================
+   REELS APP - COMPATIBILITY PATCHES (NON-BREAKING)
+   Optimized for PWA and Mobile WebView
+   ======================================== */
+
+/* 1. Global Touch Normalization */
+html,
+body,
+button,
+a,
+input,
+textarea,
+select,
+.card,
+.item,
+[role="button"] {
+  touch-action: manipulation;
+  /* Removes 300ms tap delay */
+  -webkit-tap-highlight-color: transparent;
+  /* Removes grey tap box */
+}
+
+/* 2. Visual Interaction Feedback (Tactile Feedback) */
+/* Targeted active states that feel like native apps */
+button:active:not(:disabled),
+a:active,
+.actionBtn:active,
+.navItem:active,
+.uploadBtn:active,
+.card:active,
+.item:active {
+  transform: scale(0.97);
+  opacity: 0.8;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+/* 3. Safe Area Global handled in Header and BottomNav components */
+
+/* 4. Scroll Physics Improvements */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on secondary UI elements */
+.logo,
+.label,
+.time,
+.badge,
+button,
+.icon {
+  user-select: none;
+  -webkit-user-select: none;
 }

@@ -25,6 +25,7 @@ const ChannelView = () => {
     const [nextCursor, setNextCursor] = useState(null);
     const [hasMore, setHasMore] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isPreview, setIsPreview] = useState(false);
     const [fullMedia, setFullMedia] = useState(null); // { type: 'image' | 'video', url: string }
     const [reportModal, setReportModal] = useState({ show: false, type: 'channel', targetId: null, reason: '' });
     const [appealModal, setAppealModal] = useState({ show: false, reasoning: '' });
@@ -60,8 +61,11 @@ const ChannelView = () => {
     }, [id]);
 
     useEffect(() => {
-        if (channel?.isMember || channel?.isCreator) {
-            fetchPosts();
+        if (channel) {
+            // Fetch posts if member, creator, OR if it's a public channel (preview)
+            if (channel.isMember || channel.isCreator || !channel.isPrivate) {
+                fetchPosts();
+            }
         }
     }, [channel]);
 
@@ -86,7 +90,7 @@ const ChannelView = () => {
     };
 
     const fetchPosts = async (cursor = null) => {
-        if (postsLoading || (!hasMore && cursor)) return;
+        if (postsLoading || (!hasMore && cursor && !isPreview)) return; // Allow fetching more if in preview mode
         setPostsLoading(true);
         try {
             const response = await channelsAPI.getPosts(id, cursor, 10);
@@ -101,6 +105,7 @@ const ChannelView = () => {
                 }
                 setNextCursor(response.data.nextCursor);
                 setHasMore(!!response.data.nextCursor);
+                setIsPreview(!!response.data.isPreview);
 
                 if (isInitialLoad) {
                     setIsInitialLoad(false);
@@ -652,7 +657,7 @@ const ChannelView = () => {
             )}
 
             {/* Content Area */}
-            {(!channel.isMember && !channel.isCreator) ? (
+            {(!channel.isMember && !channel.isCreator && !isPreview) ? (
                 <div className={styles.joinPrompt}>
                     <div className={styles.joinContent}>
                         <h2>{channel.name}</h2>
@@ -672,7 +677,11 @@ const ChannelView = () => {
             ) : (
                 <>
                     {/* Posts Feed */}
-                    <div className={styles.postsContainer} ref={postsContainerRef}>
+                    <div
+                        className={styles.postsContainer}
+                        ref={postsContainerRef}
+                        style={isPreview ? { paddingBottom: '250px' } : {}}
+                    >
                         {postsLoading && !posts.length ? (
                             <div className={styles.postsLoading}>
                                 <div className="spinner"></div>
@@ -764,6 +773,20 @@ const ChannelView = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Preview Join Banner */}
+                    {isPreview && (
+                        <div className={styles.previewBanner}>
+                            <div className={styles.previewBannerContent}>
+                                <div className={styles.previewIcon}>👀</div>
+                                <h3>Channel Preview</h3>
+                                <p>This is a preview of the latest 10 posts. Join the channel to see full history and get notified of new posts.</p>
+                                <button className={styles.joinBtnBanner} onClick={handleJoin}>
+                                    Join Channel to See More
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Composer (Creator only) */}
                     {channel.isCreator && (

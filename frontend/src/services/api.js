@@ -186,6 +186,7 @@ export const adminAPI = {
     updateAuthConfig: (data) => api.put('/admin/auth/config', data),
     updateUser: (userId, data) => api.put(`/admin/users/${userId}`, data),
     verifyUser: (userId, verificationType) => api.post(`/admin/users/${userId}/verify`, { verificationType }),
+    notifyUser: (userId, data) => api.post(`/admin/users/${userId}/notify`, data),
 
     // Reels
     getReels: (params) => api.get('/admin/reels', { params }),
@@ -238,7 +239,7 @@ export const adminAPI = {
     updateSettings: (data) => api.put('/admin/settings', data),
 
     // Referrals (Global)
-    getGlobalReferralStats: () => api.get('/admin/referrals/stats'), // Assuming this endpoint for global stats
+    getGlobalReferralStats: () => api.get('/referrals/admin/all'),
     getReferralRanking: (params) => api.get('/admin/users', { params: { ...params, sortBy: 'referralCount', sortOrder: 'desc' } })
 };
 

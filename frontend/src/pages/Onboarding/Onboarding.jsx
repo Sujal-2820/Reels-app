@@ -26,6 +26,22 @@ const Onboarding = () => {
 
     const from = location.state?.from || '/';
 
+    const checkReferral = async () => {
+        const referralCode = localStorage.getItem('reelbox_referral_code');
+        if (referralCode) {
+            try {
+                const response = await referralsAPI.confirmReferral(referralCode);
+                if (response.success) {
+                    console.log('Referral confirmed successfully');
+                    localStorage.removeItem('reelbox_referral_code');
+                }
+            } catch (err) {
+                console.error('Failed to confirm referral:', err);
+                // Don't show error to user as this is a background task
+            }
+        }
+    };
+
     // Redirect if already has username (onboarding complete)
     useEffect(() => {
         if (user && user.username && step === 1) {
@@ -107,6 +123,7 @@ const Onboarding = () => {
 
             const res = await authAPI.updateProfile(formData);
             if (res.success) {
+                await checkReferral();
                 navigate(from, { replace: true });
             } else {
                 setError(res.message);
@@ -118,7 +135,8 @@ const Onboarding = () => {
         }
     };
 
-    const skipAvatar = () => {
+    const skipAvatar = async () => {
+        await checkReferral();
         navigate(from, { replace: true });
     };
 

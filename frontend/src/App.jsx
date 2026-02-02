@@ -256,11 +256,9 @@ function AppContent() {
       <Route
         path="/channels/:id"
         element={
-          <ProtectedRoute>
-            <AppLayout showNav={false}>
-              <ChannelView />
-            </AppLayout>
-          </ProtectedRoute>
+          <AppLayout showNav={false}>
+            <ChannelView />
+          </AppLayout>
         }
       />
 

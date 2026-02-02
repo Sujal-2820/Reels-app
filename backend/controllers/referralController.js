@@ -9,7 +9,7 @@ const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
 const generateReferralLink = async (req, res) => {
     try {
         const userId = req.userId;
-        const { reelId } = req.body;
+        const { reelId, channelId } = req.body;
 
         // Generate unique referral code
         const referralCode = `${userId.slice(-6)}_${uuidv4().slice(0, 8)}`;
@@ -21,6 +21,7 @@ const generateReferralLink = async (req, res) => {
         const referralData = {
             referrerId: userId,
             reelId: reelId || null,
+            channelId: channelId || null,
             referralCode,
             clickCount: 0,
             isConverted: false,
@@ -36,7 +37,9 @@ const generateReferralLink = async (req, res) => {
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const referralLink = reelId
             ? `${baseUrl}/r/${referralCode}?reel=${reelId}`
-            : `${baseUrl}/r/${referralCode}`;
+            : channelId
+                ? `${baseUrl}/r/${referralCode}?channel=${channelId}`
+                : `${baseUrl}/r/${referralCode}`;
 
         res.status(201).json({
             success: true,
@@ -106,7 +109,19 @@ const trackReferralClick = async (req, res) => {
                 reelInfo = {
                     poster: rData.posterUrl,
                     caption: rData.caption,
-                    contentType: rData.contentType || 'reel'
+                    contentType: rData.contentType || 'reel',
+                    type: 'reel'
+                };
+            }
+        } else if (referral.channelId) {
+            const channelSnap = await db.collection('channels').doc(referral.channelId).get();
+            if (channelSnap.exists) {
+                const cData = channelSnap.data();
+                reelInfo = {
+                    name: cData.name,
+                    profilePic: cData.profilePic,
+                    description: cData.description,
+                    type: 'channel'
                 };
             }
         }
@@ -121,7 +136,8 @@ const trackReferralClick = async (req, res) => {
                     profilePic: referrer.profilePic
                 } : null,
                 reel: reelInfo,
-                reelId: referral.reelId
+                reelId: referral.reelId || null,
+                channelId: referral.channelId || null
             }
         });
     } catch (error) {
@@ -301,17 +317,49 @@ const getAdminReferralStats = async (req, res) => {
             };
         });
 
-        // Overall stats (simplified for large datasets)
-        const referralsSnap = await db.collection('referrals').where('isConverted', '==', true).get();
-        const totalInstallsFromReferrals = referralsSnap.size;
+        // Overall stats
+        const convertedSnap = await db.collection('referrals').where('isConverted', '==', true).get();
+        const totalInstallsFromReferrals = convertedSnap.size;
+
+        const clicksSnap = await db.collection('referrals').get();
+        let totalClicks = 0;
+        clicksSnap.forEach(doc => { totalClicks += (doc.data().clickCount || 0); });
+
+        // Daily referrals for the last 7 days
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            date.setHours(0, 0, 0, 0);
+            last7Days.push({
+                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                count: 0,
+                timestamp: date
+            });
+        }
+
+        convertedSnap.forEach(doc => {
+            const data = doc.data();
+            const convertedAt = data.convertedAt?.toDate();
+            if (convertedAt) {
+                const dayMatch = last7Days.find(d => {
+                    const d1 = d.timestamp;
+                    return convertedAt.getDate() === d1.getDate() &&
+                        convertedAt.getMonth() === d1.getMonth() &&
+                        convertedAt.getFullYear() === d1.getFullYear();
+                });
+                if (dayMatch) dayMatch.count++;
+            }
+        });
 
         res.json({
             success: true,
             data: {
                 topReferrers,
                 totalInstallsFromReferrals,
-                totalClicks: 0, // Would require aggregation or pre-calculated field
-                dailyReferrals: [] // Would require group-by logic or pre-calculated daily stats
+                totalClicks,
+                conversionRate: totalClicks > 0 ? ((totalInstallsFromReferrals / totalClicks) * 100).toFixed(1) : 0,
+                dailyAnalytics: last7Days.map(d => ({ label: d.date, value: d.count }))
             }
         });
     } catch (error) {

@@ -632,23 +632,38 @@ const getChannelPosts = async (req, res) => {
         const channelData = channelDoc.data();
 
         // Check if user is member or creator
+        let isFullAccess = false;
         if (userId) {
             const isMember = await db.collection('channelMembers')
                 .where('channelId', '==', id)
                 .where('userId', '==', userId)
                 .get();
 
-            if (isMember.empty && channelData.creatorId !== userId) {
+            if (!isMember.empty || channelData.creatorId === userId) {
+                isFullAccess = true;
+            }
+        }
+
+        // Preview logic for non-members or non-logged in users
+        let isPreview = false;
+        if (!isFullAccess) {
+            // Only allow preview for public channels
+            if (channelData.isPrivate) {
                 return res.status(403).json({
                     success: false,
-                    message: 'You must join this channel to view posts'
+                    message: 'This is a private channel'
                 });
             }
-        } else {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
+            isPreview = true;
+            // Limit to 10 posts for preview
+            req.query.limit = 10;
+            // No pagination allowed in preview mode
+            if (cursor) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Join the channel to view more posts'
+                });
+            }
         }
 
         // Get posts
@@ -689,7 +704,8 @@ const getChannelPosts = async (req, res) => {
             success: true,
             data: {
                 items: posts,
-                nextCursor: snapshot.docs.length === parsedLimit ? snapshot.docs[snapshot.docs.length - 1].id : null
+                nextCursor: snapshot.docs.length === parsedLimit && !isPreview ? snapshot.docs[snapshot.docs.length - 1].id : null,
+                isPreview
             }
         });
     } catch (error) {

@@ -8,7 +8,8 @@ const {
     unbanUser,
     verifyUser,
     deleteUser,
-    updateUser
+    updateUser,
+    notifyUser
 } = require('../controllers/adminUserController');
 const {
     getAllReels,
@@ -85,6 +86,7 @@ router.delete('/users/:userId', isAdmin, deleteUser);
 router.post('/users/:userId/ban', isAdmin, banUser);
 router.post('/users/:userId/unban', isAdmin, unbanUser);
 router.post('/users/:userId/verify', isAdmin, verifyUser);
+router.post('/users/:userId/notify', isAdmin, notifyUser);
 
 // Reel/Content management routes
 router.get('/reels', isAdmin, getAllReels);

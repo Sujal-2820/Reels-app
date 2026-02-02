@@ -208,6 +208,44 @@ const updateUser = async (req, res) => {
     }
 };
 
+/**
+ * Send a notification/message to a user
+ */
+const notifyUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { title, message, type = 'system' } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ success: false, message: 'Message is required' });
+        }
+
+        // Create notification
+        const notificationData = {
+            userId,
+            title: title || 'Message from Admin',
+            message,
+            type,
+            isRead: false,
+            createdAt: serverTimestamp(),
+            metadata: {
+                from: 'admin',
+                adminId: req.userId // authenticated admin ID
+            }
+        };
+
+        await db.collection('notifications').add(notificationData);
+
+        // Update user to increment unread count? depends on frontend implementation
+        // For now, just adding the document is enough as we fetch notifications live
+
+        res.json({ success: true, message: 'Notification sent successfully' });
+    } catch (error) {
+        console.error('Notify user error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getAllUsers,
     getUserDetails,
@@ -215,5 +253,6 @@ module.exports = {
     unbanUser,
     verifyUser,
     deleteUser,
-    updateUser
+    updateUser,
+    notifyUser
 };
