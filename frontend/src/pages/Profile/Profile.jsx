@@ -47,6 +47,19 @@ const Profile = () => {
             setLoading(true);
             setError(null);
 
+            // Clear existing data to avoid stale counts and content leakage between profiles
+            setReels([]);
+            setPrivateReels([]);
+            setSavedReels([]);
+            setFollowersCount(0);
+            setFollowingCount(0);
+            setCreatorChannel(null);
+            setIsFollowing(false);
+            setIsJoined(false);
+
+            // Default to videos tab when switching profiles
+            setActiveTab('videos');
+
             if (isOwnProfile) {
                 if (!isAuthenticated) {
                     navigate('/login', { state: { from: '/profile' } });
@@ -249,6 +262,21 @@ const Profile = () => {
         }
     };
 
+    const handleToggleSave = async (reel) => {
+        try {
+            const res = await reelsAPI.toggleSave(reel.id);
+            if (res.success) {
+                // Remove from saved list if unsaved
+                if (!res.data.isSaved) {
+                    setSavedReels(prev => prev.filter(r => r.id !== reel.id));
+                }
+                setSelectedReel(null);
+            }
+        } catch (err) {
+            alert('Failed to update save status.');
+        }
+    };
+
     const renderReelsGrid = (items, type) => (
         <div className={type === 'videos' ? styles.videoGrid : styles.reelsGrid}>
             {items.length > 0 ? items.map(reel => (
@@ -344,7 +372,9 @@ const Profile = () => {
                         <div className={styles.statsRow}>
                             <div className={styles.statItem}>
                                 <span className={styles.statValue}>
-                                    {reels.length + privateReels.length}
+                                    {/* String comparison for robust ownership filtering */}
+                                    {reels.filter(r => String(r.userId) === String(profileUser.id)).length +
+                                        privateReels.filter(r => String(r.userId) === String(profileUser.id)).length}
                                 </span>
                                 <span className={styles.statLabel}>posts</span>
                             </div>
@@ -505,17 +535,27 @@ const Profile = () => {
                                 <Icons.Share />
                                 {copySuccess === selectedReel.id ? 'Link Copied!' : 'Copy Share Link'}
                             </button>
-                            <button className={styles.sheetBtn} onClick={() => {
-                                const path = selectedReel.contentType === 'video' ? `/video/edit/${selectedReel.id}` : `/reels/edit/${selectedReel.id}`;
-                                navigate(path);
-                            }}>
-                                <Icons.Edit />
-                                Edit Post
-                            </button>
-                            <button className={`${styles.sheetBtn} ${styles.sheetBtnDestructive}`} onClick={() => handleDelete(selectedReel.id)}>
-                                <Icons.Trash />
-                                Delete Permanently
-                            </button>
+                            {/* ROBUST OWNER CHECK: Ensure both IDs exist and match */}
+                            {(currentUser?.id && selectedReel?.userId && String(currentUser.id) === String(selectedReel.userId)) ? (
+                                <>
+                                    <button className={styles.sheetBtn} onClick={() => {
+                                        const path = selectedReel.contentType === 'video' ? `/video/edit/${selectedReel.id}` : `/reels/edit/${selectedReel.id}`;
+                                        navigate(path);
+                                    }}>
+                                        <Icons.Edit />
+                                        Edit Post
+                                    </button>
+                                    <button className={`${styles.sheetBtn} ${styles.sheetBtnDestructive}`} onClick={() => handleDelete(selectedReel.id)}>
+                                        <Icons.Trash />
+                                        Delete Permanently
+                                    </button>
+                                </>
+                            ) : (
+                                <button className={styles.sheetBtn} onClick={() => handleToggleSave(selectedReel)}>
+                                    <Icons.Bookmark />
+                                    Unsave Post
+                                </button>
+                            )}
                             <button className={`${styles.sheetBtn} ${styles.sheetBtnCancel}`} onClick={() => setSelectedReel(null)}>
                                 Cancel
                             </button>

@@ -12,8 +12,11 @@ const PullToRefresh = ({ children }) => {
     const [isPulling, setIsPulling] = useState(false);
 
     const startY = useRef(0);
+    const startX = useRef(0);
+    const isHorizontalSwipe = useRef(false);
     const containerRef = useRef(null);
     const REFRESH_THRESHOLD = 80;
+    const MIN_INTENT_THRESHOLD = 20; // Must pull down this much to show intent
     const MAX_PULL = 120;
 
     const handleTouchStart = (e) => {
@@ -30,26 +33,42 @@ const PullToRefresh = ({ children }) => {
             target = target.parentElement;
         }
 
-        // If no nested scroll container found, use the main one
         const container = scrollContainer || containerRef.current;
         if (!container) return;
 
-        // Only allow pulling if we are at the top of the scrollable area
         if (container.scrollTop <= 0) {
             startY.current = e.touches[0].pageY;
+            startX.current = e.touches[0].pageX;
+            isHorizontalSwipe.current = false;
             setIsPulling(true);
         }
     };
 
     const handleTouchMove = (e) => {
-        if (!isPulling || isRefreshing) return;
+        if (!isPulling || isRefreshing || isHorizontalSwipe.current) return;
 
         const currentY = e.touches[0].pageY;
-        const diff = currentY - startY.current;
+        const currentX = e.touches[0].pageX;
+        const diffY = currentY - startY.current;
+        const diffX = Math.abs(currentX - startX.current);
 
-        if (diff > 0) {
+        // Horizontal scrolling protection: if moving more horizontally than vertically, stop pull
+        if (!pullDistance && diffX > diffY && diffX > 5) {
+            isHorizontalSwipe.current = true;
+            setIsPulling(false);
+            return;
+        }
+
+        if (diffY > 0) {
+            // Only show movement after crossing a small intent threshold
+            if (diffY < MIN_INTENT_THRESHOLD) {
+                setPullDistance(0);
+                return;
+            }
+
             // Resistance logic: pull feels heavy
-            const pull = Math.min(diff * 0.4, MAX_PULL);
+            const actualPull = diffY - MIN_INTENT_THRESHOLD;
+            const pull = Math.min(actualPull * 0.4, MAX_PULL);
             setPullDistance(pull);
 
             // Prevent default browser refresh/scroll if we are pulling down
