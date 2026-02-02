@@ -121,15 +121,16 @@ const Onboarding = () => {
             const formData = new FormData();
             formData.append('avatar', avatar);
 
-            const res = await authAPI.updateProfile(formData);
+            const res = await updateProfile(formData);
             if (res.success) {
                 await checkReferral();
                 navigate(from, { replace: true });
             } else {
-                setError(res.message);
+                setError(res.message || 'Failed to upload profile photo');
             }
         } catch (err) {
-            setError('Failed to upload profile photo');
+            console.error('Avatar upload error:', err);
+            setError(err.message || 'Failed to upload profile photo');
         } finally {
             setLoading(false);
         }

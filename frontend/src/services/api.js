@@ -83,9 +83,7 @@ export const authAPI = {
     getUserProfile: (userId) => api.get(`/users/profile/${userId}`),
     updateProfile: (data) => {
         if (data instanceof FormData) {
-            return api.put('/users/me', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            return api.put('/users/me', data);
         }
         return api.put('/users/me', data);
     },
@@ -110,9 +108,6 @@ export const reelsAPI = {
 
     upload: (formData, onProgress) => {
         return api.post('/reels', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            },
             onUploadProgress: (progressEvent) => {
                 const percentCompleted = Math.round(
                     (progressEvent.loaded * 100) / progressEvent.total
@@ -125,9 +120,7 @@ export const reelsAPI = {
     toggleLike: (id) => api.post(`/reels/${id}/like`),
     syncBatchActivity: (data) => api.post('/reels/activity/batch', data),
     deleteReel: (id) => api.delete(`/reels/${id}`),
-    update: (id, formData) => api.put(`/reels/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    update: (id, formData) => api.put(`/reels/${id}`, formData),
     toggleSave: (id) => api.post(`/reels/${id}/save`),
     getSaved: () => api.get('/reels/my/saved'),
     report: (id, reason) => api.post(`/reels/${id}/report`, { reason })
@@ -270,9 +263,7 @@ export const channelsAPI = {
     getJoinedChannels: () => api.get('/channels/joined'),
     create: (data) => {
         if (data instanceof FormData) {
-            return api.post('/channels', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            return api.post('/channels', data);
         }
         return api.post('/channels', data);
     },
@@ -280,9 +271,7 @@ export const channelsAPI = {
     leave: (id) => api.post(`/channels/${id}/leave`),
     update: (id, data) => {
         if (data instanceof FormData) {
-            return api.put(`/channels/${id}`, data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            return api.put(`/channels/${id}`, data);
         }
         return api.put(`/channels/${id}`, data);
     },
@@ -294,9 +283,7 @@ export const channelsAPI = {
     },
     getMembers: (id) => api.get(`/channels/${id}/members`),
     removeMember: (channelId, userId) => api.delete(`/channels/${channelId}/members/${userId}`),
-    createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    createPost: (id, formData) => api.post(`/channels/${id}/posts`, formData),
     updateSettings: (data) => api.post('/channels/settings', data),
     report: (id, reason) => api.post(`/channels/${id}/report`, { reason }),
     reportPost: (channelId, postId, reason) => api.post(`/channels/${channelId}/posts/${postId}/report`, { reason }),

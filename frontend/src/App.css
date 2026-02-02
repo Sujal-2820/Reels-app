@@ -19,7 +19,7 @@
 }
 
 .with-header {
-  padding-top: calc(var(--header-height) + var(--safe-area-top));
+  padding-top: var(--total-header-height);
 }
 
 .with-bottom-nav {

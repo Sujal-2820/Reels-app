@@ -68,10 +68,11 @@
   --font-size-2xl: 24px;
   --font-size-3xl: 32px;
 
-  --header-height: 70px;
+  --header-height: 60px;
   --bottom-nav-height: 72px;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --total-header-height: calc(var(--header-height) + var(--safe-area-top));
   --max-content-width: 480px;
 
   --transition-fast: 150ms ease;
