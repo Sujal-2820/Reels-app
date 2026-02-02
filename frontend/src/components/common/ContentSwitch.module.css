@@ -1,6 +1,6 @@
 .blurBackdrop {
     position: fixed;
-    top: var(--total-header-height);
+    top: var(--header-height);
     left: 0;
     right: 0;
     height: 85px;
@@ -16,7 +16,7 @@
 
 .toggleWrapper {
     position: fixed;
-    top: var(--total-header-height);
+    top: var(--header-height);
     left: 0;
     right: 0;
     z-index: 170;

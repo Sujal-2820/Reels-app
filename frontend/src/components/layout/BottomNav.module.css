@@ -3,11 +3,10 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+    height: var(--bottom-nav-height);
     background: var(--color-bg-primary);
     border-top: 1px solid var(--color-border);
     z-index: var(--z-sticky);
-    padding-bottom: var(--safe-area-bottom);
 }
 
 .container {

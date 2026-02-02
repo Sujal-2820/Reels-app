@@ -19,7 +19,7 @@
 }
 
 .with-header {
-  padding-top: var(--total-header-height);
+  padding-top: var(--header-height);
 }
 
 .with-bottom-nav {

@@ -3,8 +3,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: var(--total-header-height);
-    padding-top: var(--safe-area-top);
+    height: var(--header-height);
     background: var(--color-bg-primary);
     border-bottom: 1px solid var(--color-border);
     z-index: var(--z-sticky);
