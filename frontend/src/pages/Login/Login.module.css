@@ -2,15 +2,18 @@
     min-height: 100vh;
     min-height: 100dvh;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: var(--space-xl);
+    padding: var(--space-2xl) var(--space-md);
     background: var(--color-bg-primary);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .content {
     width: 100%;
     max-width: 360px;
+    margin: auto;
     animation: fadeInUp var(--transition-slow) ease;
 }
 
@@ -44,6 +47,10 @@
     color: var(--color-text-primary);
     text-align: center;
     margin: 0 0 var(--space-xs);
+}
+
+:global(.dark-theme) .title {
+    color: #ffffff !important;
 }
 
 .subtitle {

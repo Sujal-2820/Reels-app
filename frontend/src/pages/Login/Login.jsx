@@ -4,9 +4,7 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
-    signInWithRedirect,
-    sendPasswordResetEmail,
-    getRedirectResult
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../../config/firebase';
@@ -145,56 +143,42 @@ const Login = () => {
         }
     }, [from, navigate]);
 
-    // Handle Google Redirect Result
-    useEffect(() => {
-        const handleRedirectResultAction = async () => {
-            console.log('Checking for redirect result...');
-            try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    console.log('Redirect result found:', result.user.email);
-                    setSocialLoading('google');
-                    // Check if user existed before
-                    const userRef = doc(db, 'users', result.user.uid);
-                    const userSnap = await getDoc(userRef);
-                    const isNewUser = !userSnap.exists();
 
-                    const userData = await saveUserToFirestore(result.user, {
-                        authProvider: 'google'
-                    });
-                    setUser(userData);
-
-                    if (isNewUser) {
-                        console.log('New user, navigating to onboarding');
-                        navigate('/onboarding', { state: { from }, replace: true });
-                    } else {
-                        console.log('Existing user, navigating to', from);
-                        navigate(from, { replace: true });
-                    }
-                } else {
-                    console.log('No redirect result found.');
-                }
-            } catch (err) {
-                console.error('Redirect result error:', err);
-                setError(getFirebaseErrorMessage(err.code));
-            } finally {
-                setSocialLoading(null);
-            }
-        };
-
-        handleRedirectResultAction();
-    }, [auth, from, navigate, setUser]);
 
     // Handle Google Sign-In
     const handleGoogleSignIn = async () => {
         try {
             setError(null);
             setSocialLoading('google');
-            console.log('Starting Google Sign-In with Redirect...');
-            await signInWithRedirect(auth, googleProvider);
+            console.log('Starting Google Sign-In with Popup...');
+
+            const result = await signInWithPopup(auth, googleProvider);
+            console.log('Google Sign-In successful:', result.user.email);
+
+            // Check if user existed before
+            const userRef = doc(db, 'users', result.user.uid);
+            const userSnap = await getDoc(userRef);
+            const isNewUser = !userSnap.exists();
+
+            const userData = await saveUserToFirestore(result.user, {
+                authProvider: 'google'
+            });
+            setUser(userData);
+
+            if (isNewUser) {
+                console.log('New user, navigating to onboarding');
+                navigate('/onboarding', { state: { from }, replace: true });
+            } else {
+                console.log('Existing user, navigating to', from);
+                navigate(from, { replace: true });
+            }
         } catch (err) {
             console.error('Google sign-in error:', err);
-            setError(getFirebaseErrorMessage(err.code));
+            // Only show error if user didn't cancel
+            if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+                setError(getFirebaseErrorMessage(err.code));
+            }
+        } finally {
             setSocialLoading(null);
         }
     };
