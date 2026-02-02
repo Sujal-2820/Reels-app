@@ -71,8 +71,9 @@
 
   --header-height: 60px;
   --bottom-nav-height: 72px;
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* Cap safe areas to prevent excessive padding on Android APK */
+  --safe-area-top: min(env(safe-area-inset-top, 0px), 40px);
+  --safe-area-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
   --total-header-height: calc(var(--header-height) + var(--safe-area-top));
   --max-content-width: 480px;
 
