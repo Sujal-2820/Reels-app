@@ -1214,6 +1214,10 @@
     color: var(--color-text-primary);
 }
 
+:global(.dark-theme) .previewBanner h3 {
+    color: var(--color-text-primary) !important;
+}
+
 .previewBanner p {
     font-size: 13px;
     color: var(--color-text-secondary);

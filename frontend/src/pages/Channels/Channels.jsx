@@ -121,16 +121,33 @@ const Channels = () => {
         }
     };
 
-    const handleJoinChannel = async (channelId) => {
+    const handleJoinChannel = async (channelId, e) => {
+        // Ensure event doesn't bubble to parent card
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         if (!isAuthenticated) {
             navigate('/login', { state: { from: location } });
             return;
         }
 
         try {
+            // Optimistically update UI
+            setChannels(prev => prev.map(ch =>
+                ch.id === channelId ? { ...ch, isMember: true, memberCount: (ch.memberCount || 0) + 1 } : ch
+            ));
+
             await channelsAPI.join(channelId);
-            fetchChannels();
+            // Refetch to ensure consistency
+            await fetchChannels();
         } catch (error) {
+            console.error('Join channel error:', error);
+            // Revert optimistic update on error
+            setChannels(prev => prev.map(ch =>
+                ch.id === channelId ? { ...ch, isMember: false, memberCount: Math.max(0, (ch.memberCount || 0) - 1) } : ch
+            ));
             alert(error.message || 'Failed to join channel');
         }
     };
@@ -299,10 +316,7 @@ const Channels = () => {
                                     ) : (
                                         <button
                                             className={styles.joinBtn}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleJoinChannel(channel.id);
-                                            }}
+                                            onClick={(e) => handleJoinChannel(channel.id, e)}
                                         >
                                             Join
                                         </button>

@@ -8,6 +8,8 @@
     text-decoration: none;
     color: var(--color-text-primary);
     transition: background 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 :global(.dark-theme) .card {
@@ -22,6 +24,7 @@
 .card:active {
     transform: scale(0.99);
     background: var(--color-bg-tertiary);
+    opacity: 0.95;
 }
 
 .thumbnailContainer {
@@ -147,8 +150,17 @@
     align-self: flex-start;
     margin-top: -6px;
     transition: background 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 10;
 }
 
 .moreBtn:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.moreBtn:active {
+    transform: scale(0.9);
     background: var(--color-bg-tertiary);
 }

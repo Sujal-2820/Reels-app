@@ -312,10 +312,19 @@
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 10;
 }
 
 .joinBtn:hover {
     transform: scale(1.05);
+}
+
+.joinBtn:active {
+    transform: scale(0.95);
+    opacity: 0.8;
 }
 
 .joinedTag {

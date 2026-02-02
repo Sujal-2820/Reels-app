@@ -1,0 +1,235 @@
+/* ========================================
+   MOBILE TOUCH INTERACTION FIXES
+   Non-breaking enhancements for Android/iOS
+   ======================================== */
+
+/* 
+ * Apply these classes to interactive elements that need
+ * better touch responsiveness on mobile devices
+ */
+
+/* Primary action buttons (Join, Follow, Subscribe, etc.) */
+.mobile-btn-primary {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    position: relative;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.mobile-btn-primary:active {
+    transform: scale(0.95) !important;
+    opacity: 0.8 !important;
+    transition: transform 0.1s ease, opacity 0.1s ease !important;
+}
+
+/* Secondary action buttons (Cancel, Skip, etc.) */
+.mobile-btn-secondary {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer;
+}
+
+.mobile-btn-secondary:active {
+    transform: scale(0.97) !important;
+    opacity: 0.85 !important;
+    transition: transform 0.1s ease, opacity 0.1s ease !important;
+}
+
+/* Icon buttons (Like, Comment, Share, etc.) */
+.mobile-btn-icon {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer;
+}
+
+.mobile-btn-icon:active {
+    transform: scale(0.9) !important;
+    transition: transform 0.1s ease !important;
+}
+
+/* Clickable cards/containers */
+.mobile-clickable {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer;
+}
+
+.mobile-clickable:active {
+    opacity: 0.9 !important;
+    transition: opacity 0.1s ease !important;
+}
+
+/* Prevent parent click when child is clicked */
+.mobile-stop-propagation {
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure proper stacking for nested interactive elements */
+.mobile-interactive-parent {
+    position: relative;
+    z-index: 1;
+}
+
+.mobile-interactive-child {
+    position: relative;
+    z-index: 10;
+}
+
+/* Input fields - prevent zoom on focus (iOS) */
+.mobile-input {
+    font-size: 16px !important;
+    /* Prevents iOS zoom */
+    touch-action: manipulation !important;
+}
+
+/* Links */
+.mobile-link {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.mobile-link:active {
+    opacity: 0.7 !important;
+    transition: opacity 0.1s ease !important;
+}
+
+/* Tabs */
+.mobile-tab {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer;
+}
+
+.mobile-tab:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease !important;
+}
+
+/* Toggle switches */
+.mobile-toggle {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer;
+}
+
+/* Scrollable containers - allow vertical scroll only */
+.mobile-scroll-y {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Prevent accidental text selection on UI elements */
+.mobile-no-select {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+/* Ensure minimum tap target size (44x44px recommended) */
+.mobile-tap-target {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Fix for buttons inside clickable parents */
+.mobile-nested-btn {
+    position: relative;
+    z-index: 20 !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.mobile-nested-btn:active {
+    transform: scale(0.95) !important;
+    opacity: 0.8 !important;
+}
+
+/* Prevent double-tap zoom on specific elements */
+.mobile-no-zoom {
+    touch-action: manipulation !important;
+}
+
+/* Loading state for buttons */
+.mobile-btn-loading {
+    pointer-events: none !important;
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* Disabled state */
+.mobile-btn-disabled {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* ========================================
+   ANDROID-SPECIFIC FIXES
+   ======================================== */
+
+/* Fix for Android Chrome tap delay */
+@media (hover: none) and (pointer: coarse) {
+
+    button,
+    a,
+    [role="button"],
+    .clickable,
+    .mobile-btn-primary,
+    .mobile-btn-secondary,
+    .mobile-btn-icon {
+        touch-action: manipulation !important;
+    }
+}
+
+/* ========================================
+   UTILITY CLASSES FOR COMMON PATTERNS
+   ======================================== */
+
+/* For action sheets and modals */
+.mobile-sheet-handle {
+    touch-action: pan-y !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* For horizontal scrolling lists */
+.mobile-scroll-x {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+}
+
+.mobile-scroll-x::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* For pull-to-refresh compatible containers */
+.mobile-ptr-container {
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Haptic feedback simulation (visual) */
+.mobile-haptic:active {
+    animation: haptic-pulse 0.1s ease !important;
+}
+
+@keyframes haptic-pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
