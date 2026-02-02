@@ -12,6 +12,29 @@ const Header = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [hasNewArrival, setHasNewArrival] = useState(() => {
+        return localStorage.getItem('has_new_notification') === 'true';
+    });
+
+    useEffect(() => {
+        const handleNewArrival = () => {
+            if (!showNotifications) {
+                setHasNewArrival(true);
+                localStorage.setItem('has_new_notification', 'true');
+            }
+        };
+
+        window.addEventListener('new-notification-arrival', handleNewArrival);
+        return () => window.removeEventListener('new-notification-arrival', handleNewArrival);
+    }, [showNotifications]);
+
+    const handleOpenNotifications = () => {
+        if (!showNotifications) {
+            setHasNewArrival(false);
+            localStorage.removeItem('has_new_notification');
+        }
+        setShowNotifications(!showNotifications);
+    };
 
     // Only show hamburger if we are on the vanity '/profile' route which belongs to the logged in user
     const isMyProfilePage = location.pathname === '/profile';
@@ -72,7 +95,7 @@ const Header = () => {
                         ) : (
                             <button
                                 className={styles.actionBtn}
-                                onClick={() => setShowNotifications(true)}
+                                onClick={handleOpenNotifications}
                                 aria-label="Notifications"
                             >
                                 <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,6 +104,9 @@ const Header = () => {
                                 </svg>
                                 {unreadCount > 0 && (
                                     <span className={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                )}
+                                {hasNewArrival && (
+                                    <span className={styles.newDot} />
                                 )}
                             </button>
                         )}

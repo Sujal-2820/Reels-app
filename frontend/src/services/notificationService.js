@@ -93,6 +93,9 @@ export const notificationService = {
         onMessage(messaging, (payload) => {
             console.log('📬 Message received in foreground:', payload);
 
+            // Dispatch event for UI updates (like the notification bell dot)
+            window.dispatchEvent(new CustomEvent('new-notification-arrival'));
+
             // Show a custom notification or UI alert
             if (Notification.permission === 'granted') {
                 new Notification(payload.notification.title, {
