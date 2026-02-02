@@ -125,43 +125,79 @@ const getNotifications = async (req, res) => {
     try {
         const userId = req.userId;
         const { limit = 20, cursor } = req.query;
+        const parsedLimit = Math.min(parseInt(limit) || 20, 100);
 
         let query = db.collection('notifications')
-            .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(parseInt(limit));
+            .where('userId', '==', userId);
 
-        if (cursor) {
-            const cursorDoc = await db.collection('notifications').doc(cursor).get();
-            if (cursorDoc.exists) {
-                query = query.startAfter(cursorDoc);
+        // Fetch notifications
+        // Note: orderBy('createdAt', 'desc') requires a composite index with the userId filter.
+        // We attempt to use it, but provide a fallback if it fails due to missing index.
+        let snapshot;
+        try {
+            let orderedQuery = query.orderBy('createdAt', 'desc').limit(parsedLimit);
+
+            if (cursor) {
+                const cursorDoc = await db.collection('notifications').doc(cursor).get();
+                if (cursorDoc.exists) {
+                    orderedQuery = orderedQuery.startAfter(cursorDoc);
+                }
             }
+            snapshot = await orderedQuery.get();
+        } catch (indexError) {
+            console.warn('Notification query failed (possibly missing index), falling back to in-memory sort:', indexError.message);
+            // Fallback: Fetch more docs and sort in-memory
+            // This is "non-disturbing" as it keeps the app working while index is missing
+            const fallbackSnapshot = await query.limit(100).get();
+            snapshot = fallbackSnapshot;
         }
 
-        const snapshot = await query.get();
         const notifications = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
         }));
 
+        // Sort in-memory if query was fallback or just to be safe
+        notifications.sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+            return timeB - timeA;
+        });
+
+        // Apply limit after sorting if fallback was used
+        const paginatedNotifications = notifications.slice(0, parsedLimit);
+
         // Get unread count
-        const unreadSnapshot = await db.collection('notifications')
-            .where('userId', '==', userId)
-            .where('isRead', '==', false)
-            .count()
-            .get();
+        let unreadCount = 0;
+        try {
+            const unreadSnapshot = await db.collection('notifications')
+                .where('userId', '==', userId)
+                .where('isRead', '==', false)
+                .count()
+                .get();
+            unreadCount = unreadSnapshot.data()?.count || 0;
+        } catch (countError) {
+            console.warn('Unread count query failed:', countError.message);
+            // Fallback unread count
+            const unreadDocs = await db.collection('notifications')
+                .where('userId', '==', userId)
+                .where('isRead', '==', false)
+                .limit(100)
+                .get();
+            unreadCount = unreadDocs.size;
+        }
 
         res.json({
             success: true,
             data: {
-                items: notifications,
-                unreadCount: unreadSnapshot.data().count,
-                nextCursor: notifications.length > 0 ? notifications[notifications.length - 1].id : null
+                items: paginatedNotifications,
+                unreadCount,
+                nextCursor: paginatedNotifications.length > 0 ? paginatedNotifications[paginatedNotifications.length - 1].id : null
             }
         });
     } catch (error) {
-        console.error('Error getting notifications:', error);
+        console.error('Error in getNotifications:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch notifications',

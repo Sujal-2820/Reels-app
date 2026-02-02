@@ -44,6 +44,7 @@
 .title {
     font-size: 18px;
     font-weight: 700;
+    color: var(--color-text-primary);
 }
 
 .closeBtn {
@@ -186,4 +187,8 @@
     text-align: center;
     color: var(--color-text-tertiary);
     font-size: 14px;
+}
+
+:global(.dark-theme) .title {
+    color: var(--color-text-primary) !important;
 }
