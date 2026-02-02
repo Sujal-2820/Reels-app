@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import styles from './PullToRefresh.module.css';
 
 /**
@@ -10,6 +11,7 @@ const PullToRefresh = ({ children }) => {
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPulling, setIsPulling] = useState(false);
+    const location = useLocation();
 
     const startY = useRef(0);
     const startX = useRef(0);
@@ -110,6 +112,13 @@ const PullToRefresh = ({ children }) => {
         setIsPulling(false);
         setPullDistance(0);
     };
+
+    // Reset scroll position on route change
+    useEffect(() => {
+        if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
+        }
+    }, [location.pathname]);
 
     useEffect(() => {
         const container = containerRef.current;

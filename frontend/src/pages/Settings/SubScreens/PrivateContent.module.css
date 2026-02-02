@@ -3,6 +3,7 @@
     padding: var(--space-xl) var(--space-md);
     padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
     background: var(--color-bg-primary);
+    overflow-x: hidden;
 }
 
 .header {
@@ -155,7 +156,30 @@
 
 .cardActions {
     display: flex;
-    gap: var(--space-sm);
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+    .card {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .cardMedia {
+        width: 100%;
+        aspect-ratio: 16/9;
+    }
+
+    .cardInfo {
+        gap: var(--space-sm);
+    }
+
+    .actionBtn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px;
+    }
 }
 
 .actionBtn {
