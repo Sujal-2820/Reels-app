@@ -60,7 +60,7 @@ const Channels = () => {
         } else {
             setLoading(false);
         }
-    }, [activeTab, settings.allowChannels, debouncedSearch]);
+    }, [activeTab, settings.allowChannels, debouncedSearch, isAuthenticated]);
 
     const fetchChannels = async () => {
         setLoading(true);

@@ -4,6 +4,7 @@ import { authAPI, reelsAPI, followAPI, channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Profile.module.css';
 import FollowList from '../../components/common/FollowList';
+import ForwardModal from '../../components/common/ForwardModal';
 
 const Profile = () => {
     const { userId } = useParams();
@@ -19,6 +20,7 @@ const Profile = () => {
     const [activeTab, setActiveTab] = useState('videos'); // 'videos', 'reels', 'saved'
     const [copySuccess, setCopySuccess] = useState(null);
     const [selectedReel, setSelectedReel] = useState(null); // For action sheet
+    const [forwardReel, setForwardReel] = useState(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);
@@ -531,6 +533,13 @@ const Profile = () => {
                                 <Icons.Eye />
                                 View {selectedReel.contentType === 'video' ? 'Video' : 'Reel'}
                             </button>
+                            <button className={styles.sheetBtn} onClick={() => {
+                                setForwardReel(selectedReel);
+                                setSelectedReel(null);
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                                Forward to Connections
+                            </button>
                             <button className={styles.sheetBtn} onClick={() => handleShareLink(selectedReel)}>
                                 <Icons.Share />
                                 {copySuccess === selectedReel.id ? 'Link Copied!' : 'Copy Share Link'}
@@ -588,6 +597,15 @@ const Profile = () => {
                 <FollowList
                     {...followListConfig}
                     onClose={() => setFollowListConfig(null)}
+                />
+            )}
+            {/* Forward Modal */}
+            {forwardReel && (
+                <ForwardModal
+                    isOpen={!!forwardReel}
+                    onClose={() => setForwardReel(null)}
+                    contentId={forwardReel.id}
+                    contentType={forwardReel.contentType || 'reel'}
                 />
             )}
         </div>

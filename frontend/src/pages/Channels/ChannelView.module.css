@@ -1097,32 +1097,6 @@
     margin-bottom: var(--space-sm);
 }
 
-/* Post Bubble Footer */
-.postFooter {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin-top: 2px;
-}
-
-.reportSmallBtn {
-    background: none;
-    border: none;
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    opacity: 0.4;
-    transition: opacity 0.2s;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-}
-
-.reportSmallBtn:hover {
-    opacity: 1;
-    color: #ef4444;
-}
-
 /* Avatar Upload Section */
 .avatarUploadSection {
     display: flex;
@@ -1264,4 +1238,38 @@
 .joinBtnBanner:active {
     transform: scale(0.96);
     opacity: 0.9;
+}
+
+.postFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: var(--space-xs);
+}
+
+.postActionsSmall {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.reportSmallBtn,
+.forwardSmallBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.reportSmallBtn:hover {
+    color: #ef4444;
+}
+
+.forwardSmallBtn:hover {
+    color: var(--color-accent-primary);
 }

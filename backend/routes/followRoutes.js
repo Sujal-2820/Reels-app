@@ -7,10 +7,12 @@ const {
     getFollowStatus,
     getFollowers,
     getFollowing,
+    getConnections,
     toggleNotifications
 } = require('../controllers/followController');
 
 // All routes require authentication
+router.get('/connections', auth, getConnections);
 router.post('/:userId', auth, followUser);
 router.post('/:userId/notify', auth, toggleNotifications);
 router.delete('/:userId', auth, unfollowUser);

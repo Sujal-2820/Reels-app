@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import ForwardModal from '../../components/common/ForwardModal';
 import styles from './ChannelView.module.css';
 
 const ChannelView = () => {
@@ -35,6 +36,7 @@ const ChannelView = () => {
     const [editAvatarFile, setEditAvatarFile] = useState(null);
     const [editAvatarPreview, setEditAvatarPreview] = useState(null);
     const [updating, setUpdating] = useState(false);
+    const [forwardPost, setForwardPost] = useState(null);
     const editAvatarInputRef = useRef(null);
 
     const handleEditAvatarChange = (e) => {
@@ -755,15 +757,26 @@ const ChannelView = () => {
                                                         {formatDate(post.createdAt)}
                                                     </div>
                                                     {!post.isCreator && isAuthenticated && (
-                                                        <button
-                                                            className={styles.reportSmallBtn}
-                                                            onClick={() => setReportModal({ show: true, type: 'post', targetId: post.id, reason: '' })}
-                                                            title="Report post"
-                                                        >
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
-                                                            </svg>
-                                                        </button>
+                                                        <div className={styles.postActionsSmall}>
+                                                            <button
+                                                                className={styles.forwardSmallBtn}
+                                                                onClick={() => setForwardPost(post)}
+                                                                title="Forward to connections"
+                                                            >
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                className={styles.reportSmallBtn}
+                                                                onClick={() => setReportModal({ show: true, type: 'post', targetId: post.id, reason: '' })}
+                                                                title="Report post"
+                                                            >
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

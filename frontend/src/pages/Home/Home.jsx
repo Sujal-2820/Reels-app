@@ -6,6 +6,7 @@ import ReelPlayer from '../../components/reel/ReelPlayer';
 import CommentSection from '../../components/reel/CommentSection';
 import VideoList from '../../components/video/VideoList';
 import ReportModal from '../../components/common/ReportModal';
+import ForwardModal from '../../components/common/ForwardModal';
 import styles from './Home.module.css';
 
 const Home = () => {
@@ -36,6 +37,7 @@ const Home = () => {
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportTarget, setReportTarget] = useState(null);
     const [commentReel, setCommentReel] = useState(null);
+    const [forwardReel, setForwardReel] = useState(null);
     const isCommentsOpen = !!commentReel;
 
     const categories = ['All', 'Entertainment', 'Education', 'Gaming', 'Music', 'Tech', 'Lifestyle'];
@@ -299,9 +301,16 @@ const Home = () => {
                             <span className={styles.sheetTitle}>Options</span>
                         </div>
                         <div className={styles.sheetActions}>
+                            <button className={styles.sheetBtn} onClick={() => {
+                                setForwardReel(selectedReel);
+                                setSelectedReel(null);
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                                Forward to Connections
+                            </button>
                             <button className={styles.sheetBtn} onClick={() => handleShare(selectedReel)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
-                                Share
+                                Copy Share Link
                             </button>
                             <button className={styles.sheetBtn} onClick={() => handleDownload(selectedReel)}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
@@ -327,8 +336,18 @@ const Home = () => {
                     setReportTarget(null);
                 }}
                 contentId={reportTarget?.id}
-                contentType={reportTarget?.contentType}
+                contentType={reportTarget?.contentType || 'reel'}
             />
+
+            {/* Forward Modal */}
+            {forwardReel && (
+                <ForwardModal
+                    isOpen={!!forwardReel}
+                    onClose={() => setForwardReel(null)}
+                    contentId={forwardReel.id}
+                    contentType={forwardReel.contentType || 'reel'}
+                />
+            )}
             {/* Global Comment Section */}
             {commentReel && (
                 <CommentSection

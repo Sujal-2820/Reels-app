@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { activitySync } from '../../services/activitySyncService';
 import CommentSection from '../../components/reel/CommentSection';
 import SearchSwitchOverlay from '../../components/common/SearchSwitchOverlay';
+import ForwardModal from '../../components/common/ForwardModal';
 import styles from './VideoShowcase.module.css';
 
 const VideoShowcase = ({ isPrivate = false }) => {
@@ -43,6 +44,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [currentQuality, setCurrentQuality] = useState('Auto');
     const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
     const [playHistory, setPlayHistory] = useState([]);
+    const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
 
     const QUALITIES = [
         { label: 'Auto', value: 'Auto' },
@@ -637,11 +639,18 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         <span>{isSaved ? 'Saved' : 'Save'}</span>
                     </button>
 
+                    <button className={styles.actionBtn} onClick={() => setIsForwardModalOpen(true)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                        </svg>
+                        <span>Forward</span>
+                    </button>
+
                     <button className={styles.actionBtn} onClick={handleShare}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
                         </svg>
-                        <span>Share</span>
+                        <span>Link</span>
                     </button>
                 </div>
 
@@ -750,6 +759,15 @@ const VideoShowcase = ({ isPrivate = false }) => {
             />
 
             <SearchSwitchOverlay currentType="video" />
+
+            {isForwardModalOpen && (
+                <ForwardModal
+                    isOpen={isForwardModalOpen}
+                    onClose={() => setIsForwardModalOpen(false)}
+                    contentId={video?.id}
+                    contentType="video"
+                />
+            )}
         </div>
     );
 };

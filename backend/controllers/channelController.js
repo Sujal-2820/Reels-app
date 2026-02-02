@@ -186,6 +186,17 @@ const getChannels = async (req, res) => {
             return true;
         });
 
+        // Check membership for all channels at once for the current user
+        let joinedChannelIds = new Set();
+        if (userId) {
+            const membershipSnapshot = await db.collection('channelMembers')
+                .where('userId', '==', userId)
+                .get();
+            membershipSnapshot.docs.forEach(doc => {
+                joinedChannelIds.add(doc.data().channelId);
+            });
+        }
+
         // Add creator info and check membership
         const hydratedChannels = [];
         for (const data of allDocs) {
@@ -200,19 +211,8 @@ const getChannels = async (req, res) => {
             } : null;
 
             // Check membership
-            let isMember = false;
-            let isCreator = false;
-            if (userId) {
-                isCreator = userId === data.creatorId;
-                // If the user is the creator, they are effectively a member
-                if (isCreator) {
-                    isMember = true;
-                } else {
-                    const memberId = `${data.id}_${userId}`;
-                    const memberDoc = await db.collection('channelMembers').doc(memberId).get();
-                    isMember = memberDoc.exists;
-                }
-            }
+            const isCreator = userId ? userId === data.creatorId : false;
+            const isMember = isCreator || joinedChannelIds.has(data.id);
 
             hydratedChannels.push({
                 ...data,

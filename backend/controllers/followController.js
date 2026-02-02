@@ -331,11 +331,89 @@ const getFollowing = async (req, res) => {
     }
 };
 
+// Get all unique connections (followers + following)
+// GET /api/follow/connections
+const getConnections = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { query = '' } = req.query;
+
+        // Fetch followed users
+        const followingSnapshot = await db.collection('follows')
+            .where('followerId', '==', userId)
+            .get();
+
+        const followingIds = followingSnapshot.docs.map(doc => doc.data().followingId);
+
+        // Fetch followers
+        const followersSnapshot = await db.collection('follows')
+            .where('followingId', '==', userId)
+            .get();
+
+        const followerIds = followersSnapshot.docs.map(doc => doc.data().followerId);
+
+        // Combine and unique
+        const connectionIds = [...new Set([...followingIds, ...followerIds])];
+
+        if (connectionIds.length === 0) {
+            return res.json({ success: true, data: { items: [] } });
+        }
+
+        const connections = [];
+        // Batch fetch users (max 30 due to Firestore 'in' limitation)
+        // If there are more than 30, we'll need to paginate or chunk
+        const chunks = [];
+        for (let i = 0; i < connectionIds.length; i += 30) {
+            chunks.push(connectionIds.slice(i, i + 30));
+        }
+
+        for (const chunk of chunks) {
+            const usersSnap = await db.collection('users')
+                .where(admin.firestore.FieldPath.documentId(), 'in', chunk)
+                .get();
+
+            usersSnap.forEach(doc => {
+                const data = doc.data();
+                const user = {
+                    id: doc.id,
+                    name: data.name || '',
+                    username: data.username || '',
+                    profilePic: data.profilePic || '',
+                    verificationType: data.verificationType || ''
+                };
+
+                // Simple client-side filtering by query if provided
+                if (query) {
+                    const q = query.toLowerCase();
+                    if (user.name.toLowerCase().includes(q) || user.username.toLowerCase().includes(q)) {
+                        connections.push(user);
+                    }
+                } else {
+                    connections.push(user);
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: { items: connections }
+        });
+    } catch (error) {
+        console.error('Get connections error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get connections',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     followUser,
     unfollowUser,
     getFollowStatus,
     getFollowers,
     getFollowing,
+    getConnections,
     toggleNotifications
 };

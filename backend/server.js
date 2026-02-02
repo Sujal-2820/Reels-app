@@ -18,7 +18,8 @@ const {
     reportRoutes,
     settingsRoutes,
     subscriptionRoutes,
-    notificationRoutes
+    notificationRoutes,
+    shareRoutes
 } = require('./routes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const backgroundJobProcessor = require('./services/backgroundJobProcessor');
@@ -82,6 +83,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/share', shareRoutes);
 
 // Webhook routes (no auth required - verified via signature)
 app.use('/api/webhooks', webhookRoutes);

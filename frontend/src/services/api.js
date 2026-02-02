@@ -317,7 +317,8 @@ export const followAPI = {
     getFollowers: (userId, cursor = 0, limit = 20) =>
         api.get(`/follow/${userId}/followers?cursor=${cursor}&limit=${limit}`),
     getFollowing: (userId, cursor = 0, limit = 20) =>
-        api.get(`/follow/${userId}/following?cursor=${cursor}&limit=${limit}`)
+        api.get(`/follow/${userId}/following?cursor=${cursor}&limit=${limit}`),
+    getConnections: (query = '') => api.get(`/follow/connections?query=${encodeURIComponent(query)}`)
 };
 
 // ========================================
@@ -347,6 +348,14 @@ export const reportsAPI = {
 
 export const appSettingsAPI = {
     get: () => api.get('/settings')
+};
+
+// ========================================
+// SHARE API
+// ========================================
+
+export const shareAPI = {
+    forward: (data) => api.post('/share/forward', data)
 };
 
 // ========================================

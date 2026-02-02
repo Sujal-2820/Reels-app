@@ -13,6 +13,7 @@ const reportRoutes = require('./reportRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const subscriptionRoutes = require('./subscriptionRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const shareRoutes = require('./shareRoutes');
 
 module.exports = {
     authRoutes,
@@ -29,5 +30,6 @@ module.exports = {
     reportRoutes,
     settingsRoutes,
     subscriptionRoutes,
-    notificationRoutes
+    notificationRoutes,
+    shareRoutes
 };
