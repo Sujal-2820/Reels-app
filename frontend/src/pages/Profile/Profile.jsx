@@ -294,7 +294,7 @@ const Profile = () => {
                         </div>
                         <div
                             className={`${styles.gridItem} ${styles.gridItemHorizontal}`}
-                            onClick={() => !isOwnProfile && handleReelClick(reel)}
+                            onClick={() => isOwnProfile ? setSelectedReel(reel) : handleReelClick(reel)}
                         >
                             <img src={reel.posterUrl} alt="" className={styles.gridThumbnail} loading="lazy" />
                             <div className={styles.gridOverlay}>
@@ -495,6 +495,7 @@ const Profile = () => {
                         className={styles.actionSheet}
                         onClick={e => e.stopPropagation()}
                         onTouchStart={(e) => {
+                            e.stopPropagation();
                             const touch = e.touches[0];
                             const sheet = e.currentTarget;
                             sheet.style.transition = 'none';

@@ -267,6 +267,7 @@ const Home = () => {
                         className={styles.actionSheet}
                         onClick={e => e.stopPropagation()}
                         onTouchStart={(e) => {
+                            e.stopPropagation();
                             const touch = e.touches[0];
                             const sheet = e.currentTarget;
                             sheet.style.transition = 'none';

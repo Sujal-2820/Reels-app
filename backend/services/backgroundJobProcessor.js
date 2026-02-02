@@ -269,15 +269,6 @@ const processSendNotification = async ({ userId, type, data }) => {
     try {
         console.log(`[BackgroundJob] Sending ${type} notification to user ${userId}`);
 
-        // Create notification document
-        await db.collection('notifications').add({
-            userId,
-            type,
-            data,
-            read: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
         // Push notification logic
         let title = 'New Notification';
         let body = 'You have a new notification';
@@ -373,17 +364,34 @@ const processQueue = async (limit = 10) => {
         console.log(`[BackgroundJob] Processing ${jobsQuery.size} jobs...`);
 
         for (const jobDoc of jobsQuery.docs) {
-            const job = jobDoc.data();
+            const jobRef = jobDoc.ref;
 
             try {
-                // Mark as processing
-                await jobDoc.ref.update({
-                    status: 'processing',
-                    processingStartedAt: admin.firestore.FieldValue.serverTimestamp()
+                // CLAIM: Use a transaction to atomically pick and lock the job
+                // This prevents duplicate execution if multiple server instances are running
+                const jobToProcess = await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(jobRef);
+                    const currentJob = doc.data();
+
+                    if (!doc.exists || currentJob.status !== 'pending') {
+                        return null; // Job was already picked up by another instance
+                    }
+
+                    transaction.update(jobRef, {
+                        status: 'processing',
+                        processingStartedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    return currentJob;
                 });
 
+                if (!jobToProcess) {
+                    console.log(`[BackgroundJob] Job ${jobDoc.id} already claimed by another process.`);
+                    continue;
+                }
+
                 // Process the job
-                await processJob(job);
+                await processJob(jobToProcess);
 
                 // Mark as completed
                 await jobDoc.ref.update({
@@ -394,7 +402,7 @@ const processQueue = async (limit = 10) => {
                 console.error(`[BackgroundJob] Job failed:`, error);
 
                 // Mark as failed or retry
-                const attempts = (job.attempts || 0) + 1;
+                const attempts = ((jobToProcess && jobToProcess.attempts) || 0) + 1;
                 if (attempts < 3) {
                     await jobDoc.ref.update({
                         status: 'pending',

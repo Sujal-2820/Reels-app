@@ -51,7 +51,11 @@ const FollowList = ({ userId, type, onClose, title }) => {
 
     return (
         <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.container} onClick={e => e.stopPropagation()}>
+            <div
+                className={styles.container}
+                onClick={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+            >
                 <div className={styles.header}>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

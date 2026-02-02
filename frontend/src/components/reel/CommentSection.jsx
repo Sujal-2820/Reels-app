@@ -96,6 +96,7 @@ const CommentSection = ({ reelId, isOpen, onClose, onCommentCountUpdate, isInlin
     };
 
     const handleDragStart = (e) => {
+        if (e.stopPropagation) e.stopPropagation();
         blurActiveElement();
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         dragStartYRef.current = clientY;

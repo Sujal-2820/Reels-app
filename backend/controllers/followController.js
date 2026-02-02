@@ -24,40 +24,42 @@ const followUser = async (req, res) => {
             });
         }
 
-        // Check if already following
-        const existingFollow = await db.collection('follows')
-            .where('followerId', '==', followerId)
-            .where('followingId', '==', targetUserId)
-            .get();
+        // Use a deterministic ID to prevent duplicate follow documents
+        const followId = `${followerId}_${targetUserId}`;
+        const followRef = db.collection('follows').doc(followId);
 
-        if (!existingFollow.empty) {
+        // Process follow in a transaction for atomicity
+        const followCreated = await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(followRef);
+            if (doc.exists) {
+                return false; // Already following
+            }
+
+            // Create follow relationship
+            transaction.set(followRef, {
+                followerId,
+                followingId: targetUserId,
+                createdAt: serverTimestamp()
+            });
+
+            // Update follower counts
+            transaction.update(db.collection('users').doc(followerId), {
+                followingCount: admin.firestore.FieldValue.increment(1)
+            });
+
+            transaction.update(db.collection('users').doc(targetUserId), {
+                followersCount: admin.firestore.FieldValue.increment(1)
+            });
+
+            return true;
+        });
+
+        if (!followCreated) {
             return res.status(400).json({
                 success: false,
                 message: 'You are already following this user'
             });
         }
-
-        // Create follow relationship
-        await db.collection('follows').add({
-            followerId,
-            followingId: targetUserId,
-            createdAt: serverTimestamp()
-        });
-
-        // Update follower counts
-        const batch = db.batch();
-
-        // Increment following count for follower
-        batch.update(db.collection('users').doc(followerId), {
-            followingCount: admin.firestore.FieldValue.increment(1)
-        });
-
-        // Increment follower count for target
-        batch.update(db.collection('users').doc(targetUserId), {
-            followersCount: admin.firestore.FieldValue.increment(1)
-        });
-
-        await batch.commit();
 
         // Send notification via background job (non-blocking)
         // Wrapped in an async IIFE or handled via promise to avoid delaying the response

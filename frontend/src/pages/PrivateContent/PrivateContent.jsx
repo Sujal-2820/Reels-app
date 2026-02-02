@@ -410,7 +410,11 @@ const PrivateContent = () => {
             {/* Selected Reel Actions Modal */}
             {selectedReel && (
                 <div className={styles.modalOverlay} onClick={() => setSelectedReel(null)}>
-                    <div className={styles.actionSheet} onClick={e => e.stopPropagation()}>
+                    <div
+                        className={styles.actionSheet}
+                        onClick={e => e.stopPropagation()}
+                        onTouchStart={e => e.stopPropagation()}
+                    >
                         <div className={styles.sheetHeader}>
                             <div className={styles.sheetIndicator} />
                             <span className={styles.sheetTitle}>Private Content Options</span>
