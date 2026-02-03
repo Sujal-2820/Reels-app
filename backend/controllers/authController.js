@@ -140,6 +140,16 @@ const updateProfile = async (req, res) => {
         const { name, username, bio, profilePic } = req.body;
         const userId = req.userId;
 
+        console.log('Update profile request:', {
+            userId,
+            hasFile: !!req.file,
+            fileName: req.file?.filename,
+            fileSize: req.file?.size,
+            name,
+            username,
+            bio
+        });
+
         const updates = { updatedAt: serverTimestamp() };
         if (name) updates.name = name;
         if (bio !== undefined) updates.bio = bio;
@@ -166,10 +176,13 @@ const updateProfile = async (req, res) => {
         // Handle avatar upload
         if (req.file) {
             try {
+                console.log('Uploading avatar to Cloudinary...', req.file.path);
                 const result = await uploadAvatar(req.file.path);
                 updates.profilePic = result.secure_url;
+                console.log('Avatar uploaded successfully:', result.secure_url);
                 cleanupFile(req.file.path);
             } catch (err) {
+                console.error('Avatar upload failed:', err);
                 if (req.file) cleanupFile(req.file.path);
                 throw err;
             }
@@ -177,8 +190,10 @@ const updateProfile = async (req, res) => {
             updates.profilePic = null;
         }
 
+        console.log('Updating Firestore with:', updates);
         const userRef = db.collection('users').doc(userId);
         await userRef.update(updates);
+        console.log('Firestore updated successfully');
 
         res.json({
             success: true,

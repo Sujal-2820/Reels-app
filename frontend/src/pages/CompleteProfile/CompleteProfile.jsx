@@ -48,9 +48,15 @@ const CompleteProfile = () => {
         try {
             // 1. If user selected a new avatar, upload it via backend
             if (avatar) {
+                console.log('Uploading avatar...', avatar.name, avatar.size);
                 const formData = new FormData();
                 formData.append('avatar', avatar);
-                await authAPI.updateProfile(formData);
+                const response = await authAPI.updateProfile(formData);
+                console.log('Avatar upload response:', response);
+
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to upload avatar');
+                }
             }
 
             // 2. Update user document in Firestore to mark profile as completed
@@ -60,7 +66,9 @@ const CompleteProfile = () => {
                 updatedAt: serverTimestamp()
             });
 
+            console.log('Refreshing user data...');
             await refreshUser();
+            console.log('Profile completion successful');
             navigate(from, { replace: true });
         } catch (err) {
             console.error('Profile update error:', err);

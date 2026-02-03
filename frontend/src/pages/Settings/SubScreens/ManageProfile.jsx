@@ -34,24 +34,39 @@ const ManageProfile = () => {
             setError(null);
             setSuccess(false);
 
+            console.log('Saving profile...', {
+                hasAvatar: !!avatar,
+                avatarName: avatar?.name,
+                name: form.name,
+                username: form.username
+            });
+
             const formData = new FormData();
             formData.append('name', form.name);
             formData.append('username', form.username);
             formData.append('bio', form.bio);
             if (avatar) {
                 formData.append('avatar', avatar);
+                console.log('Avatar file attached:', avatar.name, avatar.size);
             }
 
             const response = await authAPI.updateProfile(formData);
+            console.log('Profile update response:', response);
+
             if (response.success) {
+                console.log('Refreshing user data...');
                 await refreshUser();
+                console.log('User data refreshed');
                 setSuccess(true);
                 // Redirect to settings page after showing success message
                 setTimeout(() => {
                     navigate('/settings');
                 }, 1000);
+            } else {
+                throw new Error(response.message || 'Failed to update profile');
             }
         } catch (err) {
+            console.error('Profile save error:', err);
             setError(err.message || 'Failed to update profile');
         } finally {
             setLoading(false);

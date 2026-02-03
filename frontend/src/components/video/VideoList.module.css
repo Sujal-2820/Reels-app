@@ -79,3 +79,46 @@
         opacity: 0.5;
     }
 }
+
+.sentinel {
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.loadingDots {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--color-accent-primary);
+}
+
+.loadingDots span {
+    animation: dots 1.5s infinite;
+    padding: 0 2px;
+}
+
+@keyframes dots {
+
+    0%,
+    100% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(-5px);
+    }
+}
+
+.endMessage {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--color-text-tertiary);
+    font-size: 14px;
+    font-style: italic;
+    border-top: 1px solid var(--color-border);
+    margin-top: 20px;
+}

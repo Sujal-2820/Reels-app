@@ -74,11 +74,20 @@ export const AuthProvider = ({ children }) => {
         if (!firebaseUser) return null;
 
         try {
+            console.log('Refreshing user data from Firestore...');
+
+            // Small delay to ensure Firestore update has propagated
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const userRef = doc(db, 'users', firebaseUser.uid);
             const userSnap = await getDoc(userRef);
 
             if (userSnap.exists()) {
                 const userData = { id: firebaseUser.uid, ...userSnap.data() };
+                console.log('User data refreshed:', {
+                    profilePic: userData.profilePic,
+                    name: userData.name
+                });
                 setUser(userData);
                 localStorage.setItem('reelbox_user', JSON.stringify(userData));
                 return userData;

@@ -48,7 +48,10 @@ const Home = () => {
 
     // Fetch Videos (with category support)
     const fetchVideos = async (cursorValue = 0, category = 'All') => {
+        if (cursorValue === null) return;
+
         try {
+            console.log(`[DEBUG] fetchVideos: cursor=${cursorValue}, category=${category}`);
             if (cursorValue === 0) {
                 setVideoLoading(true);
                 setVideos([]); // Clear current videos on category change
@@ -59,14 +62,23 @@ const Home = () => {
             const limit = cursorValue === 0 ? 5 : 10;
             const response = await reelsAPI.getFeed(cursorValue, limit, 'video', category);
 
+            console.log('[DEBUG] fetchVideos response:', {
+                success: response.success,
+                itemsCount: response.data?.items?.length,
+                nextCursor: response.data?.nextCursor,
+                hasMore: response.data?.nextCursor !== null
+            });
+
             if (response.success) {
-                const newItems = response.data.items;
+                const newItems = response.data.items || [];
                 setVideos(prev => cursorValue === 0 ? newItems : [...prev, ...newItems]);
                 setVideoCursor(response.data.nextCursor);
                 setVideoHasMore(response.data.nextCursor !== null);
             }
         } catch (err) {
             console.error('Failed to load videos', err);
+            // On error, we should probably stop trying to load more to prevent infinite loops
+            setVideoHasMore(false);
         } finally {
             setVideoLoading(false);
             setVideoLoadingMore(false);
@@ -112,30 +124,37 @@ const Home = () => {
     }, [selectedCategory]);
 
     // Intersection Observer for Infinite Scroll
-    const handleObserver = useCallback((entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting) {
-            console.log('Intersection detected:', { activeTab, videoHasMore, videoLoadingMore, videoCursor });
-            if (activeTab === 'video' && videoHasMore && !videoLoadingMore) {
-                console.log('Loading more videos...');
-                fetchVideos(videoCursor, selectedCategory);
-            } else if (activeTab === 'reel' && reelHasMore && !reelLoadingMore) {
-                fetchReels(reelCursor);
-            }
-        }
-    }, [activeTab, videoHasMore, videoLoadingMore, videoCursor, reelHasMore, reelLoadingMore, reelCursor, selectedCategory]);
+    const observer = useRef();
+    const lastItemRefCallback = useCallback(node => {
+        if (videoLoading || videoLoadingMore || reelLoading || reelLoadingMore) return;
 
-    useEffect(() => {
-        const observer = new IntersectionObserver(handleObserver, {
-            threshold: 0.5,
-            rootMargin: '100px'
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) {
+                console.log('[DEBUG] Sentinel intersecting:', {
+                    activeTab,
+                    videoHasMore,
+                    videoCursor,
+                    videoLoadingMore,
+                    reelHasMore,
+                    reelCursor,
+                    reelLoadingMore
+                });
+
+                if (activeTab === 'video' && videoHasMore && !videoLoadingMore) {
+                    fetchVideos(videoCursor, selectedCategory);
+                } else if (activeTab === 'reel' && reelHasMore && !reelLoadingMore) {
+                    fetchReels(reelCursor);
+                }
+            }
+        }, {
+            threshold: 0.1, // Trigger as soon as even a tiny bit is visible
+            rootMargin: '150px' // Load even earlier
         });
-        if (lastItemRef.current) {
-            console.log('Observer attached to element');
-            observer.observe(lastItemRef.current);
-        }
-        return () => observer.disconnect();
-    }, [handleObserver, lastItemRef, activeTab]);
+
+        if (node) observer.current.observe(node);
+    }, [activeTab, videoHasMore, videoCursor, videoLoading, videoLoadingMore, reelHasMore, reelCursor, reelLoading, reelLoadingMore, selectedCategory]);
 
     // Reel Scroll Detection
     useEffect(() => {
@@ -234,7 +253,7 @@ const Home = () => {
                         videos={videos}
                         loading={videoLoading}
                         hasMore={videoHasMore}
-                        lastVideoRef={lastItemRef}
+                        lastVideoRef={lastItemRefCallback}
                         onOpenOptions={(video) => setSelectedReel(video)}
                         selectedCategory={selectedCategory}
                     />
@@ -245,7 +264,7 @@ const Home = () => {
                 <div className={`${styles.reelView} ${isCommentsOpen ? styles.lockScroll : ''}`} ref={reelContainerRef}>
                     <div className={styles.reelsWrapper}>
                         {reels.map((reel, index) => (
-                            <div key={`${reel.id}-${index}`} className={styles.reelItem} ref={index === reels.length - 2 ? lastItemRef : null}>
+                            <div key={`${reel.id}-${index}`} className={styles.reelItem} ref={index === reels.length - 2 ? lastItemRefCallback : null}>
                                 <ReelPlayer
                                     reel={reel}
                                     isActive={index === currentReelIndex}

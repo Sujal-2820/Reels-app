@@ -33,19 +33,23 @@ const VideoList = ({ videos, loading, hasMore, lastVideoRef, onOpenOptions, sele
     return (
         <div className={styles.list}>
             {videos.map((video, index) => (
-                <div
-                    key={video.id}
-                    ref={index === videos.length - 3 ? lastVideoRef : null}
-                >
-                    <VideoCard video={video} onOpenOptions={onOpenOptions} />
-                </div>
+                <VideoCard key={video.id} video={video} onOpenOptions={onOpenOptions} />
             ))}
-            {/* Sentinel element for intersection observer */}
-            {hasMore && (
+
+            {/* Sentinel element for infinite scroll */}
+            {hasMore ? (
                 <div
-                    ref={videos.length < 3 ? lastVideoRef : null}
-                    style={{ height: '20px', width: '100%' }}
-                />
+                    ref={lastVideoRef}
+                    className={styles.sentinel}
+                    style={{ height: '40px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                    {/* Visual indicator for "load more" area */}
+                    <div className={styles.loadingDots}><span>.</span><span>.</span><span>.</span></div>
+                </div>
+            ) : videos.length > 0 && (
+                <div className={styles.endMessage}>
+                    You've reached the end!
+                </div>
             )}
         </div>
     );
