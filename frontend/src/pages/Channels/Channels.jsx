@@ -12,8 +12,14 @@ const Channels = () => {
     const { settings } = useAppSettings();
 
     const [activeTab, setActiveTab] = useState('explore'); // 'explore', 'joined', 'my'
-    const [channels, setChannels] = useState([]);
-    const [loading, setLoading] = useState(true);
+
+    // Separate states for each tab to provide native feel
+    const [tabData, setTabData] = useState({
+        explore: { items: [], loaded: false, loading: false },
+        joined: { items: [], loaded: false, loading: false },
+        my: { items: [], loaded: false, loading: false }
+    });
+
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newChannel, setNewChannel] = useState({ name: '', description: '', isPrivate: false });
     const [creating, setCreating] = useState(false);
@@ -22,6 +28,9 @@ const Channels = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const avatarInputRef = useRef(null);
+
+    // Track latest fetch to prevent race conditions
+    const fetchCounters = useRef({ explore: 0, joined: 0, my: 0 });
 
     useEffect(() => {
         if (showCreateModal) {
@@ -56,42 +65,64 @@ const Channels = () => {
 
     useEffect(() => {
         if (settings.allowChannels !== false) {
-            fetchChannels();
-        } else {
-            setLoading(false);
+            // Fetch for active tab
+            fetchChannelsForTab(activeTab);
+
+            // Background fetch other tabs if not loaded yet
+            if (isAuthenticated) {
+                if (activeTab !== 'joined' && !tabData.joined.loaded) fetchChannelsForTab('joined');
+                if (activeTab !== 'my' && !tabData.my.loaded) fetchChannelsForTab('my');
+            }
+            if (activeTab !== 'explore' && !tabData.explore.loaded) fetchChannelsForTab('explore');
         }
     }, [activeTab, settings.allowChannels, debouncedSearch, isAuthenticated]);
 
-    const fetchChannels = async () => {
-        setLoading(true);
+    const fetchChannelsForTab = async (tab) => {
+        const fetchId = ++fetchCounters.current[tab];
+
+        setTabData(prev => ({
+            ...prev,
+            [tab]: { ...prev[tab], loading: true }
+        }));
+
         try {
             let response;
-            if (activeTab === 'explore') {
+            if (tab === 'explore') {
                 response = await channelsAPI.getAll(0, 50, null, debouncedSearch);
-            } else if (activeTab === 'joined') {
+            } else if (tab === 'joined') {
                 response = await channelsAPI.getJoinedChannels();
             } else {
                 response = await channelsAPI.getMyChannels();
             }
 
-            if (response.success) {
+            if (response.success && fetchId === fetchCounters.current[tab]) {
                 let items = response.data.items || [];
-                // Frontend filtering for joined/my if search is active (since these endpoints might not support search yet)
-                if (debouncedSearch && activeTab !== 'explore') {
+
+                // Frontend filtering for joined/my if search is active
+                if (debouncedSearch && tab !== 'explore') {
                     const searchLower = debouncedSearch.toLowerCase();
                     items = items.filter(ch =>
                         ch.name?.toLowerCase().includes(searchLower) ||
                         ch.description?.toLowerCase().includes(searchLower)
                     );
                 }
-                setChannels(items);
+
+                setTabData(prev => ({
+                    ...prev,
+                    [tab]: { items, loaded: true, loading: false }
+                }));
             }
         } catch (error) {
-            console.error('Failed to fetch channels:', error);
-        } finally {
-            setLoading(false);
+            console.error(`Failed to fetch ${tab} channels:`, error);
+            setTabData(prev => ({
+                ...prev,
+                [tab]: { ...prev[tab], loading: false }
+            }));
         }
     };
+
+    // Keep fetchChannels alive for create/join success callbacks
+    const fetchChannels = () => fetchChannelsForTab(activeTab);
 
     const handleCreateChannel = async () => {
         if (!newChannel.name.trim()) return;
@@ -133,21 +164,31 @@ const Channels = () => {
             return;
         }
 
-        // OPTIMISTIC UPDATE - Update UI immediately regardless of API result
-        setChannels(prev => prev.map(ch =>
-            ch.id === channelId ? { ...ch, isMember: true, memberCount: (ch.memberCount || 0) + 1 } : ch
-        ));
+        // OPTIMISTIC UPDATE - Update UI immediately in the correct tab state
+        setTabData(prev => ({
+            ...prev,
+            explore: {
+                ...prev.explore,
+                items: prev.explore.items.map(ch =>
+                    ch.id === channelId ? { ...ch, isMember: true, memberCount: (ch.memberCount || 0) + 1 } : ch
+                )
+            },
+            joined: {
+                ...prev.joined,
+                items: prev.joined.items.some(ch => ch.id === channelId)
+                    ? prev.joined.items
+                    : [...prev.joined.items, { id: channelId, isMember: true }] // Temporary mock
+            }
+        }));
 
         try {
             // Try to make the API call
             const response = await channelsAPI.join(channelId);
             console.log('Channel join response:', response);
 
-            // Refetch in background to sync state
-            fetchChannels().catch(err => {
-                console.warn('Background fetch failed, but join was successful:', err);
-                // Don't revert - user already joined
-            });
+            // Refetch both tabs in background to sync state
+            fetchChannelsForTab('explore');
+            fetchChannelsForTab('joined');
         } catch (error) {
             console.error('Join channel API error:', error);
 
@@ -157,9 +198,15 @@ const Channels = () => {
 
             // Only show error if it's a critical auth issue
             if (error.message?.includes('auth') || error.message?.includes('login')) {
-                setChannels(prev => prev.map(ch =>
-                    ch.id === channelId ? { ...ch, isMember: false, memberCount: Math.max(0, (ch.memberCount || 0) - 1) } : ch
-                ));
+                setTabData(prev => ({
+                    ...prev,
+                    explore: {
+                        ...prev.explore,
+                        items: prev.explore.items.map(ch =>
+                            ch.id === channelId ? { ...ch, isMember: false, memberCount: Math.max(0, (ch.memberCount || 0) - 1) } : ch
+                        )
+                    }
+                }));
                 alert('Please login again to join channels');
                 navigate('/login', { state: { from: location } });
             }
@@ -262,11 +309,11 @@ const Channels = () => {
 
             {/* Channel List */}
             <div className={styles.content}>
-                {loading ? (
+                {tabData[activeTab].loading && !tabData[activeTab].loaded ? (
                     <div className={styles.loading}>
                         <div className="spinner spinner-large"></div>
                     </div>
-                ) : channels.length === 0 ? (
+                ) : tabData[activeTab].items.length === 0 ? (
                     <div className={styles.empty}>
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                             <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" strokeLinecap="round" strokeLinejoin="round" />
@@ -283,7 +330,7 @@ const Channels = () => {
                     </div>
                 ) : (
                     <div className={styles.channelList}>
-                        {channels.map(channel => (
+                        {tabData[activeTab].items.map(channel => (
                             <div
                                 key={channel.id}
                                 className={`${styles.channelCard} ${styles.clickableCard}`}

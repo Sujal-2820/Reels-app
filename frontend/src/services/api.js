@@ -15,6 +15,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     async (config) => {
+        // CRITICAL: If sending FormData, remove Content-Type header
+        // Let the browser set it automatically with the correct boundary
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         // 1. Check if this is an admin request
         const isAdminRequest = config.url.startsWith('/admin');
 
@@ -95,12 +101,16 @@ export const authAPI = {
 // ========================================
 
 export const reelsAPI = {
-    getFeed: async (cursor = 0, limit = 10, type = 'reel', category = 'All') => {
+    getFeed: async (cursor = 0, limit = 10, type = 'reel', category = 'All', seed = null) => {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for feed
 
-            const response = await api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}&_t=${Date.now()}`, {
+            let url = `/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}`;
+            if (seed) url += `&seed=${seed}`;
+            url += `&_t=${Date.now()}`;
+
+            const response = await api.get(url, {
                 signal: controller.signal,
                 timeout: 20000
             });

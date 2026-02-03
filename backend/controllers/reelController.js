@@ -266,7 +266,7 @@ const createReel = async (req, res) => {
  */
 const getReelsFeed = async (req, res) => {
     try {
-        const { cursor = 0, limit = 10, type = 'reel', category } = req.query;
+        const { cursor = 0, limit = 10, type = 'reel', category, seed } = req.query;
         const fetchLimit = parseInt(limit);
         const parsedCursor = parseInt(cursor);
 
@@ -276,7 +276,7 @@ const getReelsFeed = async (req, res) => {
             .limit(1000) // Look through more items to find matches
             .get();
 
-        // Filter and sort in-memory
+        // Filter items
         let reels = snapshot.docs
             .map(doc => ({
                 id: doc.id,
@@ -291,8 +291,20 @@ const getReelsFeed = async (req, res) => {
                 // Filter by category if specified
                 if (category && category !== 'All' && reel.category !== category) return false;
                 return true;
-            })
-            .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+            });
+
+        // Apply randomization if seed is provided, otherwise sort by newest
+        if (seed) {
+            const seedNum = parseInt(seed) || 0;
+            // Seeded shuffle to maintain pagination consistency for the session
+            let currentSeed = seedNum;
+            for (let i = reels.length - 1; i > 0; i--) {
+                const j = Math.floor((Math.abs(Math.sin(currentSeed++)) * 10000 % 1) * (i + 1));
+                [reels[i], reels[j]] = [reels[j], reels[i]];
+            }
+        } else {
+            reels.sort((a, b) => b.createdAt - a.createdAt);
+        }
 
         console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, totalCount=${reels.length}, cursor=${parsedCursor}, limit=${fetchLimit}`);
 

@@ -14,8 +14,11 @@ const Home = () => {
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
-        console.log('🚀 [PLATFORM-SYNC] Home version: 3.0.2 - Reference Fix Applied');
+        console.log('🚀 [PLATFORM-SYNC] Home version: 4.0.0 - Session Randomization Applied');
     }, []);
+
+    // Session seed for randomized but paginated feed
+    const [sessionSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
     // Get tab from URL, default to 'video'
     const activeTab = searchParams.get('tab') || 'video';
@@ -64,7 +67,7 @@ const Home = () => {
             }
 
             const limit = cursorValue === 0 ? 5 : 10;
-            const response = await reelsAPI.getFeed(cursorValue, limit, 'video', category);
+            const response = await reelsAPI.getFeed(cursorValue, limit, 'video', category, sessionSeed);
 
             console.log(`[DEBUG] fetchVideos response (Ver: ${response.data?.version || 'LEGACY'}):`, {
                 success: response.success,
@@ -109,7 +112,7 @@ const Home = () => {
                 setReelLoadingMore(true);
             }
 
-            const response = await reelsAPI.getFeed(cursorValue, 10, 'reel');
+            const response = await reelsAPI.getFeed(cursorValue, 10, 'reel', 'All', sessionSeed);
 
             if (response.success) {
                 const newItems = response.data.items || [];

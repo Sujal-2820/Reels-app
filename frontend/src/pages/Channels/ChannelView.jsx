@@ -9,7 +9,7 @@ const ChannelView = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, loading: authLoading } = useAuth();
     const postsContainerRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -28,6 +28,12 @@ const ChannelView = () => {
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isPreview, setIsPreview] = useState(false);
     const [fullMedia, setFullMedia] = useState(null); // { type: 'image' | 'video', url: string }
+
+    // Close media and reset zoom
+    const closeMedia = () => {
+        setFullMedia(null);
+        resetZoom();
+    };
     const [reportModal, setReportModal] = useState({ show: false, type: 'channel', targetId: null, reason: '' });
     const [appealModal, setAppealModal] = useState({ show: false, reasoning: '' });
     const [reporting, setReporting] = useState(false);
@@ -37,7 +43,64 @@ const ChannelView = () => {
     const [editAvatarPreview, setEditAvatarPreview] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [forwardPost, setForwardPost] = useState(null);
+    const [longPressPost, setLongPressPost] = useState(null);
+    const longPressTimer = useRef(null);
     const editAvatarInputRef = useRef(null);
+
+    // Zoom state for full screen media
+    const [zoom, setZoom] = useState({ scale: 1, x: 0, y: 0 });
+    const touchState = useRef({
+        distance: 0,
+        lastScale: 1,
+        lastX: 0,
+        lastY: 0,
+        isScaling: false
+    });
+
+    const handleZoomTouchStart = (e) => {
+        if (e.touches.length === 2) {
+            const d = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            touchState.current.distance = d;
+            touchState.current.isScaling = true;
+        } else if (e.touches.length === 1) {
+            touchState.current.lastX = e.touches[0].clientX - zoom.x;
+            touchState.current.lastY = e.touches[0].clientY - zoom.y;
+            touchState.current.isScaling = false;
+        }
+    };
+
+    const handleZoomTouchMove = (e) => {
+        if (e.touches.length === 2 && touchState.current.isScaling) {
+            e.preventDefault();
+            const d = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            const newScale = Math.min(Math.max((d / touchState.current.distance) * touchState.current.lastScale, 1), 5);
+            setZoom(prev => ({ ...prev, scale: newScale }));
+        } else if (e.touches.length === 1 && zoom.scale > 1 && !touchState.current.isScaling) {
+            e.preventDefault();
+            const deltaX = e.touches[0].clientX - touchState.current.lastX;
+            const deltaY = e.touches[0].clientY - touchState.current.lastY;
+            setZoom(prev => ({ ...prev, x: deltaX, y: deltaY }));
+        }
+    };
+
+    const handleZoomTouchEnd = (e) => {
+        if (e.touches.length < 2) {
+            touchState.current.distance = 0;
+            touchState.current.lastScale = zoom.scale;
+            touchState.current.isScaling = false;
+        }
+    };
+
+    const resetZoom = () => {
+        setZoom({ scale: 1, x: 0, y: 0 });
+        touchState.current.lastScale = 1;
+    };
 
     const handleEditAvatarChange = (e) => {
         const file = e.target.files[0];
@@ -59,8 +122,12 @@ const ChannelView = () => {
     const token = queryParams.get('token');
 
     useEffect(() => {
-        fetchChannel();
-    }, [id]);
+        // CRITICAL: Wait for auth to load before fetching channel
+        // This ensures userId is available when checking creator status
+        if (!authLoading) {
+            fetchChannel();
+        }
+    }, [id, authLoading]);
 
     useEffect(() => {
         if (channel) {
@@ -107,7 +174,22 @@ const ChannelView = () => {
                 }
                 setNextCursor(response.data.nextCursor);
                 setHasMore(!!response.data.nextCursor);
-                setIsPreview(!!response.data.isPreview);
+
+                // CRITICAL: Never show preview banner to channel creators
+                // Check both backend response AND local channel state
+                const backendIsPreview = !!response.data.isPreview;
+                const userIsCreator = channel?.isCreator === true;
+                const finalIsPreview = backendIsPreview && !userIsCreator;
+
+                console.log('[ChannelView] Preview Debug:', {
+                    backendIsPreview,
+                    userIsCreator,
+                    finalIsPreview,
+                    channelId: id,
+                    userId: user?.id
+                });
+
+                setIsPreview(finalIsPreview);
 
                 if (isInitialLoad) {
                     setIsInitialLoad(false);
@@ -261,6 +343,26 @@ const ChannelView = () => {
         }
     };
 
+    const handleLongPressStart = (post) => {
+        if (!isAuthenticated) return;
+        longPressTimer.current = setTimeout(() => {
+            setLongPressPost(post);
+            if (navigator.vibrate) navigator.vibrate(50);
+        }, 600); // 600ms for long press
+    };
+
+    const handleLongPressEnd = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+        }
+    };
+
+    const handleLongPressMove = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+        }
+    };
+
     const handleRemoveMember = async (memberId) => {
         if (!window.confirm('Are you sure you want to remove this member?')) return;
         try {
@@ -345,27 +447,14 @@ const ChannelView = () => {
             const response = await channelsAPI.createPost(id, formData);
             if (response.success) {
                 setNewPost({ text: '', files: [] });
-                // Append the new post to the bottom immediately
-                const creatorData = {
-                    id: user.id || user._id,
-                    name: user.name,
-                    username: user.username,
-                    profilePic: user.profilePic
-                };
-                const optimisticPost = {
-                    id: response.data.id || Date.now().toString(),
-                    content: {
-                        text: response.data.content?.text || '',
-                        images: response.data.content?.images || [],
-                        videos: response.data.content?.videos || []
-                    },
-                    createdAt: new Date().toISOString(),
-                    creator: creatorData
-                };
-                setPosts(prev => [...prev, optimisticPost]);
+
+                // CRITICAL: Refetch posts to get the actual uploaded media URLs
+                // Don't rely on optimistic update for media posts
+                await fetchPosts();
                 setTimeout(scrollToBottom, 100);
             }
         } catch (error) {
+            console.error('Post creation error:', error);
             alert(error.message || 'Failed to create post');
         } finally {
             setPosting(false);
@@ -708,6 +797,16 @@ const ChannelView = () => {
                                         <div
                                             key={post.id}
                                             className={`${styles.postItem} ${hasMedia ? styles.postItemWithMedia : styles.postItemTextOnly}`}
+                                            onTouchStart={() => handleLongPressStart(post)}
+                                            onTouchEnd={handleLongPressEnd}
+                                            onTouchMove={handleLongPressMove}
+                                            onMouseDown={() => handleLongPressStart(post)}
+                                            onMouseUp={handleLongPressEnd}
+                                            onMouseLeave={handleLongPressEnd}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                setLongPressPost(post);
+                                            }}
                                         >
                                             <div className={styles.postContentMain}>
                                                 {post.content?.text && (
@@ -723,6 +822,7 @@ const ChannelView = () => {
                                                                 alt=""
                                                                 className={styles.postImage}
                                                                 onClick={() => setFullMedia({ type: 'image', url: img.url })}
+                                                                onContextMenu={(e) => e.stopPropagation()}
                                                             />
                                                         ))}
                                                     </div>
@@ -756,28 +856,6 @@ const ChannelView = () => {
                                                     <div className={styles.postTimeSmall}>
                                                         {formatDate(post.createdAt)}
                                                     </div>
-                                                    {!post.isCreator && isAuthenticated && (
-                                                        <div className={styles.postActionsSmall}>
-                                                            <button
-                                                                className={styles.forwardSmallBtn}
-                                                                onClick={() => setForwardPost(post)}
-                                                                title="Forward to connections"
-                                                            >
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                                                                </svg>
-                                                            </button>
-                                                            <button
-                                                                className={styles.reportSmallBtn}
-                                                                onClick={() => setReportModal({ show: true, type: 'post', targetId: post.id, reason: '' })}
-                                                                title="Report post"
-                                                            >
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -788,7 +866,7 @@ const ChannelView = () => {
                     </div>
 
                     {/* Preview Join Banner */}
-                    {isPreview && (
+                    {isPreview && !channel?.isCreator && (
                         <div className={styles.previewBanner}>
                             <div className={styles.previewBannerContent}>
                                 <div className={styles.previewIcon}>👀</div>
@@ -863,11 +941,24 @@ const ChannelView = () => {
 
             {/* Fullscreen Media Modal */}
             {fullMedia && (
-                <div className={styles.fullMediaOverlay} onClick={() => setFullMedia(null)}>
+                <div className={styles.fullMediaOverlay} onClick={closeMedia}>
                     <div className={styles.fullMediaContent} onClick={e => e.stopPropagation()}>
-                        <button className={styles.closeFullMedia} onClick={() => setFullMedia(null)}>×</button>
+                        <button className={styles.closeFullMedia} onClick={closeMedia}>×</button>
                         {fullMedia.type === 'image' ? (
-                            <img src={fullMedia.url} alt="" className={styles.fullMediaImage} />
+                            <img
+                                src={fullMedia.url}
+                                alt=""
+                                className={styles.fullMediaImage}
+                                style={{
+                                    transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
+                                    transition: zoom.scale === 1 ? 'transform 0.3s ease' : 'none',
+                                    touchAction: 'none'
+                                }}
+                                onTouchStart={handleZoomTouchStart}
+                                onTouchMove={handleZoomTouchMove}
+                                onTouchEnd={handleZoomTouchEnd}
+                                onDoubleClick={resetZoom}
+                            />
                         ) : (
                             <video
                                 src={fullMedia.url}
@@ -1025,6 +1116,41 @@ const ChannelView = () => {
                                 {updating ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Global Context Menu */}
+            {longPressPost && (
+                <div className={styles.contextMenuOverlay} onClick={() => setLongPressPost(null)}>
+                    <div className={styles.contextMenu} onClick={e => e.stopPropagation()}>
+                        <div className={styles.contextMenuIndicator} />
+                        <div className={styles.contextMenuHeader}>Message Options</div>
+
+                        <button className={styles.contextMenuItem} onClick={() => {
+                            setForwardPost(longPressPost);
+                            setLongPressPost(null);
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                            </svg>
+                            Forward
+                        </button>
+
+                        {!longPressPost.isCreator && (
+                            <button className={styles.contextMenuItem} onClick={() => {
+                                setReportModal({ show: true, type: 'post', targetId: longPressPost.id, reason: '' });
+                                setLongPressPost(null);
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
+                                </svg>
+                                Report
+                            </button>
+                        )}
+
+                        <button className={styles.contextMenuItem} style={{ color: '#ef4444' }} onClick={() => setLongPressPost(null)}>
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}

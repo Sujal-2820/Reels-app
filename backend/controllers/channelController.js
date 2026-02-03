@@ -569,6 +569,13 @@ const createChannelPost = async (req, res) => {
             createdAt: serverTimestamp()
         };
 
+        console.log('[Channel Post] Creating post:', {
+            channelId: id,
+            textLength: text?.length || 0,
+            imageCount: images.length,
+            videoCount: videos.length
+        });
+
         const postRef = await db.collection('channelPosts').add(postData);
 
         // Update daily upload count
@@ -591,6 +598,8 @@ const createChannelPost = async (req, res) => {
                 }]
             });
         }
+
+        console.log('[Channel Post] Post created successfully:', postRef.id);
 
         res.status(201).json({
             success: true,

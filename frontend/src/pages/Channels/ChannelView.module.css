@@ -259,21 +259,30 @@
 /* Post Item */
 .postItem {
     background: var(--color-bg-secondary);
-    border-radius: 8px;
-    padding: 6px 8px;
-    margin-bottom: 8px;
+    border-radius: 12px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
     max-width: 85%;
     width: fit-content;
     align-self: flex-start;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    transition: background 0.2s;
+    user-select: none;
+    /* Prevent text selection during long press */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.postItem:active {
+    background: var(--color-bg-tertiary);
 }
 
 .postItemWithMedia {
     padding: 4px;
+    border-radius: 8px;
 }
 
 .postContentMain {
@@ -301,31 +310,41 @@
 .postMedia {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
-    margin: var(--space-xs) 0;
+    gap: 4px;
+    margin: 2px 0;
     align-items: flex-start;
+    width: 100%;
 }
 
 .postImage {
     display: block;
-    max-width: 100%;
-    max-height: none !important;
-    width: auto;
+    max-width: 280px;
+    /* Reduced size */
+    width: 100%;
     height: auto;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    object-fit: contain;
-    /* Ensure no zooming/cropping */
+    object-fit: cover;
 }
 
 .postVideo {
     display: block;
-    max-width: 100%;
-    max-height: none !important;
-    width: auto;
+    max-width: 280px;
+    /* Reduced size */
+    width: 100%;
     height: auto;
-    border-radius: 6px;
-    object-fit: contain;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.videoPreviewContainer {
+    position: relative;
+    cursor: pointer;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+    max-width: 280px;
+    width: 100%;
 }
 
 /* Composer */
@@ -600,31 +619,44 @@
 
 .fullMediaContent {
     position: relative;
-    max-width: 95vw;
-    max-height: 95vh;
+    max-width: 90vw;
+    max-height: 85vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: transparent;
 }
 
 .closeFullMedia {
-    position: absolute;
-    top: -40px;
-    right: 0;
-    background: none;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
     border: none;
     color: #fff;
-    font-size: 32px;
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    z-index: 1001;
+    z-index: 1100;
+    transition: background 0.2s;
+}
+
+.closeFullMedia:hover {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 .fullMediaImage,
 .fullMediaVideo {
     max-width: 100%;
-    max-height: 95vh;
-    border-radius: 4px;
+    max-height: 85vh;
+    border-radius: 8px;
     object-fit: contain;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Video Preview */
@@ -1246,16 +1278,25 @@
 
 .postFooter {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
+    /* Align to the right like WhatsApp */
     align-items: center;
     width: 100%;
-    margin-top: var(--space-xs);
+    margin-top: 2px;
+    gap: 4px;
+}
+
+.postTimeSmall {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
 }
 
 .postActionsSmall {
     display: flex;
     gap: 8px;
     align-items: center;
+    /* Initially hidden, shown in long press context if needed, or kept very subtle */
+    opacity: 0.6;
 }
 
 .reportSmallBtn,
@@ -1276,4 +1317,66 @@
 
 .forwardSmallBtn:hover {
     color: var(--color-accent-primary);
+}
+
+/* Long Press Menu */
+.contextMenuOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.contextMenu {
+    background: var(--color-bg-elevated);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 500px;
+    padding: var(--space-md);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.contextMenuItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 14px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.contextMenuItem:last-child {
+    border-bottom: none;
+}
+
+.contextMenuItem svg {
+    color: var(--color-text-secondary);
+}
+
+.contextMenuHeader {
+    text-align: center;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-sm);
+}
+
+.contextMenuIndicator {
+    width: 40px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin: 0 auto 12px;
 }

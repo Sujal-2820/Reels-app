@@ -58,9 +58,9 @@ const ManageProfile = () => {
                 await refreshUser();
                 console.log('User data refreshed');
                 setSuccess(true);
-                // Redirect to settings page after showing success message
+                // Redirect to profile page after showing success message
                 setTimeout(() => {
-                    navigate('/settings');
+                    navigate('/profile');
                 }, 1000);
             } else {
                 throw new Error(response.message || 'Failed to update profile');
