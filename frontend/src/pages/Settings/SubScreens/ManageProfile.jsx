@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { authAPI } from '../../../services/api';
@@ -6,10 +6,11 @@ import styles from '../Settings.module.css';
 
 const ManageProfile = () => {
     const navigate = useNavigate();
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, entitlements } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [bioLinksWarning, setBioLinksWarning] = useState(null);
 
     const [form, setForm] = useState({
         name: user?.name || '',
@@ -19,6 +20,23 @@ const ManageProfile = () => {
     const [avatar, setAvatar] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(user?.profilePic || null);
     const fileInputRef = useRef(null);
+
+    // Validate bio links in real-time
+    useEffect(() => {
+        if (form.bio && entitlements) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const links = form.bio.match(urlRegex) || [];
+            const maxLinks = entitlements.bioLinksLimit || 0;
+
+            if (links.length > maxLinks) {
+                setBioLinksWarning(`You can only include ${maxLinks} link(s) in your bio. You have ${links.length}. Upgrade for more.`);
+            } else {
+                setBioLinksWarning(null);
+            }
+        } else {
+            setBioLinksWarning(null);
+        }
+    }, [form.bio, entitlements]);
 
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
@@ -139,13 +157,31 @@ const ManageProfile = () => {
                 </div>
 
                 <div className={styles.inputGroup} style={{ marginBottom: '24px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', display: 'block' }}>Bio</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', display: 'block' }}>Bio</label>
+                        {entitlements && (
+                            <span style={{ fontSize: '12px', fontWeight: '500', color: bioLinksWarning ? 'var(--color-error)' : 'var(--color-accent-primary)' }}>
+                                Links: {(form.bio.match(/(https?:\/\/[^\s]+)/g) || []).length}/{entitlements.bioLinksLimit || 0}
+                            </span>
+                        )}
+                    </div>
                     <textarea
                         value={form.bio}
                         onChange={(e) => setForm({ ...form, bio: e.target.value })}
                         rows="4"
-                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', resize: 'none' }}
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            border: bioLinksWarning ? '1px solid var(--color-error)' : '1px solid var(--color-border)',
+                            background: 'var(--color-bg-secondary)',
+                            color: 'var(--color-text-primary)',
+                            resize: 'none'
+                        }}
                     />
+                    {bioLinksWarning && (
+                        <p style={{ color: 'var(--color-error)', fontSize: '12px', marginTop: '6px' }}>{bioLinksWarning}</p>
+                    )}
                 </div>
 
                 {error && <p style={{ color: 'var(--color-error)', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}

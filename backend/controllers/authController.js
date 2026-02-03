@@ -154,6 +154,30 @@ const updateProfile = async (req, res) => {
         if (name) updates.name = name;
         if (bio !== undefined) updates.bio = bio;
 
+        // Validate bio links count (Subscription Feature)
+        if (bio && bio.trim()) {
+            const subscriptionService = require('../services/subscriptionService');
+            const entitlements = await subscriptionService.getUserEntitlements(userId);
+            const maxLinks = entitlements.bioLinksLimit || 0;
+
+            // Count URLs in bio
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const links = bio.match(urlRegex) || [];
+
+            if (links.length > maxLinks) {
+                if (req.file) cleanupFile(req.file.path);
+                return res.status(403).json({
+                    success: false,
+                    message: `You can only include ${maxLinks} link(s) in your bio. You have ${links.length} link(s). Upgrade your subscription for more links.`,
+                    data: {
+                        linksFound: links.length,
+                        maxLinksAllowed: maxLinks,
+                        currentPlan: entitlements.subscriptionName
+                    }
+                });
+            }
+        }
+
         if (username) {
             // Check if username is already taken by someone else
             const existingUserSnap = await db.collection('users')

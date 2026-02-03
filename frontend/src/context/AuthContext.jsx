@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
     const [firebaseUser, setFirebaseUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [entitlements, setEntitlements] = useState(null);
 
     // Listen to Firebase auth state changes
     useEffect(() => {
@@ -41,9 +42,21 @@ export const AuthProvider = ({ children }) => {
                     console.error('Error fetching user data:', err);
                     setUser(null);
                 }
+
+                // Fetch subscription entitlements
+                try {
+                    const { subscriptionAPI } = await import('../services/api');
+                    const entResponse = await subscriptionAPI.getEntitlements();
+                    if (entResponse.success) {
+                        setEntitlements(entResponse.data);
+                    }
+                } catch (err) {
+                    console.error('Error fetching entitlements:', err);
+                }
             } else {
                 setFirebaseUser(null);
                 setUser(null);
+                setEntitlements(null);
                 localStorage.removeItem('reelbox_user');
             }
 
@@ -90,6 +103,18 @@ export const AuthProvider = ({ children }) => {
                 });
                 setUser(userData);
                 localStorage.setItem('reelbox_user', JSON.stringify(userData));
+
+                // Also refresh entitlements
+                try {
+                    const { subscriptionAPI } = await import('../services/api');
+                    const entResponse = await subscriptionAPI.getEntitlements();
+                    if (entResponse.success) {
+                        setEntitlements(entResponse.data);
+                    }
+                } catch (err) {
+                    console.error('Error refreshing entitlements:', err);
+                }
+
                 return userData;
             }
             return null;
@@ -139,10 +164,12 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         firebaseUser,
+        entitlements,
         loading,
         error,
         isAuthenticated: !!user,
         setUser,
+        setEntitlements,
         logout,
         refreshUser,
         updateProfile,

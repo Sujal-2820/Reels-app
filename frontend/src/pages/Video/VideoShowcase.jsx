@@ -11,7 +11,7 @@ import styles from './VideoShowcase.module.css';
 const VideoShowcase = ({ isPrivate = false }) => {
     const { id, token } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, entitlements } = useAuth();
     const videoRef = useRef(null);
     const videoSectionRef = useRef(null);
     const controlsTimeoutRef = useRef(null);
@@ -195,6 +195,18 @@ const VideoShowcase = ({ isPrivate = false }) => {
                             setRelatedVideos(filtered);
                         }
                     } else {
+                        // Inject ad if not premium
+                        if (!entitlements || !entitlements.noAds) {
+                            filtered.splice(2, 0, {
+                                id: 'ad-recommendation',
+                                isAd: true,
+                                title: 'Ad-Free Premium',
+                                creator: { username: 'ReelBox' },
+                                viewsCount: 1000000,
+                                duration: 0,
+                                poster: 'https://images.unsplash.com/photo-1557683316-973673baf926'
+                            });
+                        }
                         setRelatedVideos(filtered);
                     }
                 }
@@ -738,7 +750,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
                                     <div className={styles.relatedInfo}>
                                         <h3 className={styles.relatedTitle}>{item.title}</h3>
                                         <span className={styles.relatedMeta}>
-                                            {item.creator?.username} • {formatCompact(item.viewsCount)} views
+                                            {item.isAd ? 'Sponsored' : `${item.creator?.username} • ${formatCompact(item.viewsCount)} views`}
                                         </span>
                                     </div>
                                 </div>

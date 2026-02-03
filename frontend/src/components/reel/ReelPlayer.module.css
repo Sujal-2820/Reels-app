@@ -565,3 +565,73 @@
         transform: translate(-50%, -10px);
     }
 }
+
+/* Ad Styles */
+.adOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: var(--space-2xl) var(--space-xl) 120px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.sponsoredBadge {
+    position: absolute;
+    top: 60px;
+    left: var(--space-md);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.adContent {
+    pointer-events: auto;
+}
+
+.adTitle {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: var(--space-xs);
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.adDesc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: var(--space-lg);
+    line-height: 1.4;
+    max-width: 80%;
+}
+
+.adCta {
+    background: var(--color-accent-primary);
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--radius-lg);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.adCta:hover {
+    transform: scale(1.05);
+}
+
+.adCta:active {
+    transform: scale(0.95);
+}

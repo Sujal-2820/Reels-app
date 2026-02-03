@@ -48,6 +48,16 @@ const Subscription = () => {
         fetchEntitlements();
     }, []);
 
+    // Refresh entitlements when user returns to this page
+    useEffect(() => {
+        const handleFocus = () => {
+            fetchEntitlements();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
+
     const fetchEntitlements = async () => {
         try {
             const response = await subscriptionAPI.getMySubscriptions();

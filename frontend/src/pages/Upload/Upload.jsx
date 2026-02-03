@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +34,8 @@ const Upload = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const { entitlements } = useAuth();
+    const [captionLinksWarning, setCaptionLinksWarning] = useState(null);
 
     // Cover adjustment states
     const [isAdjustingCover, setIsAdjustingCover] = useState(false);
@@ -56,6 +58,23 @@ const Upload = () => {
         'Vlog',
         'Other'
     ];
+
+    // Validate caption links in real-time
+    useEffect(() => {
+        if (caption && entitlements) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const links = caption.match(urlRegex) || [];
+            const maxLinks = entitlements.captionLinksLimit || 0;
+
+            if (links.length > maxLinks) {
+                setCaptionLinksWarning(`You can only include ${maxLinks} link(s). You have ${links.length}. Upgrade your subscription for more.`);
+            } else {
+                setCaptionLinksWarning(null);
+            }
+        } else {
+            setCaptionLinksWarning(null);
+        }
+    }, [caption, entitlements]);
 
     if (!isAuthenticated) {
         navigate('/login', { state: { from: '/upload' } });
@@ -526,8 +545,25 @@ const Upload = () => {
                     </div>
                 ) : (
                     <div className={styles.inputSection}>
-                        <label className={styles.label}>Caption <span className={styles.charCount}>{caption.length}/{MAX_CAPTION_LENGTH}</span></label>
-                        <textarea value={caption} onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))} placeholder="Write a caption..." className={styles.textarea} rows={3} />
+                        <label className={styles.label}>
+                            Caption
+                            <span className={styles.charCount}>{caption.length}/{MAX_CAPTION_LENGTH}</span>
+                            {entitlements && (
+                                <span className={styles.linksInfo}>
+                                    • Links: {(caption.match(/(https?:\/\/[^\s]+)/g) || []).length}/{entitlements.captionLinksLimit || 0}
+                                </span>
+                            )}
+                        </label>
+                        <textarea
+                            value={caption}
+                            onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))}
+                            placeholder="Write a caption..."
+                            className={`${styles.textarea} ${captionLinksWarning ? styles.textareaError : ''}`}
+                            rows={3}
+                        />
+                        {captionLinksWarning && (
+                            <div className={styles.warningText}>{captionLinksWarning}</div>
+                        )}
                     </div>
                 )}
 

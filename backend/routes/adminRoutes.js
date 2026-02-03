@@ -149,4 +149,17 @@ router.put('/reports/:id', isAdmin, resolveReport);
 router.get('/settings', isAdmin, getSettings);
 router.put('/settings', isAdmin, updateSettings);
 
+// Cron job management routes (manual triggers)
+const {
+    runAllCronJobs,
+    processExpiredSubscriptions,
+    processGracePeriodEnded,
+    sendExpiryReminders
+} = require('../controllers/adminCronController');
+
+router.post('/cron/run-all', isAdmin, runAllCronJobs);
+router.post('/cron/process-expired', isAdmin, processExpiredSubscriptions);
+router.post('/cron/process-grace-period', isAdmin, processGracePeriodEnded);
+router.post('/cron/send-reminders', isAdmin, sendExpiryReminders);
+
 module.exports = router;

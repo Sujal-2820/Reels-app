@@ -10,7 +10,7 @@ import ForwardModal from '../../components/common/ForwardModal';
 import styles from './Home.module.css';
 
 const Home = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, entitlements } = useAuth();
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -115,8 +115,35 @@ const Home = () => {
             const response = await reelsAPI.getFeed(cursorValue, 10, 'reel', 'All', sessionSeed);
 
             if (response.success) {
-                const newItems = response.data.items || [];
+                let newItems = response.data.items || [];
                 const newCursor = response.data.nextCursor;
+
+                // Inject ads if user doesn't have "noAds" entitlement
+                if (!entitlements || !entitlements.noAds) {
+                    const itemsWithAds = [];
+                    newItems.forEach((item, index) => {
+                        itemsWithAds.push(item);
+                        // Inject an ad every 5 reels
+                        if ((reels.length + itemsWithAds.length) % 6 === 0) {
+                            itemsWithAds.push({
+                                id: `ad-${Date.now()}-${index}`,
+                                isAd: true,
+                                title: 'Premium Subscription',
+                                description: 'Wanna go ad-free? Upgrade to Gold now!',
+                                poster: 'https://images.unsplash.com/photo-1557683316-973673baf926', // Premium looking background
+                                videoUrl: '', // Ads don't necessarily need a video, can be static
+                                creator: {
+                                    id: 'ad-account',
+                                    name: 'ReelBox Official',
+                                    username: 'reelbox_official',
+                                    profilePic: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+                                    verificationType: 'gold'
+                                }
+                            });
+                        }
+                    });
+                    newItems = itemsWithAds;
+                }
 
                 // Safety: Stop if we got no items but hasMore was true, or if cursor didn't advance
                 if (cursorValue !== 0 && newItems.length === 0) {

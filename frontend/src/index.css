@@ -145,6 +145,75 @@ body {
   font-weight: 450;
 }
 
+/* ========================================
+   PREMIUM CUSTOM THEMES
+   ======================================== */
+
+/* 1. Pink Theme (Princess/Romantic Aesthetic) */
+.pink-theme {
+  --color-bg-primary: #FFF0F5;
+  --color-bg-secondary: #FFB6C1;
+  --color-bg-tertiary: #FFC0CB;
+  --color-bg-elevated: #FFFFFF;
+  --color-text-primary: #D02090;
+  --color-text-secondary: #C71585;
+  --color-accent-primary: #FF69B4;
+  --color-accent-secondary: #FF1493;
+  --color-accent-gradient: linear-gradient(135deg, #FF69B4 0%, #FF1493 100%);
+  --color-border: #FFD1DC;
+}
+
+/* 2. Midnight Theme (Deep Ocean Blue) */
+.midnight-theme {
+  --color-bg-primary: #0A0E17;
+  --color-bg-secondary: #141C2B;
+  --color-bg-tertiary: #1E293B;
+  --color-bg-elevated: #28364D;
+  --color-text-primary: #E2E8F0;
+  --color-text-secondary: #94A3B8;
+  --color-accent-primary: #38BDF8;
+  --color-accent-secondary: #0EA5E9;
+  --color-accent-gradient: linear-gradient(135deg, #38BDF8 0%, #2563EB 100%);
+  --color-border: #1E293B;
+}
+
+/* 3. OLED Theme (Absolute Black for Battery Saving) */
+.oled-theme {
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0D0D0D;
+  --color-bg-tertiary: #1A1A1A;
+  --color-bg-elevated: #262626;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --color-accent-primary: #FFFFFF;
+  --color-accent-secondary: #CCCCCC;
+  --color-accent-gradient: linear-gradient(135deg, #FFFFFF 0%, #A0A0A0 100%);
+  --color-border: #1A1A1A;
+}
+
+/* 4. Gold Theme (Ultra Premium / Luxurious) */
+.gold-theme {
+  --color-bg-primary: #0F0F05;
+  --color-bg-secondary: #1A1A0A;
+  --color-bg-tertiary: #2A2A1A;
+  --color-bg-elevated: #3A3A2A;
+  --color-text-primary: #FFD700;
+  --color-text-secondary: #DAA520;
+  --color-accent-primary: #FFD700;
+  --color-accent-secondary: #B8860B;
+  --color-accent-gradient: linear-gradient(135deg, #FFD700 0%, #DAA520 100%);
+  --color-border: #2A2A1A;
+  --shadow-glow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.pink-theme body,
+.midnight-theme body,
+.oled-theme body,
+.gold-theme body {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+}
+
 
 /* Reset & Base Styles */
 *,

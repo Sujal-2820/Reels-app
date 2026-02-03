@@ -17,6 +17,7 @@ import Security from './pages/Settings/SubScreens/Security';
 import About from './pages/Settings/SubScreens/About';
 import Help from './pages/Settings/SubScreens/Help';
 import Notifications from './pages/Settings/SubScreens/Notifications';
+import ThemeSettings from './pages/Settings/SubScreens/ThemeSettings';
 
 import Analytics from './pages/Settings/SubScreens/Analytics';
 import SettingsPrivateContent from './pages/Settings/SubScreens/PrivateContent';
@@ -420,6 +421,17 @@ function AppContent() {
           <ProtectedRoute>
             <AppLayout>
               <SettingsPrivateContent />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings/themes"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ThemeSettings />
             </AppLayout>
           </ProtectedRoute>
         }

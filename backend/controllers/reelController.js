@@ -61,43 +61,49 @@ const createReel = async (req, res) => {
             }
         }
 
-        // 2. Storage Limit Check for Private Reels
-        const FREE_STORAGE_LIMIT_GB = 15;
-        const FREE_STORAGE_LIMIT = FREE_STORAGE_LIMIT_GB * 1024 * 1024 * 1024; // 15GB in bytes
-
+        // 2. Storage Limit Check for Private Reels (NEW SUBSCRIPTION SYSTEM)
         if (isPrivateReel) {
-            // Get all user plans from Firestore and filter in code to avoid index requirement
-            const allUserPlansSnap = await db.collection('userPlans')
-                .where('userId', '==', userId)
-                .get();
+            const subscriptionService = require('../services/subscriptionService');
 
-            const now = admin.firestore.Timestamp.now();
-            const activePlans = allUserPlansSnap.docs.filter(doc => {
-                const data = doc.data();
-                return data.isActive === true && data.expiresAt > now;
-            });
+            // Get file size estimate (actual size will be determined after upload)
+            const estimatedFileSize = req.files.video[0].size || 0;
 
-            let totalStorageLimitMB = 0;
+            // Check if user has enough storage quota
+            const quotaCheck = await subscriptionService.checkStorageQuota(userId, estimatedFileSize);
 
-            // Map plan details (need to fetch plan metadata if not stored in userPlan)
-            for (const doc of activePlans) {
-                const up = doc.data();
-                if (up.planId) {
-                    const planSnap = await db.collection('plans').doc(up.planId).get();
-                    if (planSnap.exists) {
-                        totalStorageLimitMB += (planSnap.data().storageLimit || 0);
-                    }
-                }
-            }
-
-            const totalAllowedBytes = FREE_STORAGE_LIMIT + (totalStorageLimitMB * 1024 * 1024);
-
-            if ((user.storageUsed || 0) >= totalAllowedBytes) {
-                const usedGB = ((user.storageUsed || 0) / (1024 * 1024 * 1024)).toFixed(2);
-                const totalGB = (totalAllowedBytes / (1024 * 1024 * 1024)).toFixed(2);
+            if (!quotaCheck.allowed) {
                 return res.status(403).json({
                     success: false,
-                    message: `Storage limit reached. Used: ${usedGB}GB / Capacity: ${totalGB}GB (15GB free + plans). Please upgrade your storage.`
+                    message: `Storage limit exceeded. Used: ${quotaCheck.currentUsageGB.toFixed(2)}GB / Limit: ${quotaCheck.limitGB}GB. Please upgrade your subscription for more storage.`,
+                    data: {
+                        currentUsageGB: quotaCheck.currentUsageGB,
+                        limitGB: quotaCheck.limitGB,
+                        remainingGB: quotaCheck.remainingGB,
+                        afterUploadGB: quotaCheck.afterUploadGB
+                    }
+                });
+            }
+        }
+
+        // 3. Caption Links Limit Check (Subscription Feature)
+        if (caption && caption.trim()) {
+            const subscriptionService = require('../services/subscriptionService');
+            const entitlements = await subscriptionService.getUserEntitlements(userId);
+            const maxLinks = entitlements.captionLinksLimit || 0;
+
+            // Count URLs in caption
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const links = caption.match(urlRegex) || [];
+
+            if (links.length > maxLinks) {
+                return res.status(403).json({
+                    success: false,
+                    message: `You can only include ${maxLinks} link(s) in your caption. You have ${links.length} link(s). Upgrade your subscription for more links.`,
+                    data: {
+                        linksFound: links.length,
+                        maxLinksAllowed: maxLinks,
+                        currentPlan: entitlements.subscriptionName
+                    }
                 });
             }
         }
@@ -293,17 +299,54 @@ const getReelsFeed = async (req, res) => {
                 return true;
             });
 
-        // Apply randomization if seed is provided, otherwise sort by newest
+        // Calculate engagement scores with subscription boost
+        const subscriptionService = require('../services/subscriptionService');
+        const reelsWithScores = await Promise.all(reels.map(async (reel) => {
+            // Get creator's engagement boost from their subscription
+            const creatorEntitlements = await subscriptionService.getUserEntitlements(reel.userId);
+            const boostMultiplier = creatorEntitlements.engagementBoost || 1.0;
+
+            // Calculate base engagement score
+            const baseScore = (reel.likesCount || 0) +
+                (reel.commentsCount || 0) * 2 +
+                (reel.sharesCount || 0) * 3 +
+                (reel.viewsCount || 0) * 0.1;
+
+            // Apply subscription boost
+            const boostedScore = baseScore * boostMultiplier;
+
+            return {
+                ...reel,
+                engagementBoost: boostMultiplier,
+                engagementScore: boostedScore
+            };
+        }));
+
+        // Apply randomization if seed is provided, otherwise sort by engagement + recency
         if (seed) {
             const seedNum = parseInt(seed) || 0;
             // Seeded shuffle to maintain pagination consistency for the session
             let currentSeed = seedNum;
-            for (let i = reels.length - 1; i > 0; i--) {
+            for (let i = reelsWithScores.length - 1; i > 0; i--) {
                 const j = Math.floor((Math.abs(Math.sin(currentSeed++)) * 10000 % 1) * (i + 1));
-                [reels[i], reels[j]] = [reels[j], reels[i]];
+                [reelsWithScores[i], reelsWithScores[j]] = [reelsWithScores[j], reelsWithScores[i]];
             }
+            reels = reelsWithScores;
         } else {
-            reels.sort((a, b) => b.createdAt - a.createdAt);
+            // Sort by engagement score (boosted content first), then by recency
+            reelsWithScores.sort((a, b) => {
+                // Higher engagement boost gets priority
+                if (a.engagementBoost !== b.engagementBoost) {
+                    return b.engagementBoost - a.engagementBoost;
+                }
+                // Then by engagement score
+                if (a.engagementScore !== b.engagementScore) {
+                    return b.engagementScore - a.engagementScore;
+                }
+                // Finally by recency
+                return b.createdAt - a.createdAt;
+            });
+            reels = reelsWithScores;
         }
 
         console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, totalCount=${reels.length}, cursor=${parsedCursor}, limit=${fetchLimit}`);

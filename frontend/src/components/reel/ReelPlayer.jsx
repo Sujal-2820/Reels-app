@@ -388,6 +388,26 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClic
                     onError={handleError}
                 />
 
+                {/* Ad Badge & CTA */}
+                {reel.isAd && (
+                    <div className={styles.adOverlay}>
+                        <div className={styles.sponsoredBadge}>Sponsored</div>
+                        <div className={styles.adContent}>
+                            <h2 className={styles.adTitle}>{reel.title}</h2>
+                            <p className={styles.adDesc}>{reel.description}</p>
+                            <button
+                                className={styles.adCta}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/settings/subscription');
+                                }}
+                            >
+                                Get Ad-Free Now
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Loading Spinner */}
                 {isLoading && isActive && (
                     <div className={styles.loadingOverlay}>
@@ -456,7 +476,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClic
                         />
                     </svg>
                     <span className={styles.actionCount}>
-                        {isCreator && likesCount < 1000 ? '—' : formatCount(likesCount)}
+                        {reel.isAd ? '—' : (isCreator && likesCount < 1000 ? '—' : formatCount(likesCount))}
                     </span>
                 </button>
 
@@ -502,7 +522,7 @@ const ReelPlayer = ({ reel, isActive, onLikeUpdate, onOpenOptions, onCommentClic
                     <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 11-7.6-11.7 8.38 8.38 0 013.8.9L21 3z" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <span className={styles.actionCount}>{formatCount(commentsCount)}</span>
+                    <span className={styles.actionCount}>{reel.isAd ? '—' : formatCount(commentsCount)}</span>
                 </button>
 
                 {/* Mute Toggle */}

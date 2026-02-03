@@ -5,21 +5,20 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
     // Check localStorage or system preference
     const getInitialTheme = () => {
-        // We changed the key to 'v2' to force a reset for anyone who was stuck on the old dark default
         const savedTheme = localStorage.getItem('reelbox_theme_v2');
         if (savedTheme) return savedTheme;
-
-        // Default to light theme for everyone
         return 'light';
     };
 
     const [theme, setTheme] = useState(getInitialTheme);
+    const [availableThemes, setAvailableThemes] = useState(['light', 'dark']);
 
     useEffect(() => {
         const root = window.document.documentElement;
 
-        // Remove old theme classes
-        root.classList.remove('light-theme', 'dark-theme');
+        // Remove old theme classes (matching *-theme pattern)
+        const classesToRemove = Array.from(root.classList).filter(c => c.endsWith('-theme'));
+        classesToRemove.forEach(c => root.classList.remove(c));
 
         // Add current theme class
         root.classList.add(`${theme}-theme`);
@@ -31,12 +30,20 @@ export const ThemeProvider = ({ children }) => {
     // We removed the system theme listener to ensure the app stays in the default 'light' theme
     // unless the user manually toggles it.
 
+    const changeTheme = (newTheme, isPremium = false, userHasPremium = false) => {
+        if (isPremium && !userHasPremium) {
+            return { success: false, message: 'This theme requires a premium subscription!' };
+        }
+        setTheme(newTheme);
+        return { success: true };
+    };
+
     const toggleTheme = () => {
         setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, changeTheme, toggleTheme }}>
             {children}
         </ThemeContext.Provider>
     );

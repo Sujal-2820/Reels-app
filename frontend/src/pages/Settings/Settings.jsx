@@ -6,7 +6,7 @@ import styles from './Settings.module.css';
 const Settings = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
 
     const Icons = {
         ChevronRight: () => (
@@ -103,10 +103,10 @@ const Settings = () => {
                         <span className={styles.itemLabel}>About Us</span>
                         <Icons.ChevronRight />
                     </button>
-                    <button className={styles.settingsItem} onClick={toggleTheme}>
+                    <button className={styles.settingsItem} onClick={() => navigate('/settings/themes')}>
                         <Icons.Moon />
-                        <span className={styles.itemLabel}>Theme</span>
-                        <span className={styles.itemValue}>{theme === 'light' ? 'Light' : 'Dark'}</span>
+                        <span className={styles.itemLabel}>App Theme</span>
+                        <span className={styles.itemValue}>{theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
                         <Icons.ChevronRight />
                     </button>
                 </div>
