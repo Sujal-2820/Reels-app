@@ -47,7 +47,7 @@ const Home = () => {
     const [forwardReel, setForwardReel] = useState(null);
     const isCommentsOpen = !!commentReel;
 
-    const categories = ['All', 'Entertainment', 'Education', 'Gaming', 'Music', 'Tech', 'Lifestyle'];
+    const categories = ['All', 'Entertainment', 'Education', 'Gaming', 'Music', 'Comedy', 'Tech', 'Lifestyle', 'Vlog', 'Other'];
 
     const videoContainerRef = useRef(null);
     const reelContainerRef = useRef(null);
@@ -166,11 +166,11 @@ const Home = () => {
 
     // Tab change refetch logic
     useEffect(() => {
+        // Only fetch reels if switching to reel tab and none exist
         if (activeTab === 'reel' && reels.length === 0 && !reelLoading) {
             fetchReels(0);
-        } else if (activeTab === 'video' && videos.length === 0 && !videoLoading) {
-            fetchVideos(0, selectedCategory);
         }
+        // Note: Video fetching is handled by the dedicated category/tab useEffect below
     }, [activeTab]);
 
     // Category change - always refetch videos

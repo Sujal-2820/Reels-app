@@ -69,7 +69,7 @@ const {
     getStats: getSubscriptionStats2,
     getUserLockedContent
 } = require('../controllers/adminSubscriptionController');
-const { auth, isAdmin } = require('../middleware/auth');
+const { auth, isAdmin, isCron } = require('../middleware/auth');
 
 // All admin routes require authentication
 // Admin access is controlled via session JWT verified by isAdmin middleware
@@ -157,9 +157,9 @@ const {
     sendExpiryReminders
 } = require('../controllers/adminCronController');
 
-router.post('/cron/run-all', isAdmin, runAllCronJobs);
-router.post('/cron/process-expired', isAdmin, processExpiredSubscriptions);
-router.post('/cron/process-grace-period', isAdmin, processGracePeriodEnded);
-router.post('/cron/send-reminders', isAdmin, sendExpiryReminders);
+router.post('/cron/run-all', isCron, runAllCronJobs);
+router.post('/cron/process-expired', isCron, processExpiredSubscriptions);
+router.post('/cron/process-grace-period', isCron, processGracePeriodEnded);
+router.post('/cron/send-reminders', isCron, sendExpiryReminders);
 
 module.exports = router;

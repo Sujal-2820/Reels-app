@@ -255,12 +255,16 @@ const Upload = () => {
             formData.append('startOffset', trimRange.start.toString());
             formData.append('endOffset', trimRange.end.toString());
 
+            // Always provide these for videos. For public reels, title/desc might be empty but we keep them for structure.
             if (contentType === 'video' || isPrivate) {
-                formData.append('title', title);
-                formData.append('description', description);
+                formData.append('title', title.trim() || 'Untitled');
+                formData.append('description', description.trim() || '');
                 formData.append('category', category);
             } else {
-                formData.append('caption', caption);
+                formData.append('caption', caption.trim());
+                // Even for public reels, let's send the default 'Other' category so it's not undefined
+                formData.append('category', category || 'Other');
+                formData.append('title', caption.substring(0, 30)); // Use start of caption as title
             }
 
             if (coverFile) formData.append('cover', coverFile);

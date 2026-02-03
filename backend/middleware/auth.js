@@ -164,13 +164,20 @@ const optionalAuth = async (req, res, next) => {
 };
 
 /**
- * Skip Auth middleware (Bypass for development)
+ * Cron Job Authentication middleware
+ * Allows bypassing admin session if a valid CRON_SECRET is provided
  */
-const skipAuth = (req, res, next) => {
-    req.user = { id: 'admin_bypass_id', role: 'admin', name: 'Admin Bypass' };
-    req.userId = 'admin_bypass_id';
-    next();
+const isCron = (req, res, next) => {
+    const cronSecret = req.header('X-Cron-Secret') || req.query.secret;
+    const validSecret = process.env.CRON_SECRET || 'reelbox-default-cron-secret-2024';
+
+    if (cronSecret === validSecret) {
+        return next();
+    }
+
+    // If not cron secret, fall back to isAdmin
+    return isAdmin(req, res, next);
 };
 
-module.exports = { auth, isAdmin, optionalAuth, skipAuth };
+module.exports = { auth, isAdmin, optionalAuth, isCron };
 

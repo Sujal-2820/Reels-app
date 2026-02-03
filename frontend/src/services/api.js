@@ -120,7 +120,7 @@ export const reelsAPI = {
         } catch (error) {
             console.warn('Get feed failed:', error.message);
             // Return empty feed to prevent UI breaking
-            return { data: { reels: [], hasMore: false, nextCursor: cursor } };
+            return { success: false, data: { items: [], hasMore: false, nextCursor: cursor } };
         }
     },
 

@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
 const fs = require('fs');
+const subscriptionService = require('../services/subscriptionService');
 
 /**
  * Upload a new reel
@@ -276,13 +277,19 @@ const getReelsFeed = async (req, res) => {
         const fetchLimit = parseInt(limit);
         const parsedCursor = parseInt(cursor);
 
-        // Fetch reels with minimal query to avoid composite index requirement
-        const snapshot = await db.collection('reels')
-            .where('isPrivate', '==', false)
-            .limit(1000) // Look through more items to find matches
-            .get();
+        console.log(`[DEBUG] getReelsFeed Start: type=${type}, category=${category}, cursor=${parsedCursor}`);
 
-        // Filter items
+        // Fetch reels - we'll try to get more than before to ensure we find matches after filtering
+        // Principle: If category is specified, we can't easily query it directly without indexes for composite filters,
+        // but we can at least increase our scan range.
+        let query = db.collection('reels').where('isPrivate', '==', false);
+
+        // If sorting or complex filtering is needed, we'd add where('category', '==', category) here
+        // but that requires composite indexes for (isPrivate, category). 
+        // For now, we continue the in-memory filtering but with improved robustness.
+        const snapshot = await query.limit(2000).get();
+
+        // Filter items with improved robustness
         let reels = snapshot.docs
             .map(doc => ({
                 id: doc.id,
@@ -290,17 +297,25 @@ const getReelsFeed = async (req, res) => {
                 createdAt: doc.data().createdAt?.toDate?.() || new Date(0)
             }))
             .filter(reel => {
-                // Case-insensitive content type filter
-                const reelType = reel.contentType?.toLowerCase() || 'reel';
-                const targetType = type?.toLowerCase() || 'reel';
+                // 1. Content Type Filter (Case-insensitive)
+                const reelType = (reel.contentType || 'reel').toLowerCase();
+                const targetType = (type || 'reel').toLowerCase();
                 if (reelType !== targetType) return false;
-                // Filter by category if specified
-                if (category && category !== 'All' && reel.category !== category) return false;
+
+                // 2. Category Filter (Robust & Case-insensitive)
+                if (category && category !== 'All') {
+                    const reelCategory = (reel.category || '').trim().toLowerCase();
+                    const targetCategory = category.trim().toLowerCase();
+
+                    if (reelCategory !== targetCategory) {
+                        return false;
+                    }
+                }
+
                 return true;
             });
 
         // Calculate engagement scores with subscription boost
-        const subscriptionService = require('../services/subscriptionService');
         const reelsWithScores = await Promise.all(reels.map(async (reel) => {
             // Get creator's engagement boost from their subscription
             const creatorEntitlements = await subscriptionService.getUserEntitlements(reel.userId);
