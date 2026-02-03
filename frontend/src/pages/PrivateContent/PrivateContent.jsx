@@ -62,10 +62,8 @@ const PrivateContent = () => {
             return;
         }
 
-        if (file.size > MAX_VIDEO_SIZE) {
-            setError('Video size must be less than 100MB');
-            return;
-        }
+        // No individual file size limit for private videos
+        // Only limited by total 15GB storage quota (checked by backend)
 
         setVideoFile(file);
         setVideoPreview(URL.createObjectURL(file));
@@ -300,7 +298,7 @@ const PrivateContent = () => {
                                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                     <p>Click to upload video</p>
-                                    <span>Max 100MB</span>
+                                    <span>Limited by 15GB total storage quota</span>
                                 </div>
                             )}
                             <input

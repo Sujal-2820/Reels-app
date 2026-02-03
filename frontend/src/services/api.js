@@ -95,8 +95,24 @@ export const authAPI = {
 // ========================================
 
 export const reelsAPI = {
-    getFeed: (cursor = 0, limit = 10, type = 'reel', category = 'All') =>
-        api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}`),
+    getFeed: async (cursor = 0, limit = 10, type = 'reel', category = 'All') => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for feed
+
+            const response = await api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}`, {
+                signal: controller.signal,
+                timeout: 20000
+            });
+
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            console.warn('Get feed failed:', error.message);
+            // Return empty feed to prevent UI breaking
+            return { data: { reels: [], hasMore: false, nextCursor: cursor } };
+        }
+    },
 
     getById: (id) => api.get(`/reels/${id}`),
 
@@ -312,12 +328,37 @@ export const supportAPI = {
 // ========================================
 
 export const channelsAPI = {
-    getAll: (cursor = 0, limit = 20, creatorId = null, search = '') =>
-        api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`),
-    getById: (id, token = null) => {
-        let url = `/channels/${id}`;
-        if (token) url += `?token=${token}`;
-        return api.get(url);
+    getAll: async (cursor = 0, limit = 20, creatorId = null, search = '') => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const response = await api.get(`/channels?cursor=${cursor}&limit=${limit}${creatorId ? `&creatorId=${creatorId}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`, {
+                signal: controller.signal,
+                timeout: 15000
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            console.warn('Get channels failed:', error.message);
+            return { data: { channels: [], hasMore: false, nextCursor: cursor } };
+        }
+    },
+    getById: async (id, token = null) => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            let url = `/channels/${id}`;
+            if (token) url += `?token=${token}`;
+            const response = await api.get(url, {
+                signal: controller.signal,
+                timeout: 12000
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            console.warn('Get channel by ID failed:', error.message);
+            return { data: { id, name: 'Loading...', description: '', memberCount: 0, isMember: false } };
+        }
     },
     getMyChannels: () => api.get('/channels/my'),
     getJoinedChannels: () => api.get('/channels/joined'),
@@ -355,10 +396,22 @@ export const channelsAPI = {
         return api.put(`/channels/${id}`, data);
     },
     delete: (id) => api.delete(`/channels/${id}`),
-    getPosts: (id, cursor = null, limit = 20) => {
-        let url = `/channels/${id}/posts?limit=${limit}`;
-        if (cursor && cursor !== 'null') url += `&cursor=${cursor}`;
-        return api.get(url);
+    getPosts: async (id, cursor = null, limit = 20) => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            let url = `/channels/${id}/posts?limit=${limit}`;
+            if (cursor && cursor !== 'null') url += `&cursor=${cursor}`;
+            const response = await api.get(url, {
+                signal: controller.signal,
+                timeout: 15000
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            console.warn('Get channel posts failed:', error.message);
+            return { data: { posts: [], hasMore: false, nextCursor: null } };
+        }
     },
     getMembers: (id) => api.get(`/channels/${id}/members`),
     removeMember: (channelId, userId) => api.delete(`/channels/${channelId}/members/${userId}`),

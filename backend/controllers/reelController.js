@@ -102,11 +102,28 @@ const createReel = async (req, res) => {
             }
         }
 
-        // Validate video file
+        // Validate video file with detailed logging for APK debugging
+        console.log('Upload request received:', {
+            hasFiles: !!req.files,
+            filesKeys: req.files ? Object.keys(req.files) : [],
+            videoField: req.files?.video,
+            videoArray: req.files?.video?.[0],
+            bodyKeys: Object.keys(req.body || {})
+        });
+
         if (!req.files || !req.files.video || !req.files.video[0]) {
+            console.error('Video file validation failed:', {
+                files: req.files,
+                video: req.files?.video
+            });
             return res.status(400).json({
                 success: false,
-                message: 'Video file is required.'
+                message: 'Video file is required.',
+                debug: {
+                    hasFiles: !!req.files,
+                    hasVideoField: !!req.files?.video,
+                    hasVideoFile: !!req.files?.video?.[0]
+                }
             });
         }
 
