@@ -294,14 +294,19 @@ const getReelsFeed = async (req, res) => {
 
         console.log(`[DEBUG] getReelsFeed: type=${type}, category=${category}, totalCount=${reels.length}, cursor=${parsedCursor}, limit=${fetchLimit}`);
 
-        // Apply pagination - cursor is the offset (number of items already fetched)
-        const startIndex = parsedCursor;
-        const endIndex = startIndex + fetchLimit;
-        const paginatedReels = reels.slice(startIndex, endIndex + 1); // +1 to check if there's more
-        const hasMore = paginatedReels.length > fetchLimit;
-        if (hasMore) paginatedReels.pop(); // Remove the extra item
+        // Explicit OFFSET-BASED pagination
+        const offset = parsedCursor || 0;
+        const pageLimit = fetchLimit || 10;
 
-        console.log(`[DEBUG] Pagination: startIndex=${startIndex}, endIndex=${endIndex}, fetched=${paginatedReels.length}, hasMore=${hasMore}`);
+        const startIndex = offset;
+        const endIndex = startIndex + pageLimit;
+
+        // slice(start, end) is exclusive of end index, so we get precisely pageLimit items
+        const paginatedReels = reels.slice(startIndex, endIndex);
+        const hasMore = endIndex < reels.length;
+        const nextCursor = hasMore ? endIndex : null;
+
+        console.log(`[DEBUG] Final pagination: offset=${offset}, limit=${pageLimit}, total=${reels.length}, fetched=${paginatedReels.length}, hasMore=${hasMore}, nextCursor=${nextCursor}`);
 
         // Fetch user info for each reel
         const items = await Promise.all(paginatedReels.map(async (reel) => {
@@ -338,15 +343,13 @@ const getReelsFeed = async (req, res) => {
             };
         }));
 
-        // Next cursor is the current offset + number of items returned
-        const nextCursor = hasMore ? (parsedCursor + paginatedReels.length) : null;
-        console.log(`[DEBUG] Response: items=${items.length}, nextCursor=${nextCursor}`);
-
+        // Result is already calculated in the pagination block above
         res.json({
             success: true,
             data: {
                 items,
-                nextCursor
+                nextCursor,
+                version: '3.0.1-offset-logic'
             }
         });
     } catch (error) {
