@@ -659,7 +659,7 @@ const ChannelView = () => {
             )}
 
             {/* Content Area */}
-            {(!channel.isMember && !channel.isCreator && !isPreview) ? (
+            {(!channel.isMember && !channel.isCreator && !isPreview && channel.isPrivate) ? (
                 <div className={styles.joinPrompt}>
                     <div className={styles.joinContent}>
                         <h2>{channel.name}</h2>

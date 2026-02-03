@@ -286,8 +286,8 @@ const Channels = () => {
                         {channels.map(channel => (
                             <div
                                 key={channel.id}
-                                className={`${styles.channelCard} ${(channel.isMember || channel.isCreator) ? styles.clickableCard : ''}`}
-                                onClick={() => (channel.isMember || channel.isCreator) && handleChannelClick(channel)}
+                                className={`${styles.channelCard} ${styles.clickableCard}`}
+                                onClick={() => handleChannelClick(channel)}
                             >
                                 <div className={styles.channelAvatar}>
                                     {channel.profilePic ? (
