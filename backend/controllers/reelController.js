@@ -273,7 +273,7 @@ const getReelsFeed = async (req, res) => {
         // Fetch reels with minimal query to avoid composite index requirement
         const snapshot = await db.collection('reels')
             .where('isPrivate', '==', false)
-            .limit(200) // Fetch more to filter in-memory
+            .limit(1000) // Look through more items to find matches
             .get();
 
         // Filter and sort in-memory

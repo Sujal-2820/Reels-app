@@ -123,38 +123,17 @@ const Home = () => {
         }
     }, [selectedCategory]);
 
-    // Intersection Observer for Infinite Scroll
-    const observer = useRef();
-    const lastItemRefCallback = useCallback(node => {
-        if (videoLoading || videoLoadingMore || reelLoading || reelLoadingMore) return;
-
-        if (observer.current) observer.current.disconnect();
-
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting) {
-                console.log('[DEBUG] Sentinel intersecting:', {
-                    activeTab,
-                    videoHasMore,
-                    videoCursor,
-                    videoLoadingMore,
-                    reelHasMore,
-                    reelCursor,
-                    reelLoadingMore
-                });
-
-                if (activeTab === 'video' && videoHasMore && !videoLoadingMore) {
-                    fetchVideos(videoCursor, selectedCategory);
-                } else if (activeTab === 'reel' && reelHasMore && !reelLoadingMore) {
-                    fetchReels(reelCursor);
-                }
+    // Simple Intersection Observer
+    useEffect(() => {
+        const obs = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !videoLoadingMore && videoHasMore && activeTab === 'video') {
+                fetchVideos(videoCursor, selectedCategory);
             }
-        }, {
-            threshold: 0.1, // Trigger as soon as even a tiny bit is visible
-            rootMargin: '150px' // Load even earlier
-        });
+        }, { threshold: 0.1 });
 
-        if (node) observer.current.observe(node);
-    }, [activeTab, videoHasMore, videoCursor, videoLoading, videoLoadingMore, reelHasMore, reelCursor, reelLoading, reelLoadingMore, selectedCategory]);
+        if (lastItemRef.current) obs.observe(lastItemRef.current);
+        return () => obs.disconnect();
+    }, [videoCursor, videoHasMore, videoLoadingMore, activeTab, selectedCategory]);
 
     // Reel Scroll Detection
     useEffect(() => {
@@ -253,7 +232,7 @@ const Home = () => {
                         videos={videos}
                         loading={videoLoading}
                         hasMore={videoHasMore}
-                        lastVideoRef={lastItemRefCallback}
+                        lastVideoRef={lastItemRef}
                         onOpenOptions={(video) => setSelectedReel(video)}
                         selectedCategory={selectedCategory}
                     />
