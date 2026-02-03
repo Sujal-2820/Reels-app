@@ -32,6 +32,7 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'https://reels-app-sepia.vercel.app',
+    /\.vercel\.app$/, // Allow all subdomains of vercel.app
     process.env.FRONTEND_URL
 ].filter(Boolean);
 

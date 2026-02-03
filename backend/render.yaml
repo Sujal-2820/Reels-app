@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: reelbox-backend
+    env: node
+    plan: free # or your plan type
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: FRONTEND_URL
+        value: https://reels-app-sepia.vercel.app # Your Vercel URL
+      - key: CLOUDINARY_CLOUD_NAME
+        fromEnvVar: CLOUDINARY_CLOUD_NAME
+      - key: CLOUDINARY_API_KEY
+        fromEnvVar: CLOUDINARY_API_KEY
+      - key: CLOUDINARY_API_SECRET
+        fromEnvVar: CLOUDINARY_API_SECRET
+      - key: RAZORPAY_KEY_ID
+        fromEnvVar: RAZORPAY_KEY_ID
+      - key: RAZORPAY_KEY_SECRET
+        fromEnvVar: RAZORPAY_KEY_SECRET
+      - key: FIREBASE_PROJECT_ID
+        fromEnvVar: FIREBASE_PROJECT_ID
+      - key: FIREBASE_CLIENT_EMAIL
+        fromEnvVar: FIREBASE_CLIENT_EMAIL
+      - key: FIREBASE_PRIVATE_KEY
+        fromEnvVar: FIREBASE_PRIVATE_KEY
+      - key: FIREBASE_DATABASE_URL
+        fromEnvVar: FIREBASE_DATABASE_URL

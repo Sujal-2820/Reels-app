@@ -284,8 +284,10 @@ const getReelsFeed = async (req, res) => {
                 createdAt: doc.data().createdAt?.toDate?.() || new Date(0)
             }))
             .filter(reel => {
-                // Filter by content type
-                if (reel.contentType !== type) return false;
+                // Case-insensitive content type filter
+                const reelType = reel.contentType?.toLowerCase() || 'reel';
+                const targetType = type?.toLowerCase() || 'reel';
+                if (reelType !== targetType) return false;
                 // Filter by category if specified
                 if (category && category !== 'All' && reel.category !== category) return false;
                 return true;
