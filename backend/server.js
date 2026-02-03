@@ -63,6 +63,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         success: true,
         message: 'ReelBox API is running',
+        commit: 'adb4abe',
         timestamp: new Date().toISOString()
     });
 });

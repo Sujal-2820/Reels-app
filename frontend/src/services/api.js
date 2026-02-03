@@ -100,7 +100,7 @@ export const reelsAPI = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for feed
 
-            const response = await api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}`, {
+            const response = await api.get(`/reels/feed?cursor=${cursor}&limit=${limit}&type=${type}${category !== 'All' ? `&category=${category}` : ''}&_t=${Date.now()}`, {
                 signal: controller.signal,
                 timeout: 20000
             });

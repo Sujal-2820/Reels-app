@@ -62,18 +62,26 @@ const Home = () => {
             const limit = cursorValue === 0 ? 5 : 10;
             const response = await reelsAPI.getFeed(cursorValue, limit, 'video', category);
 
-            console.log('[DEBUG] fetchVideos response:', {
+            console.log(`[DEBUG] fetchVideos response (Ver: ${response.data?.version || 'LEGACY'}):`, {
                 success: response.success,
                 itemsCount: response.data?.items?.length,
                 nextCursor: response.data?.nextCursor,
-                hasMore: response.data?.nextCursor !== null
+                hasMore: response.videoHasMore !== false
             });
 
             if (response.success) {
                 const newItems = response.data.items || [];
+                const newCursor = response.data.nextCursor;
+
+                // Safety: Stop if we got no items but hasMore was true, or if cursor didn't advance
+                if (cursorValue !== 0 && newItems.length === 0) {
+                    setVideoHasMore(false);
+                    return;
+                }
+
                 setVideos(prev => cursorValue === 0 ? newItems : [...prev, ...newItems]);
-                setVideoCursor(response.data.nextCursor);
-                setVideoHasMore(response.data.nextCursor !== null);
+                setVideoCursor(newCursor);
+                setVideoHasMore(newCursor !== null && newCursor !== cursorValue);
             }
         } catch (err) {
             console.error('Failed to load videos', err);
