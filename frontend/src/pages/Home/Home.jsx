@@ -13,6 +13,10 @@ const Home = () => {
     const { isAuthenticated } = useAuth();
     const [searchParams] = useSearchParams();
 
+    useEffect(() => {
+        console.log('🚀 [PLATFORM-SYNC] Home version: 3.0.2 - Reference Fix Applied');
+    }, []);
+
     // Get tab from URL, default to 'video'
     const activeTab = searchParams.get('tab') || 'video';
     const [selectedCategory, setSelectedCategory] = useState('All');
