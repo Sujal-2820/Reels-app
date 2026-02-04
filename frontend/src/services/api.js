@@ -432,7 +432,11 @@ export const channelsAPI = {
     reportPost: (channelId, postId, reason) => api.post(`/channels/${channelId}/posts/${postId}/report`, { reason }),
     appealBan: (id, reasoning) => api.post(`/channels/${id}/appeal`, { reasoning }),
     getAdminReports: () => api.get('/channels/admin/reports'),
-    handleAdminAction: (data) => api.post('/channels/admin/action', data)
+    handleAdminAction: (data) => api.post('/channels/admin/action', data),
+
+    // Notification subscriptions
+    getSubscriptionStatus: (id) => api.get(`/channels/${id}/subscribe`),
+    toggleSubscription: (id) => api.post(`/channels/${id}/subscribe`)
 };
 
 // ========================================

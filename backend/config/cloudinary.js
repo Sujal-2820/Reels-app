@@ -24,12 +24,21 @@ const uploadVideo = async (filePath, options = {}) => {
             ...otherOptions
         };
 
+        // Build transformation array
+        const transformations = [];
+
         // Only apply trim transformation if offsets are provided
         if (startOffset !== undefined || endOffset !== undefined) {
-            uploadParams.transformation = [{
+            transformations.push({
                 start_offset: startOffset || 0,
                 end_offset: endOffset
-            }];
+            });
+        }
+
+        // Apply transformations eagerly with async processing for large videos
+        if (transformations.length > 0) {
+            uploadParams.eager = transformations;
+            uploadParams.eager_async = true; // Process transformations asynchronously
         }
 
         console.log('Starting Cloudinary upload with params:', JSON.stringify(uploadParams, null, 2));

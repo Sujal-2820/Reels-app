@@ -1,0 +1,96 @@
+.videoAdContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #000;
+}
+
+.adContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.adControls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 100;
+}
+
+.adLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: 0.5px;
+}
+
+.adLabel svg {
+    width: 14px;
+    height: 14px;
+}
+
+.skipBtn {
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.3s ease;
+}
+
+.skipBtn.skipActive {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.95);
+    color: #000;
+    cursor: pointer;
+}
+
+.skipBtn.skipActive:hover {
+    background: #fff;
+    transform: scale(1.05);
+}
+
+.skipBtn:disabled {
+    opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+    .adControls {
+        bottom: 80px;
+        /* Account for mobile controls */
+        padding: 0 16px;
+    }
+
+    .adLabel {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    .skipBtn {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}

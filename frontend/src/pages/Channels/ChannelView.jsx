@@ -45,6 +45,10 @@ const ChannelView = () => {
     const [forwardPost, setForwardPost] = useState(null);
     const [longPressPost, setLongPressPost] = useState(null);
     const longPressTimer = useRef(null);
+
+    // Notification subscription state
+    const [isSubscribed, setIsSubscribed] = useState(false);
+    const [subscriptionLoading, setSubscriptionLoading] = useState(false);
     const editAvatarInputRef = useRef(null);
 
     // Zoom state for full screen media
@@ -137,6 +141,13 @@ const ChannelView = () => {
             }
         }
     }, [channel]);
+
+    // Fetch subscription status when channel loads
+    useEffect(() => {
+        if (channel && channel.isMember && !channel.isCreator && isAuthenticated) {
+            fetchSubscriptionStatus();
+        }
+    }, [channel, isAuthenticated]);
 
     const fetchChannel = async () => {
         try {
@@ -275,6 +286,36 @@ const ChannelView = () => {
             fetchChannel();
         } catch (error) {
             alert(error.message || 'Failed to leave channel');
+        }
+    };
+
+    const fetchSubscriptionStatus = async () => {
+        try {
+            const response = await channelsAPI.getSubscriptionStatus(id);
+            if (response.data?.success) {
+                setIsSubscribed(response.data.data.isSubscribed);
+            }
+        } catch (error) {
+            console.error('Failed to fetch subscription status:', error);
+        }
+    };
+
+    const handleToggleSubscription = async () => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: location } });
+            return;
+        }
+
+        setSubscriptionLoading(true);
+        try {
+            const response = await channelsAPI.toggleSubscription(id);
+            if (response.data?.success) {
+                setIsSubscribed(response.data.data.isSubscribed);
+            }
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to update notification settings');
+        } finally {
+            setSubscriptionLoading(false);
         }
     };
 
@@ -594,6 +635,35 @@ const ChannelView = () => {
                             </svg>
                         </button>
                     )}
+
+                    {/* Notification Bell - Only for members who are not creators */}
+                    {channel.isMember && !channel.isCreator && (
+                        <button
+                            className={`${styles.bellBtn} ${isSubscribed ? styles.bellActive : ''}`}
+                            onClick={handleToggleSubscription}
+                            disabled={subscriptionLoading}
+                            title={isSubscribed ? 'Notifications enabled' : 'Enable notifications'}
+                        >
+                            {subscriptionLoading ? (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spinner}>
+                                    <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8" />
+                                </svg>
+                            ) : isSubscribed ? (
+                                // Filled bell when subscribed
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                            ) : (
+                                // Outlined bell when not subscribed
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                            )}
+                        </button>
+                    )}
+
                     <button
                         className={styles.moreBtn}
                         onClick={() => setShowCreatorInfo(!showCreatorInfo)}

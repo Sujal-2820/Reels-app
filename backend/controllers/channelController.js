@@ -538,11 +538,8 @@ const createChannelPost = async (req, res) => {
                             continue;
                         }
                         const result = await uploadVideo(file.path, {
-                            folder: 'channel_videos',
-                            transformation: [
-                                { quality: 'auto' },
-                                { fetch_format: 'auto' }
-                            ]
+                            folder: 'channel_videos'
+                            // Removed transformation - uploadVideo handles this with eager_async
                         });
                         videos.push({ url: result.secure_url, size: file.size, publicId: result.public_id });
                         vidCount++;
@@ -600,6 +597,14 @@ const createChannelPost = async (req, res) => {
         }
 
         console.log('[Channel Post] Post created successfully:', postRef.id);
+
+        // Send notifications to subscribers (non-blocking)
+        const { sendChannelPostNotifications } = require('./channelSubscriptionController');
+        setImmediate(() => {
+            sendChannelPostNotifications(id, postData).catch(err => {
+                console.error('[Channel Post] Notification error:', err);
+            });
+        });
 
         res.status(201).json({
             success: true,

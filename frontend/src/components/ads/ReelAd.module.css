@@ -1,0 +1,87 @@
+.reelAdContainer {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    /* Dynamic viewport height for mobile */
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.adBadge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 10;
+    letter-spacing: 0.3px;
+}
+
+.adBadge svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.8;
+}
+
+.adContent {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adLoading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.loadingSpinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: reelAdSpin 0.8s linear infinite;
+}
+
+.adLoading p {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@keyframes reelAdSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Ensure ad content is responsive */
+@media (max-width: 768px) {
+    .adBadge {
+        top: 60px;
+        /* Account for mobile notch */
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+}

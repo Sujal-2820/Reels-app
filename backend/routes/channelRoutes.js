@@ -23,6 +23,10 @@ const {
     getReports,
     handleAdminAction
 } = require('../controllers/channelController');
+const {
+    toggleChannelSubscription,
+    getChannelSubscriptionStatus
+} = require('../controllers/channelSubscriptionController');
 
 // Public routes
 router.get('/', optionalAuth, getChannels);
@@ -35,6 +39,8 @@ router.post('/', auth, upload.single('profilePic'), createChannel);
 router.post('/settings', auth, updateChannelSettings); // Admin only check inside controller
 router.post('/:id/join', auth, joinChannel);
 router.post('/:id/leave', auth, leaveChannel);
+router.get('/:id/subscribe', auth, getChannelSubscriptionStatus);
+router.post('/:id/subscribe', auth, toggleChannelSubscription);
 router.put('/:id', auth, upload.single('profilePic'), updateChannel);
 router.delete('/:id', auth, deleteChannel);
 
