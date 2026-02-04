@@ -184,7 +184,22 @@ export const reelsAPI = {
         }
     },
     getSaved: () => api.get('/reels/my/saved'),
-    report: (id, reason) => api.post(`/reels/${id}/report`, { reason })
+    report: (id, reason) => api.post(`/reels/${id}/report`, { reason }),
+
+    // Bulk upload methods
+    getDailyLimit: () => api.get('/reels/daily-limit/check'),
+
+    bulkUpload: (formData, onProgress) => {
+        return api.post('/reels/bulk', formData, {
+            onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round(
+                    (progressEvent.loaded * 100) / progressEvent.total
+                );
+                if (onProgress) onProgress(percentCompleted);
+            },
+            timeout: 300000 // 5 minute timeout for bulk uploads
+        });
+    }
 };
 
 // ========================================

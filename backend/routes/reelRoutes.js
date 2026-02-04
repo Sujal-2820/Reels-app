@@ -14,6 +14,7 @@ const {
     getSavedReels,
     reportReel
 } = require('../controllers/reelController');
+const { getDailyUploadLimit, bulkUploadReels } = require('../controllers/bulkUploadController');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { uploadReel } = require('../middleware/upload');
 
@@ -42,6 +43,14 @@ router.post('/:id/like', auth, toggleLike);
 router.post('/:id/save', auth, toggleSave);
 router.post('/:id/report', auth, reportReel);
 router.put('/:id', auth, uploadReel.fields([{ name: 'cover', maxCount: 1 }]), updateReel);
+
+// Bulk upload routes
+router.get('/daily-limit/check', auth, getDailyUploadLimit);
+router.post('/bulk', auth, uploadReel.fields([
+    { name: 'videos', maxCount: 5 },
+    { name: 'covers', maxCount: 5 }
+]), bulkUploadReels);
+
 router.delete('/:id', auth, deleteReel);
 
 module.exports = router;

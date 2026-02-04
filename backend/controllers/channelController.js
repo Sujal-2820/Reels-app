@@ -175,6 +175,11 @@ const getChannels = async (req, res) => {
             // UNLESS it's a specific creator's list
             if (data.isPrivate === true && !creatorId) return false;
 
+            // Hide banned channels from Explore and Search
+            // BUT still show in "My Channels" (when creatorId filter is used)
+            // This allows creators to see their own banned channels
+            if (data.isBanned === true && !creatorId) return false;
+
             // Search filter
             if (search && search.trim()) {
                 const searchLower = search.toLowerCase().trim();
