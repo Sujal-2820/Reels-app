@@ -317,9 +317,16 @@ const getReelsFeed = async (req, res) => {
 
         // Calculate engagement scores with subscription boost
         const reelsWithScores = await Promise.all(reels.map(async (reel) => {
-            // Get creator's engagement boost from their subscription
-            const creatorEntitlements = await subscriptionService.getUserEntitlements(reel.userId);
-            const boostMultiplier = creatorEntitlements.engagementBoost || 1.0;
+            // Get creator's engagement boost from their subscription (Safe check for legacy data)
+            let boostMultiplier = 1.0;
+            if (reel.userId) {
+                try {
+                    const creatorEntitlements = await subscriptionService.getUserEntitlements(reel.userId);
+                    boostMultiplier = creatorEntitlements.engagementBoost || 1.0;
+                } catch (err) {
+                    console.warn(`[FEED-WARN] Could not get entitlements for user ${reel.userId}:`, err.message);
+                }
+            }
 
             // Calculate base engagement score
             const baseScore = (reel.likesCount || 0) +
@@ -336,7 +343,6 @@ const getReelsFeed = async (req, res) => {
                 engagementScore: boostedScore
             };
         }));
-
         // Apply randomization if seed is provided, otherwise sort by engagement + recency
         if (seed) {
             const seedNum = parseInt(seed) || 0;

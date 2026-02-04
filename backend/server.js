@@ -27,43 +27,52 @@ const backgroundJobProcessor = require('./services/backgroundJobProcessor');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS Configuration
+// CORS Configuration - Robust origin validation for production
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
-    'https://reels-app-sepia.vercel.app',
-    'https://10reelbox.com',
-    'https://www.10reelbox.com',
-    'http://10reelbox.com',
-    'http://www.10reelbox.com',
-    /\.vercel\.app$/, // Allow all subdomains of vercel.app
-    process.env.FRONTEND_URL
+    /\.vercel\.app$/,                 // Allow all subdomains of vercel.app
+    /^https?:\/\/(www\.)?10reelbox\.com$/, // Allow 10reelbox.com and www.10reelbox.com (http/https)
+    process.env.FRONTEND_URL          // Allow URL from environment
 ].filter(Boolean);
 
+// CORS Middleware
 app.use(cors({
     origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed instanceof RegExp) {
-                return allowed.test(origin);
+        // Check if origin matches any allowed string or regex
+        const isAllowed = allowedOrigins.some(pattern => {
+            if (pattern instanceof RegExp) {
+                return pattern.test(origin);
             }
-            return allowed === origin;
+            return pattern === origin;
         });
 
         if (isAllowed) {
-            return callback(null, true);
+            callback(null, true);
         } else {
-            console.warn(`[CORS] Request from blocked origin: ${origin}`);
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
+            console.warn(`[CORS-BLOCK] Unauthorized origin attempted access: ${origin}`);
+            // Critical fix: use null, false instead of Error to avoid 500 crash
+            callback(null, false);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Cron-Secret']
 }));
+
+// Global request logger for origin debugging (Production only)
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        const origin = req.headers.origin;
+        if (origin) {
+            console.log(`📡 [ORIGIN-DEBUG] ${req.method} ${req.path} from ${origin}`);
+        }
+        next();
+    });
+}
 
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
@@ -116,6 +125,17 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
 
+    // CRITICAL: Ensure CORS headers on error responses
+    const origin = req.headers.origin;
+    if (origin) {
+        // Check if origin is allowed to set header on error
+        const isAllowed = allowedOrigins.some(p => (p instanceof RegExp ? p.test(origin) : p === origin));
+        if (isAllowed) {
+            res.header('Access-Control-Allow-Origin', origin);
+            res.header('Access-Control-Allow-Credentials', 'true');
+        }
+    }
+
     // CRITICAL: Cleanup any uploaded files if error occurs
     const { cleanupFile } = require('./middleware/upload');
     if (req.file) {
@@ -142,7 +162,9 @@ app.use((err, req, res, next) => {
 
     // Log error to file for debugger
     const fs = require('fs');
-    fs.appendFileSync('error_log.txt', `[${new Date().toISOString()}] ${err.stack}\n\n`);
+    try {
+        fs.appendFileSync('error_log.txt', `[${new Date().toISOString()}] ${err.stack}\n\n`);
+    } catch (e) { /* ignore log errors */ }
 
     res.status(500).json({
         success: false,
