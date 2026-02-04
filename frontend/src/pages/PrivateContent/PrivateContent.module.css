@@ -322,6 +322,13 @@
     resize: none;
 }
 
+.charCount {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    text-align: right;
+    margin-top: 4px;
+}
+
 .uploadBtn {
     width: 100%;
     display: flex;

@@ -24,7 +24,7 @@ const PrivateContent = () => {
     const [videoPreview, setVideoPreview] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
-    const [caption, setCaption] = useState('');
+    const [description, setDescription] = useState('');
     const [title, setTitle] = useState('');
     const [contentType, setContentType] = useState('reel');
     const [uploading, setUploading] = useState(false);
@@ -96,7 +96,7 @@ const PrivateContent = () => {
             const formData = new FormData();
             formData.append('video', videoFile);
             if (coverFile) formData.append('cover', coverFile);
-            formData.append('caption', caption);
+            formData.append('description', description);
             formData.append('title', title);
             formData.append('contentType', contentType);
             formData.append('isPrivate', 'true');
@@ -111,7 +111,7 @@ const PrivateContent = () => {
                 setVideoPreview(null);
                 setCoverFile(null);
                 setCoverPreview(null);
-                setCaption('');
+                setDescription('');
                 setTitle('');
                 setActiveTab('library');
                 fetchPrivateReels();
@@ -356,14 +356,17 @@ const PrivateContent = () => {
                         </div>
 
                         <div className={styles.formGroup}>
-                            <label>Caption</label>
+                            <label>{contentType === 'reel' ? 'Caption' : 'Description'}</label>
                             <textarea
-                                placeholder="Add a description..."
-                                value={caption}
-                                onChange={(e) => setCaption(e.target.value)}
-                                maxLength={150}
-                                rows={3}
+                                placeholder={contentType === 'reel' ? "Add a caption..." : "Add a detailed description..."}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                maxLength={contentType === 'reel' ? 150 : 5000}
+                                rows={contentType === 'reel' ? 3 : 6}
                             />
+                            <div className={styles.charCount}>
+                                {description.length} / {contentType === 'reel' ? 150 : 5000}
+                            </div>
                         </div>
 
                         {/* Upload Button */}
