@@ -68,7 +68,8 @@ const bulkUploadReels = async (req, res) => {
 
     try {
         const userId = req.userId;
-        const { contentType = 'reel' } = req.body; // 'reel' or 'video'
+        const { contentType = 'reel', isPrivate = false } = req.body;
+        const isPrivateReel = isPrivate === 'true' || isPrivate === true;
 
         // Validate files exist
         if (!req.files || !req.files.videos || req.files.videos.length === 0) {
@@ -96,7 +97,7 @@ const bulkUploadReels = async (req, res) => {
 
         const user = userSnap.data();
 
-        // Check daily limit
+        // Check common limits
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -110,14 +111,14 @@ const bulkUploadReels = async (req, res) => {
         const maxUploads = 5;
         const remaining = maxUploads - dailyCount;
 
-        // Check if user can upload this many
-        if (uploadCount > remaining) {
+        // 1. Check Daily Limit for Public Uploads
+        if (!isPrivateReel && uploadCount > remaining) {
             // Cleanup all files
             uploadedFiles.forEach(file => cleanupFile(file));
 
             return res.status(403).json({
                 success: false,
-                message: `You can only upload ${remaining} more ${contentType}(s) today. You tried to upload ${uploadCount}.`,
+                message: `You can only upload ${remaining} more public ${contentType}(s) today. You tried to upload ${uploadCount}.`,
                 data: {
                     requested: uploadCount,
                     remaining: remaining,
@@ -125,6 +126,31 @@ const bulkUploadReels = async (req, res) => {
                     limit: maxUploads
                 }
             });
+        }
+
+        // 2. Check Storage Quota for Private Uploads
+        if (isPrivateReel) {
+            let totalRequestedSize = 0;
+            videos.forEach(video => {
+                totalRequestedSize += fs.statSync(video.path).size;
+            });
+
+            const quotaCheck = await subscriptionService.checkStorageQuota(userId, totalRequestedSize);
+            if (!quotaCheck.allowed) {
+                // Cleanup all files
+                uploadedFiles.forEach(file => cleanupFile(file));
+
+                return res.status(403).json({
+                    success: false,
+                    message: `Storage limit exceeded. You are trying to upload ${uploadCount} videos totaling ${(totalRequestedSize / (1024 * 1024 * 1024)).toFixed(2)}GB, but only have ${(quotaCheck.remainingGB).toFixed(2)}GB left.`,
+                    data: {
+                        currentUsageGB: quotaCheck.currentUsageGB,
+                        limitGB: quotaCheck.limitGB,
+                        remainingGB: quotaCheck.remainingGB,
+                        requestedGB: totalRequestedSize / (1024 * 1024 * 1024)
+                    }
+                });
+            }
         }
 
         // Process each video
@@ -142,7 +168,7 @@ const bulkUploadReels = async (req, res) => {
                 const videoResult = await uploadVideo(videoPath, {});
 
                 // Check duration limit for public reels
-                if (contentType === 'reel' && videoResult.duration > 120) {
+                if (!isPrivateReel && contentType === 'reel' && videoResult.duration > 120) {
                     await deleteResource(videoResult.public_id, 'video');
                     failedUploads.push({
                         index: i + 1,
@@ -177,10 +203,10 @@ const bulkUploadReels = async (req, res) => {
                     posterUrl,
                     cloudinaryPublicId: videoResult.public_id,
                     posterPublicId,
-                    isPrivate: false, // Bulk uploads are always public
-                    accessToken: null,
+                    isPrivate: isPrivateReel,
+                    accessToken: isPrivateReel ? uuidv4() : null,
                     duration: videoResult.duration || 0,
-                    videoSize: videoSize,
+                    fileSizeBytes: videoSize, // Use consistent field name for quota tracking
                     likesCount: 0,
                     commentsCount: 0,
                     viewsCount: 0,
@@ -205,7 +231,7 @@ const bulkUploadReels = async (req, res) => {
                 cleanupFile(videoPath);
                 if (coverPath) cleanupFile(coverPath);
 
-                console.log(`[Bulk Upload ${i + 1}/${uploadCount}] Success: ${reelRef.id}`);
+                console.log(`[Bulk Upload ${i + 1}/${uploadCount}] Success: ${reelRef.id} (${isPrivateReel ? 'Private' : 'Public'})`);
             } catch (uploadError) {
                 console.error(`[Bulk Upload ${i + 1}/${uploadCount}] Error:`, uploadError);
                 failedUploads.push({
@@ -218,26 +244,27 @@ const bulkUploadReels = async (req, res) => {
             }
         }
 
-        // Update user's daily count
+        // Update user stats
         const successCount = successfulUploads.length;
         if (successCount > 0) {
             const updates = {
-                lastUploadDate: serverTimestamp(),
                 updatedAt: serverTimestamp()
             };
 
-            if (lastUploadDate < today) {
-                updates.dailyUploadCount = successCount;
-            } else {
-                updates.dailyUploadCount = admin.firestore.FieldValue.increment(successCount);
+            // Only update daily count for public uploads
+            if (!isPrivateReel) {
+                updates.lastUploadDate = serverTimestamp();
+                if (lastUploadDate < today) {
+                    updates.dailyUploadCount = successCount;
+                } else {
+                    updates.dailyUploadCount = admin.firestore.FieldValue.increment(successCount);
+                }
             }
 
             await userRef.update(updates);
         }
 
         // Return results
-        const newRemaining = remaining - successCount;
-
         res.status(successCount > 0 ? 201 : 400).json({
             success: successCount > 0,
             message: `Uploaded ${successCount} of ${uploadCount} ${contentType}(s).`,
@@ -247,11 +274,12 @@ const bulkUploadReels = async (req, res) => {
                 totalRequested: uploadCount,
                 totalSuccess: successCount,
                 totalFailed: failedUploads.length,
-                dailyLimit: {
+                isPrivate: isPrivateReel,
+                dailyLimit: !isPrivateReel ? {
                     used: dailyCount + successCount,
                     limit: maxUploads,
-                    remaining: newRemaining
-                }
+                    remaining: remaining - successCount
+                } : null
             }
         });
     } catch (error) {

@@ -202,7 +202,7 @@ const createReel = async (req, res) => {
             isPrivate: isPrivateReel,
             accessToken,
             duration: videoResult.duration || 0,
-            videoSize: videoSize,
+            fileSizeBytes: videoSize,
             likesCount: 0,
             commentsCount: 0,
             viewsCount: 0,

@@ -283,30 +283,30 @@ const getChannelById = async (req, res) => {
         }
 
         const channelData = channelDoc.data();
+        const isCreator = userId ? userId === channelData.creatorId : false;
 
-        // Check privacy access
-        if (channelData.isPrivate && channelData.accessToken !== token && channelData.creatorId !== userId) {
-            // Also check if member
-            let isMember = false;
-            if (userId) {
-                const memberDoc = await db.collection('channelMembers')
-                    .where('channelId', '==', id)
-                    .where('userId', '==', userId)
-                    .get();
-                isMember = !memberDoc.empty;
-            }
+        // Check if current user is a member
+        let isMember = false;
+        if (userId) {
+            const memberDoc = await db.collection('channelMembers')
+                .where('channelId', '==', id)
+                .where('userId', '==', userId)
+                .get();
+            isMember = !memberDoc.empty;
+        }
 
-            if (!isMember) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Private channel. Access denied.',
-                    isPrivate: true
-                });
-            }
+        // Check privacy access (Private channels)
+        if (channelData.isPrivate && !isCreator && !isMember && channelData.accessToken !== token) {
+            return res.status(403).json({
+                success: false,
+                message: 'Private channel. Access denied.',
+                isPrivate: true
+            });
         }
 
         // Check if banned
-        if (channelData.isBanned && channelData.creatorId !== userId) {
+        // Allow access only for creator or joined members
+        if (channelData.isBanned && !isCreator && !isMember) {
             return res.status(403).json({
                 success: false,
                 message: 'This channel has been banned for violating our policies.',
@@ -325,18 +325,8 @@ const getChannelById = async (req, res) => {
             verificationType: creatorDoc.data().verificationType
         } : null;
 
-        // Check if current user is a member
-        let isMember = false;
-        if (userId) {
-            const memberDoc = await db.collection('channelMembers')
-                .where('channelId', '==', id)
-                .where('userId', '==', userId)
-                .get();
-            isMember = !memberDoc.empty;
-        }
-
-        // Check if current user is the creator
-        const isCreator = userId === channelData.creatorId;
+        // Check if current user is the creator (Already calculated at top)
+        // const isCreator = userId === channelData.creatorId;
 
         res.json({
             success: true,
@@ -371,6 +361,15 @@ const joinChannel = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: 'Channel not found'
+            });
+        }
+
+        // Check if banned
+        if (channelDoc.data().isBanned) {
+            return res.status(403).json({
+                success: false,
+                message: 'This channel has been banned and cannot be joined.',
+                isBanned: true
             });
         }
 
@@ -479,6 +478,15 @@ const createChannelPost = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 message: 'Only the channel creator can post'
+            });
+        }
+
+        // Check if channel is banned
+        if (channelDoc.data().isBanned) {
+            return res.status(403).json({
+                success: false,
+                message: 'This channel has been banned and cannot accept new posts.',
+                isBanned: true
             });
         }
 
@@ -666,6 +674,15 @@ const getChannelPosts = async (req, res) => {
         // Preview logic for non-members or non-logged in users
         let isPreview = false;
         if (!isFullAccess) {
+            // Block access to banned channels for non-members
+            if (channelData.isBanned) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'This channel has been banned for violating our policies.',
+                    isBanned: true
+                });
+            }
+
             // Only allow preview for public channels
             if (channelData.isPrivate) {
                 return res.status(403).json({
