@@ -34,6 +34,8 @@ const allowedOrigins = [
     'https://reels-app-sepia.vercel.app',
     'https://10reelbox.com',
     'https://www.10reelbox.com',
+    'http://10reelbox.com',
+    'http://www.10reelbox.com',
     /\.vercel\.app$/, // Allow all subdomains of vercel.app
     process.env.FRONTEND_URL
 ].filter(Boolean);
@@ -42,15 +44,25 @@ app.use(cors({
     origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
+
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed instanceof RegExp) {
+                return allowed.test(origin);
+            }
+            return allowed === origin;
+        });
+
+        if (isAllowed) {
+            return callback(null, true);
+        } else {
+            console.warn(`[CORS] Request from blocked origin: ${origin}`);
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
             return callback(new Error(msg), false);
         }
-        return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Cron-Secret']
 }));
 
 // Body parsers
