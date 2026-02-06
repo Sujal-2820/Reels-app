@@ -34,14 +34,10 @@ const AppGate = () => {
                 localStorage.setItem('reelbox_referral_code', code);
                 if (response.data.reelId) {
                     localStorage.setItem('reelbox_pending_reel', response.data.reelId);
-
-                    // principle: Redirect directly to source as requested
-                    const type = response.data.reel?.contentType === 'video' ? 'video' : 'reel';
-                    navigate(`/${type}/${response.data.reelId}`, { replace: true });
                 } else if (response.data.channelId) {
                     localStorage.setItem('reelbox_pending_channel', response.data.channelId);
-                    navigate(`/channels/${response.data.channelId}`, { replace: true });
                 }
+                // Removed automatic navigation to prioritize the Install Prompt (AppGate)
             } else {
                 setError('This link has expired or is invalid.');
             }

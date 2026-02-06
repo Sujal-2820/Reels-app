@@ -11,8 +11,8 @@ const generateReferralLink = async (req, res) => {
         const userId = req.userId;
         const { reelId, channelId } = req.body;
 
-        // Generate unique referral code
-        const referralCode = `${userId.slice(-6)}_${uuidv4().slice(0, 8)}`;
+        // Generate shorter unique referral code (10 chars instead of long string)
+        const referralCode = Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7);
 
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
@@ -22,6 +22,7 @@ const generateReferralLink = async (req, res) => {
             referrerId: userId,
             reelId: reelId || null,
             channelId: channelId || null,
+            type: reelId ? 'reel' : (channelId ? 'channel' : 'general'),
             referralCode,
             clickCount: 0,
             isConverted: false,
@@ -31,15 +32,11 @@ const generateReferralLink = async (req, res) => {
             expiresAt: admin.firestore.Timestamp.fromDate(expiresAt)
         };
 
-        const referralRef = await db.collection('referrals').doc(referralCode).set(referralData);
+        await db.collection('referrals').doc(referralCode).set(referralData);
 
-        // Construct the referral link
+        // Construct the referral link - Much shorter now
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const referralLink = reelId
-            ? `${baseUrl}/r/${referralCode}?reel=${reelId}`
-            : channelId
-                ? `${baseUrl}/r/${referralCode}?channel=${channelId}`
-                : `${baseUrl}/r/${referralCode}`;
+        const referralLink = `${baseUrl}/r/${referralCode}`;
 
         res.status(201).json({
             success: true,

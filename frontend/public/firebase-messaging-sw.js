@@ -10,7 +10,8 @@ firebase.initializeApp({
     projectId: "reel-box-d9920",
     storageBucket: "reel-box-d9920.firebasestorage.app",
     messagingSenderId: "398152440892",
-    appId: "1:398152440892:web:99b11ed611d72e2af57739"
+    appId: "1:398152440892:web:99b11ed611d72e2af57739",
+    measurementId: "G-J4BT6F53JP"
 });
 
 const messaging = firebase.messaging();

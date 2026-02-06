@@ -216,11 +216,13 @@ const createReel = async (req, res) => {
 
         // Update User stats in Firestore
         const updates = {
-            lastUploadDate: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
 
         if (!isPrivateReel) {
+            // Only update lastUploadDate for public uploads to ensure reset logic works
+            updates.lastUploadDate = serverTimestamp();
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const lastDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
