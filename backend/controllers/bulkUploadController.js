@@ -22,19 +22,34 @@ const getDailyUploadLimit = async (req, res) => {
         }
 
         const user = userSnap.data();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        // Reset count if it's a new day
+        // Use UTC to avoid timezone inconsistencies
+        const nowUTC = new Date();
+        const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
+
+        // Sanitize and validate dailyUploadCount (handle corruption)
         let dailyCount = user.dailyUploadCount || 0;
-        const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
-
-        if (lastUploadDate < today) {
+        if (typeof dailyCount !== 'number' || dailyCount < 0 || !isFinite(dailyCount)) {
+            console.warn(`[QUOTA-CORRUPTION] User ${userId} has invalid dailyUploadCount: ${dailyCount}. Resetting to 0.`);
             dailyCount = 0;
         }
 
-        const maxUploads = 5; // From settings
+        const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
+
+        // Reset if last upload was before today OR if lastUploadDate is in the future (clock skew)
+        if (lastUploadDate < todayUTC || lastUploadDate > nowUTC) {
+            dailyCount = 0;
+        }
+
+        // Cap dailyCount at reasonable maximum
+        dailyCount = Math.min(dailyCount, 100);
+
+        const maxUploads = 5;
         const remaining = Math.max(0, maxUploads - dailyCount);
+
+        // Calculate next reset time (tomorrow at 00:00 UTC)
+        const tomorrowUTC = new Date(todayUTC);
+        tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
 
         res.json({
             success: true,
@@ -43,7 +58,7 @@ const getDailyUploadLimit = async (req, res) => {
                 limit: maxUploads,
                 remaining: remaining,
                 canUpload: remaining > 0,
-                resetsAt: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+                resetsAt: tomorrowUTC.toISOString()
             }
         });
     } catch (error) {
@@ -98,15 +113,29 @@ const bulkUploadReels = async (req, res) => {
         const user = userSnap.data();
 
         // Check common limits
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Use UTC to avoid timezone inconsistencies
+        const nowUTC = new Date();
+        const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
 
+        // Sanitize and validate dailyUploadCount (handle corruption)
         let dailyCount = user.dailyUploadCount || 0;
-        const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
-
-        if (lastUploadDate < today) {
+        if (typeof dailyCount !== 'number' || dailyCount < 0 || !isFinite(dailyCount)) {
+            console.warn(`[QUOTA-CORRUPTION] User ${userId} has invalid dailyUploadCount: ${dailyCount}. Resetting to 0.`);
             dailyCount = 0;
         }
+
+        const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
+
+        // Reset if last upload was before today OR if lastUploadDate is in the future (clock skew)
+        if (lastUploadDate < todayUTC || lastUploadDate > nowUTC) {
+            if (lastUploadDate > nowUTC) {
+                console.warn(`[CLOCK-SKEW] User ${userId} has future lastUploadDate: ${lastUploadDate}. Resetting counter.`);
+            }
+            dailyCount = 0;
+        }
+
+        // Cap dailyCount at reasonable maximum (prevent overflow from corruption)
+        dailyCount = Math.min(dailyCount, 100);
 
         const maxUploads = 5;
         const remaining = maxUploads - dailyCount;
@@ -254,10 +283,24 @@ const bulkUploadReels = async (req, res) => {
             // Only update daily count for public uploads
             if (!isPrivateReel) {
                 updates.lastUploadDate = serverTimestamp();
-                if (lastUploadDate < today) {
+
+                // Use UTC to match validation logic
+                const nowUTC_update = new Date();
+                const todayUTC_update = new Date(Date.UTC(nowUTC_update.getUTCFullYear(), nowUTC_update.getUTCMonth(), nowUTC_update.getUTCDate()));
+
+                if (lastUploadDate < todayUTC_update || lastUploadDate > nowUTC_update) {
                     updates.dailyUploadCount = successCount;
                 } else {
                     updates.dailyUploadCount = admin.firestore.FieldValue.increment(successCount);
+                }
+            } else {
+                // Increment storage for private bulk uploads (Bug Fix #3)
+                const totalBytes = successfulUploads.reduce((sum, upload) => {
+                    return sum + (upload.fileSizeBytes || 0);
+                }, 0);
+
+                if (totalBytes > 0) {
+                    updates.storageUsed = admin.firestore.FieldValue.increment(totalBytes);
                 }
             }
 

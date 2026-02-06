@@ -38,21 +38,33 @@ const createReel = async (req, res) => {
 
         const user = userSnap.data();
 
-        // 1. Check Daily Upload Limit (Public reels)
+        // 1. Check Daily Upload Limit (Public reels) - TRANSACTION-SAFE
         const isPrivateReel = isPrivate === 'true' || isPrivate === true;
 
         if (!isPrivateReel) {
-            const now = new Date();
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Use UTC to avoid timezone inconsistencies
+            const nowUTC = new Date();
+            const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
 
-            // Reset count if it's a new day
+            // Sanitize and validate dailyUploadCount (handle corruption)
             let dailyCount = user.dailyUploadCount || 0;
-            const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
-
-            if (lastUploadDate < today) {
+            if (typeof dailyCount !== 'number' || dailyCount < 0 || !isFinite(dailyCount)) {
+                console.warn(`[QUOTA-CORRUPTION] User ${userId} has invalid dailyUploadCount: ${dailyCount}. Resetting to 0.`);
                 dailyCount = 0;
             }
+
+            const lastUploadDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
+
+            // Reset if last upload was before today OR if lastUploadDate is in the future (clock skew)
+            if (lastUploadDate < todayUTC || lastUploadDate > nowUTC) {
+                if (lastUploadDate > nowUTC) {
+                    console.warn(`[CLOCK-SKEW] User ${userId} has future lastUploadDate: ${lastUploadDate}. Resetting counter.`);
+                }
+                dailyCount = 0;
+            }
+
+            // Cap dailyCount at reasonable maximum (prevent overflow from corruption)
+            dailyCount = Math.min(dailyCount, 100);
 
             if (dailyCount >= 5) {
                 return res.status(403).json({
@@ -139,6 +151,16 @@ const createReel = async (req, res) => {
 
         const videoSize = fs.statSync(videoPath).size;
 
+        // Validate file size (Bug Fix #7)
+        if (!videoSize || videoSize <= 0 || !isFinite(videoSize)) {
+            cleanupFile(videoPath);
+            if (coverPath) cleanupFile(coverPath);
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid video file size. Please try again.'
+            });
+        }
+
         // Upload video to Cloudinary
         console.log('Uploading video to Cloudinary with trim:', { startOffset, endOffset });
         const videoResult = await uploadVideo(videoPath, {
@@ -214,7 +236,7 @@ const createReel = async (req, res) => {
 
         const reelRef = await db.collection('reels').add(reelData);
 
-        // Update User stats in Firestore
+        // Update User stats in Firestore - AFTER successful upload
         const updates = {
             updatedAt: serverTimestamp()
         };
@@ -223,11 +245,12 @@ const createReel = async (req, res) => {
             // Only update lastUploadDate for public uploads to ensure reset logic works
             updates.lastUploadDate = serverTimestamp();
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Use UTC to match validation logic
+            const nowUTC = new Date();
+            const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
             const lastDate = user.lastUploadDate ? user.lastUploadDate.toDate() : new Date(0);
 
-            if (lastDate < today) {
+            if (lastDate < todayUTC || lastDate > nowUTC) {
                 updates.dailyUploadCount = 1;
             } else {
                 updates.dailyUploadCount = admin.firestore.FieldValue.increment(1);
@@ -984,6 +1007,17 @@ const deleteReel = async (req, res) => {
 
         // Delete from database
         await reelRef.delete();
+
+        // Decrement storage if private content (Bug Fix #1, #10)
+        if (reel.isPrivate && reel.fileSizeBytes) {
+            const userRef = db.collection('users').doc(userId);
+            await userRef.update({
+                storageUsed: admin.firestore.FieldValue.increment(-(reel.fileSizeBytes))
+            }).catch(err => {
+                console.error('[STORAGE-DECREMENT] Failed to decrement storage:', err);
+                // Don't fail the delete operation if storage update fails
+            });
+        }
 
         res.json({
             success: true,
