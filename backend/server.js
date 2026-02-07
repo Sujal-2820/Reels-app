@@ -81,6 +81,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files (for local uploads during development)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve .well-known directory for Android App Links (Deep Linking)
+app.use('/.well-known', express.static(path.join(__dirname, 'public/.well-known')));
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
