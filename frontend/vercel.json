@@ -1,5 +1,15 @@
 {
     "version": 2,
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "framework": "vite",
+    "installCommand": "npm install",
+    "devCommand": "npm run dev",
+    "regions": [
+        "bom1"
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false,
     "rewrites": [
         {
             "source": "/(.*)",
@@ -12,7 +22,16 @@
             "headers": [
                 {
                     "key": "Cache-Control",
-                    "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+                    "value": "public, max-age=0, must-revalidate"
+                }
+            ]
+        },
+        {
+            "source": "/assets/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
                 }
             ]
         }
