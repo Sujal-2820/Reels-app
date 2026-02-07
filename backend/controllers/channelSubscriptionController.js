@@ -21,17 +21,35 @@ const toggleChannelSubscription = async (req, res) => {
 
         const channelData = channelDoc.data();
 
+        console.log('[CHANNEL-SUBSCRIBE] Request details:', {
+            userId,
+            channelId,
+            isCreator: channelData.creatorId === userId,
+            creatorId: channelData.creatorId
+        });
+
         // Prevent creator from subscribing to their own channel
         if (channelData.creatorId === userId) {
+            console.log('[CHANNEL-SUBSCRIBE] Rejected: User is channel creator');
             return res.status(400).json({
                 success: false,
                 message: 'Channel creators cannot subscribe to their own channels'
             });
         }
 
-        // Check if user is a member
-        const members = channelData.members || [];
-        if (!members.includes(userId)) {
+        // Check if user is a member (BUG FIX: Check channelMembers collection, not array)
+        const memberDoc = await db.collection('channelMembers')
+            .where('channelId', '==', channelId)
+            .where('userId', '==', userId)
+            .get();
+
+        console.log('[CHANNEL-SUBSCRIBE] Membership check:', {
+            isMember: !memberDoc.empty,
+            memberCount: memberDoc.size
+        });
+
+        if (memberDoc.empty) {
+            console.log('[CHANNEL-SUBSCRIBE] Rejected: User is not a member');
             return res.status(403).json({
                 success: false,
                 message: 'You must join the channel before subscribing to notifications'
