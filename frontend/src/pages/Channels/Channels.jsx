@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAppSettings } from '../../context/AppSettingsContext';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import styles from './Channels.module.css';
 
 const Channels = () => {
@@ -410,7 +411,10 @@ const Channels = () => {
                             <div className={styles.avatarUploadSection}>
                                 <div
                                     className={styles.avatarCircle}
-                                    onClick={() => avatarInputRef.current?.click()}
+                                    onClick={async () => {
+                                        await requestNativePermissions();
+                                        avatarInputRef.current?.click();
+                                    }}
                                 >
                                     {avatarPreview ? (
                                         <img src={avatarPreview} alt="Preview" className={styles.avatarPreview} />
@@ -431,8 +435,8 @@ const Channels = () => {
                                     type="file"
                                     ref={avatarInputRef}
                                     onChange={handleAvatarChange}
-                                    accept="image/*"
-                                    className={styles.hiddenInput}
+                                    accept={FILE_ACCEPT_TYPES.IMAGE_ONLY}
+                                    className="visually-hidden"
                                 />
                             </div>
 

@@ -722,7 +722,8 @@ const toggleLike = async (req, res) => {
                 });
                 return {
                     isLiked: true,
-                    likesCount: currentLikesCount + 1
+                    likesCount: currentLikesCount + 1,
+                    reelOwnerId: reel.userId // Return owner ID for notification
                 };
             } else {
                 // Unlike - only decrement if count is greater than 0
@@ -740,9 +741,40 @@ const toggleLike = async (req, res) => {
             }
         });
 
+        // Send notification for new like (non-blocking)
+        if (result.isLiked && result.reelOwnerId && result.reelOwnerId !== userId) {
+            (async () => {
+                try {
+                    const likerSnap = await db.collection('users').doc(userId).get();
+                    const likerName = likerSnap.exists ? (likerSnap.data().name || likerSnap.data().username) : 'Someone';
+
+                    await db.collection('backgroundJobs').add({
+                        type: 'send_notification',
+                        data: {
+                            userId: result.reelOwnerId,
+                            type: 'new_like',
+                            data: {
+                                reelId: id,
+                                likerId: userId,
+                                likerName
+                            }
+                        },
+                        status: 'pending',
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                        attempts: 0
+                    });
+                } catch (notifyErr) {
+                    console.error('Error queuing like notification:', notifyErr);
+                }
+            })();
+        }
+
         res.json({
             success: true,
-            data: result
+            data: {
+                isLiked: result.isLiked,
+                likesCount: result.likesCount
+            }
         });
     } catch (error) {
         console.error('Toggle like error:', error);

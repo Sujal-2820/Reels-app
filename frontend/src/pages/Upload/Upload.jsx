@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import styles from './Upload.module.css';
 
 const MAX_CAPTION_LENGTH = 150;
@@ -376,13 +377,19 @@ const Upload = () => {
                 <div className={styles.uploadSection}>
                     <label className={styles.label}>Select {contentType === 'reel' ? 'Vertical' : 'Horizontal'} Video</label>
                     {!videoPreview ? (
-                        <div className={styles.dropzone} onClick={() => videoInputRef.current?.click()}>
+                        <div
+                            className={styles.dropzone}
+                            onClick={async () => {
+                                await requestNativePermissions();
+                                videoInputRef.current?.click();
+                            }}
+                        >
                             <svg className={styles.dropzoneIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                 <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span className={styles.dropzoneText}>Tap to select video</span>
                             <span className={styles.dropzoneHint}>
-                                {contentType === 'reel' && !isPrivate ? 'Max 120s' : 'No time limit'} • Max 100MB
+                                {contentType === 'reel' && !isPrivate ? 'Max 120s' : 'No time limit'} • Max 15GB Total
                             </span>
                         </div>
                     ) : (
@@ -435,14 +442,26 @@ const Upload = () => {
                             </div>
                         </div>
                     )}
-                    <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className={styles.hiddenInput} />
+                    <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept={FILE_ACCEPT_TYPES.VIDEO_ONLY}
+                        onChange={handleVideoSelect}
+                        className="visually-hidden"
+                    />
                 </div>
 
                 {/* Cover Image Upload Area */}
                 <div className={styles.uploadSection}>
                     <label className={styles.label}>Cover Image <span className={styles.optional}>(optional)</span></label>
                     {!coverPreview ? (
-                        <div className={`${styles.dropzone} ${styles.dropzoneSmall}`} onClick={() => coverInputRef.current?.click()}>
+                        <div
+                            className={`${styles.dropzone} ${styles.dropzoneSmall}`}
+                            onClick={async () => {
+                                await requestNativePermissions();
+                                coverInputRef.current?.click();
+                            }}
+                        >
                             <svg className={styles.dropzoneIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                 <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

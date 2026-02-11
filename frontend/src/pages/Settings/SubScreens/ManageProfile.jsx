@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { authAPI } from '../../../services/api';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../../utils/nativePermissionHelper';
 import styles from '../Settings.module.css';
 
 const ManageProfile = () => {
@@ -106,12 +107,15 @@ const ManageProfile = () => {
                         type="file"
                         id="manageAvatar"
                         ref={fileInputRef}
-                        accept="image/*"
+                        accept={FILE_ACCEPT_TYPES.IMAGE_ONLY}
                         onChange={handleAvatarChange}
-                        style={{ display: 'none' }}
+                        className="visually-hidden"
                     />
                     <div
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={async () => {
+                            await requestNativePermissions();
+                            fileInputRef.current?.click();
+                        }}
                         style={{
                             width: '100px',
                             height: '100px',

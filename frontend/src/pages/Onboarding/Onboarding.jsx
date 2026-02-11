@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import styles from './Onboarding.module.css';
 
 const Onboarding = () => {
@@ -244,12 +245,15 @@ const Onboarding = () => {
                                 id="avatar-input"
                                 ref={fileInputRef}
                                 onChange={handleAvatarChange}
-                                accept="image/*"
-                                hidden
+                                accept={FILE_ACCEPT_TYPES.IMAGE_ONLY}
+                                className="visually-hidden"
                             />
                             <div
                                 className={styles.avatarPreviewCircle}
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={async () => {
+                                    await requestNativePermissions();
+                                    fileInputRef.current?.click();
+                                }}
                             >
                                 {avatarPreview ? (
                                     <img src={avatarPreview} alt="Preview" />

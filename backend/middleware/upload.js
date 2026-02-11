@@ -97,11 +97,19 @@ const uploadReel = multer({
 const channelFilter = (req, file, cb) => {
     const videoMimes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
     const imageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const docMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+    ];
 
-    if (videoMimes.includes(file.mimetype) || imageMimes.includes(file.mimetype)) {
+    if (videoMimes.includes(file.mimetype) || imageMimes.includes(file.mimetype) || docMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only image and video files are allowed.'), false);
+        cb(new Error('Invalid file type. Only image, video, and document files are allowed.'), false);
     }
 };
 

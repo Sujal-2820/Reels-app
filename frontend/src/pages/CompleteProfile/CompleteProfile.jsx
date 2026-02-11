@@ -4,6 +4,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { authAPI } from '../../services/api';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import styles from './CompleteProfile.module.css';
 
 const CompleteProfile = () => {
@@ -129,13 +130,16 @@ const CompleteProfile = () => {
                         type="file"
                         id="avatar"
                         ref={fileInputRef}
-                        accept="image/*"
+                        accept={FILE_ACCEPT_TYPES.IMAGE_ONLY}
                         onChange={handleAvatarChange}
-                        className={styles.hiddenInput}
+                        className="visually-hidden"
                     />
                     <div
                         className={styles.avatarCircle}
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={async () => {
+                            await requestNativePermissions();
+                            fileInputRef.current?.click();
+                        }}
                     >
                         {avatarPreview ? (
                             <>

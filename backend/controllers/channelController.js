@@ -1,5 +1,5 @@
 const { db, admin } = require('../config/firebase');
-const { uploadImage, uploadVideo, uploadAvatar, deleteResource } = require('../config/cloudinary');
+const { uploadImage, uploadVideo, uploadAvatar, uploadFile, deleteResource } = require('../config/cloudinary');
 const { cleanupFile } = require('../middleware/upload');
 const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
@@ -558,6 +558,22 @@ const createChannelPost = async (req, res) => {
                         vidCount++;
                         cleanupFile(file.path);
                     } else {
+                        // Generic Document / File Support
+                        if (file.size > (limits.maxFileSize || 10 * 1024 * 1024)) {
+                            cleanupFile(file.path);
+                            continue;
+                        }
+                        const result = await uploadFile(file.path, {
+                            folder: 'channel_files',
+                            public_id: file.originalname.split('.')[0] + '-' + Date.now()
+                        });
+                        files.push({
+                            url: result.secure_url,
+                            size: file.size,
+                            publicId: result.public_id,
+                            name: file.originalname,
+                            mimetype: file.mimetype
+                        });
                         cleanupFile(file.path);
                     }
                 } catch (uploadError) {

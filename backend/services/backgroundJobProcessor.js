@@ -285,6 +285,9 @@ const processSendNotification = async ({ userId, type, data }) => {
         } else if (type === 'new_comment') {
             title = 'New Comment';
             body = `${data.commenterName || 'Someone'} commented on your reel!`;
+        } else if (type === 'new_like') {
+            title = 'New Like';
+            body = `${data.likerName || 'Someone'} liked your reel!`;
         }
 
         await notificationService.sendNotificationToUser(userId, {

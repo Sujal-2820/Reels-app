@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import styles from './PrivateContent.module.css';
 
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
@@ -292,7 +293,10 @@ const PrivateContent = () => {
                             ) : (
                                 <div
                                     className={styles.uploadZone}
-                                    onClick={() => videoInputRef.current?.click()}
+                                    onClick={async () => {
+                                        await requestNativePermissions();
+                                        videoInputRef.current?.click();
+                                    }}
                                 >
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
@@ -304,9 +308,9 @@ const PrivateContent = () => {
                             <input
                                 type="file"
                                 ref={videoInputRef}
-                                accept="video/*"
+                                accept={FILE_ACCEPT_TYPES.VIDEO_ONLY}
                                 onChange={handleVideoSelect}
-                                style={{ display: 'none' }}
+                                className="visually-hidden"
                             />
                         </div>
 
@@ -329,7 +333,10 @@ const PrivateContent = () => {
                             ) : (
                                 <div
                                     className={styles.coverZone}
-                                    onClick={() => coverInputRef.current?.click()}
+                                    onClick={async () => {
+                                        await requestNativePermissions();
+                                        coverInputRef.current?.click();
+                                    }}
                                 >
                                     <span>+ Add cover</span>
                                 </div>
@@ -337,9 +344,9 @@ const PrivateContent = () => {
                             <input
                                 type="file"
                                 ref={coverInputRef}
-                                accept="image/*"
+                                accept={FILE_ACCEPT_TYPES.IMAGE_ONLY}
                                 onChange={handleCoverSelect}
-                                style={{ display: 'none' }}
+                                className="visually-hidden"
                             />
                         </div>
 

@@ -111,6 +111,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/fcm', notificationRoutes); // Alias for Flutter mobile wrapper
 app.use('/api/share', shareRoutes);
 
 // Webhook routes (no auth required - verified via signature)

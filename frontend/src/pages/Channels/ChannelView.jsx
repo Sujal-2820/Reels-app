@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { channelsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { requestNativePermissions, FILE_ACCEPT_TYPES } from '../../utils/nativePermissionHelper';
 import ForwardModal from '../../components/common/ForwardModal';
 import styles from './ChannelView.module.css';
 
@@ -435,6 +436,7 @@ const ChannelView = () => {
         const files = Array.from(e.target.files);
         const currentImgs = newPost.files.filter(f => f.type.startsWith('image/')).length;
         const currentVids = newPost.files.filter(f => f.type.startsWith('video/')).length;
+        const currentFiles = newPost.files.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).length;
 
         const newFiles = [];
         for (const file of files) {
@@ -455,6 +457,17 @@ const ChannelView = () => {
                 }
                 if (file.size > 100 * 1024 * 1024) {
                     alert(`${file.name} exceeds 100MB limit`);
+                    continue;
+                }
+                newFiles.push(file);
+            } else {
+                // Documents and other files
+                if (currentFiles + newFiles.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).length >= 5) {
+                    alert('Maximum 5 documents allowed');
+                    continue;
+                }
+                if (file.size > 20 * 1024 * 1024) {
+                    alert(`${file.name} exceeds 20MB limit`);
                     continue;
                 }
                 newFiles.push(file);
@@ -922,6 +935,35 @@ const ChannelView = () => {
                                                     </div>
                                                 )}
 
+                                                {post.content?.files?.length > 0 && (
+                                                    <div className={styles.postMediaDocuments}>
+                                                        {post.content.files.map((file, i) => (
+                                                            <a
+                                                                key={i}
+                                                                href={file.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={styles.documentItem}
+                                                                onClick={e => e.stopPropagation()}
+                                                            >
+                                                                <div className={styles.docIcon}>
+                                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                                                        <polyline points="14 2 14 8 20 8" />
+                                                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                                                        <polyline points="10 9 9 9 8 9" />
+                                                                    </svg>
+                                                                </div>
+                                                                <div className={styles.docInfo}>
+                                                                    <span className={styles.docName}>{file.name || 'Document'}</span>
+                                                                    <span className={styles.docSize}>{(file.size / 1024).toFixed(1)} KB</span>
+                                                                </div>
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 <div className={styles.postFooter}>
                                                     <div className={styles.postTimeSmall}>
                                                         {formatDate(post.createdAt)}
@@ -966,7 +1008,10 @@ const ChannelView = () => {
                             <div className={styles.composerInput}>
                                 <button
                                     className={styles.attachBtn}
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={async () => {
+                                        await requestNativePermissions();
+                                        fileInputRef.current?.click();
+                                    }}
                                 >
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
@@ -977,8 +1022,8 @@ const ChannelView = () => {
                                     ref={fileInputRef}
                                     onChange={handleFileSelect}
                                     multiple
-                                    accept="image/*,video/*"
-                                    style={{ display: 'none' }}
+                                    accept={FILE_ACCEPT_TYPES.EVERYTHING}
+                                    className="visually-hidden"
                                 />
                                 <textarea
                                     placeholder="Write something..."

@@ -327,6 +327,60 @@
     object-fit: cover;
 }
 
+.postMediaDocuments {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px 0;
+    width: 100%;
+    max-width: 280px;
+}
+
+.documentItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.documentItem:hover {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-accent-primary);
+}
+
+.docIcon {
+    color: var(--color-accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.docInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.docName {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.docSize {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+}
+
 .postVideo {
     display: block;
     max-width: 280px;

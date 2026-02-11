@@ -156,11 +156,26 @@ const uploadAvatar = async (filePath, options = {}) => {
     }
 };
 
+const uploadFile = async (filePath, options = {}) => {
+    try {
+        const result = await cloudinary.uploader.upload(filePath, {
+            resource_type: 'raw',
+            folder: 'reelbox/files',
+            ...options
+        });
+        return result;
+    } catch (error) {
+        console.error('Cloudinary file upload error:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     cloudinary,
     uploadVideo,
     uploadImage,
     uploadAvatar,
+    uploadFile,
     generateVideoThumbnail,
     deleteResource,
     getOptimizedVideoUrl
