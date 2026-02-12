@@ -63,6 +63,7 @@ import ToastContainer from './components/common/ToastContainer';
 import { notificationService } from './services/notificationService';
 import { useEffect } from 'react';
 import PullToRefresh from './components/common/PullToRefresh';
+import SmartAppBanner from './components/common/SmartAppBanner';
 import './App.css';
 
 // Protected Route Wrapper
@@ -547,6 +548,7 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <AppSettingsProvider>
+              <SmartAppBanner />
               <ToastContainer />
               <AppContent />
             </AppSettingsProvider>

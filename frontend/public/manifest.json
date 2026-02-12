@@ -1,0 +1,23 @@
+{
+    "short_name": "ReelBox",
+    "name": "ReelBox - Share Your Moments",
+    "icons": [
+        {
+            "src": "/vite.svg",
+            "type": "image/svg+xml",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "/",
+    "background_color": "#121212",
+    "display": "standalone",
+    "theme_color": "#FFD700",
+    "description": "Share and watch amazing short video reels",
+    "related_applications": [
+        {
+            "platform": "play",
+            "id": "com.reelbox.app"
+        }
+    ],
+    "prefer_related_applications": true
+}
