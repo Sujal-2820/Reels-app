@@ -45,6 +45,8 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
     const [playHistory, setPlayHistory] = useState([]);
     const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
 
     const QUALITIES = [
         { label: 'Auto', value: 'Auto' },
@@ -424,6 +426,8 @@ const VideoShowcase = ({ isPrivate = false }) => {
                 });
             } else {
                 await navigator.clipboard.writeText(shareUrl);
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2000);
                 if (window.showToast) window.showToast('Link copied to clipboard', 'success');
             }
         } catch (err) {
@@ -664,6 +668,13 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         </svg>
                         <span>Link</span>
                     </button>
+
+                    <button className={styles.actionBtn} onClick={() => setShowOptions(true)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
+                        </svg>
+                        <span>More</span>
+                    </button>
                 </div>
 
                 <div className={styles.creatorRow}>
@@ -779,6 +790,54 @@ const VideoShowcase = ({ isPrivate = false }) => {
                     contentId={video?.id}
                     contentType="video"
                 />
+            )}
+
+            {showOptions && (
+                <div className={styles.sheetOverlay} onClick={() => setShowOptions(false)}>
+                    <div
+                        className={styles.actionSheet}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className={styles.sheetHeader}>
+                            <div className={styles.sheetIndicator} />
+                            <span className={styles.sheetTitle}>Video Options</span>
+                        </div>
+                        <div className={styles.sheetActions}>
+                            <button className={styles.sheetBtn} onClick={() => {
+                                setIsForwardModalOpen(true);
+                                setShowOptions(false);
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                                Forward to Connections
+                            </button>
+                            <button className={styles.sheetBtn} onClick={handleShare}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
+                                {copySuccess ? 'Link Copied!' : 'Copy Share Link'}
+                            </button>
+
+                            {user?.id === (video.userId || video.creator?.id) && (
+                                <>
+                                    <button className={styles.sheetBtn} onClick={() => navigate(`/video/edit/${video.id}`)}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                        Edit Video
+                                    </button>
+                                    <button className={`${styles.sheetBtn} ${styles.sheetBtnDestructive}`} onClick={async () => {
+                                        if (window.confirm('Delete this video permanently?')) {
+                                            const res = await reelsAPI.deleteReel(video.id);
+                                            if (res.success) navigate('/profile');
+                                        }
+                                    }}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                        Delete Video
+                                    </button>
+                                </>
+                            )}
+                            <button className={`${styles.sheetBtn} ${styles.sheetBtnCancel}`} onClick={() => setShowOptions(false)}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

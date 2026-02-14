@@ -294,7 +294,7 @@ const Profile = () => {
                         </div>
                         <div
                             className={`${styles.gridItem} ${styles.gridItemHorizontal}`}
-                            onClick={() => isOwnProfile ? setSelectedReel(reel) : handleReelClick(reel)}
+                            onClick={() => handleReelClick(reel)}
                         >
                             <img src={reel.posterUrl} alt="" className={styles.gridThumbnail} loading="lazy" />
                             <div className={styles.gridOverlay}>
@@ -319,7 +319,7 @@ const Profile = () => {
                     <div
                         key={reel.id}
                         className={styles.gridItem}
-                        onClick={() => isOwnProfile ? setSelectedReel(reel) : handleReelClick(reel)}
+                        onClick={() => handleReelClick(reel)}
                     >
                         <img
                             src={reel.posterUrl}

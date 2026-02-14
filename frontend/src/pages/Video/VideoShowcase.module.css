@@ -682,3 +682,91 @@
     justify-content: center;
     color: var(--color-text-secondary);
 }
+
+/* Action Sheet Styles */
+.sheetOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+}
+
+.actionSheet {
+    width: 100%;
+    background: var(--color-bg-elevated);
+    border-radius: 24px 24px 0 0;
+    padding: var(--space-lg);
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s cubic-bezier(0.15, 0, 0.15, 1);
+    will-change: transform;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.sheetHeader {
+    text-align: center;
+    margin-bottom: var(--space-lg);
+}
+
+.sheetIndicator {
+    width: 40px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin: 0 auto var(--space-md);
+}
+
+.sheetTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+}
+
+.sheetActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.sheetBtn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    background: var(--color-bg-tertiary);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sheetBtn:active {
+    transform: scale(0.98);
+}
+
+.sheetBtnDestructive {
+    color: #ef4444;
+}
+
+.sheetBtnCancel {
+    background: transparent;
+    justify-content: center;
+    margin-top: var(--space-sm);
+    color: var(--color-text-secondary);
+}

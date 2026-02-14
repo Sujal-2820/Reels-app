@@ -218,7 +218,7 @@ const PrivateContent = () => {
                                 <div
                                     key={reel.id}
                                     className={`${styles.gridItem} ${reel.contentType === 'video' ? styles.gridItemHorizontal : ''}`}
-                                    onClick={() => setSelectedReel(reel)}
+                                    onClick={() => handleReelClick(reel)}
                                 >
                                     <img
                                         src={reel.posterUrl}
