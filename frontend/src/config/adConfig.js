@@ -4,31 +4,36 @@
  */
 
 // Get network ID from environment or use test ID
-export const AD_NETWORK_ID = import.meta.env.VITE_AD_NETWORK_ID || '6499';
+// Get network ID from environment or use user's ID as fallback
+// Get network ID from environment or use user's ID as fallback
+export const AD_NETWORK_ID = import.meta.env.VITE_AD_NETWORK_ID || '23113214187';
 
-// Test mode (automatically enabled in development)
-export const AD_TEST_MODE = import.meta.env.VITE_AD_TEST_MODE === 'true' || import.meta.env.DEV;
+// Test mode (driven by .env)
+export const AD_TEST_MODE = import.meta.env.VITE_AD_TEST_MODE === 'true';
 
 // Ad enabled flag
 export const AD_ENABLED = import.meta.env.VITE_AD_ENABLED !== 'false';
 
+console.log('🛡️ [AdConfig] Status:', {
+    networkId: AD_NETWORK_ID,
+    testMode: AD_TEST_MODE,
+    enabled: AD_ENABLED
+});
+
 /**
  * Ad Unit Slots
- * Replace these with your actual ad unit paths from Google Ad Manager
+ * These match your dashboard exactly
  */
 export const AD_SLOTS = {
-    // Banner Ads
-    BANNER_HORIZONTAL: `/${AD_NETWORK_ID}/reelbox_banner_horizontal`,
-    BANNER_RECTANGLE: `/${AD_NETWORK_ID}/reelbox_banner_rectangle`,
-    BANNER_VERTICAL: `/${AD_NETWORK_ID}/reelbox_banner_vertical`,
-
-    // Reel Ads
-    REEL_FEED: `/${AD_NETWORK_ID}/reelbox_reel_ad`,
-
-    // Video Ads
-    VIDEO_PREROLL: `/${AD_NETWORK_ID}/reelbox_video_preroll`,
-    VIDEO_MIDROLL: `/${AD_NETWORK_ID}/reelbox_video_midroll`,
+    BANNER_HORIZONTAL: `/${AD_NETWORK_ID}/reelbox_home_banner`,
+    BANNER_RECTANGLE: `/${AD_NETWORK_ID}/reelbox_home_banner`,
+    REEL_FEED: `/${AD_NETWORK_ID}/reelbox_reel_feed`,
+    VIDEO_PREROLL: `reelbox_video_preroll` 
 };
+
+
+
+
 
 /**
  * Ad Frequency Configuration
@@ -88,15 +93,21 @@ export const AD_REFRESH = {
  * Premium users might not see ads
  */
 export const shouldShowAds = (user) => {
-    if (!AD_ENABLED) return false;
-
-    // Don't show ads to premium subscribers
-    if (user?.subscription?.tier === 'premium' || user?.subscription?.tier === 'pro') {
+    if (!AD_ENABLED) {
+        console.log('🚫 [AdConfig] Ads disabled via flag');
         return false;
     }
 
+    // Don't show ads to premium subscribers
+    if (user?.subscription?.tier === 'premium' || user?.subscription?.tier === 'pro') {
+        console.log('💎 [AdConfig] User is premium/pro, hiding ads');
+        return false;
+    }
+
+    console.log('✅ [AdConfig] Ads allowed for user');
     return true;
 };
+
 
 /**
  * Ad Placement Helper

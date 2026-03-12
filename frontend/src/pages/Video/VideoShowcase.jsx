@@ -6,7 +6,11 @@ import { activitySync } from '../../services/activitySyncService';
 import CommentSection from '../../components/reel/CommentSection';
 import SearchSwitchOverlay from '../../components/common/SearchSwitchOverlay';
 import ForwardModal from '../../components/common/ForwardModal';
+import AdBanner from '../../components/ads/AdBanner';
+import VideoAd from '../../components/ads/VideoAd';
+import { AD_SLOTS, getVastAdTagUrl, AD_FREQUENCY } from '../../config/adConfig';
 import styles from './VideoShowcase.module.css';
+
 
 const VideoShowcase = ({ isPrivate = false }) => {
     const { id, token } = useParams();
@@ -47,6 +51,9 @@ const VideoShowcase = ({ isPrivate = false }) => {
     const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [showPreRollAd, setShowPreRollAd] = useState(false);
+    const [adCompleted, setAdCompleted] = useState(false);
+
 
     const QUALITIES = [
         { label: 'Auto', value: 'Auto' },
@@ -166,6 +173,16 @@ const VideoShowcase = ({ isPrivate = false }) => {
                         }
                     }
 
+                    // Decide if we should show a pre-roll ad
+                    if (
+                        (!entitlements || !entitlements.noAds) && 
+                        videoData.duration >= (AD_FREQUENCY.VIDEO_PREROLL_MIN_DURATION || 120) &&
+                        !adCompleted
+                    ) {
+                        setShowPreRollAd(true);
+                        setIsPlaying(false); // Pause content while ad loads
+                    }
+
                     // Fetch related videos
                     fetchRelatedVideos(videoData.category);
                 }
@@ -175,6 +192,7 @@ const VideoShowcase = ({ isPrivate = false }) => {
                 setLoading(false);
             }
         };
+
 
         const fetchRelatedVideos = async (category) => {
             try {
@@ -480,26 +498,45 @@ const VideoShowcase = ({ isPrivate = false }) => {
                 }}
             >
                 <div className={styles.playerWrapper} onClick={toggleControls}>
-                    <video
-                        ref={videoRef}
-                        src={getTransformedUrl(video.videoUrl, QUALITIES.find(q => q.label === currentQuality)?.value)}
-                        className={styles.player}
-                        autoPlay
-                        playsInline
-                        muted={isMuted}
-                        onPlay={() => {
-                            setIsPlaying(true);
-                            showControlsTemporarily();
-                        }}
-                        onPause={() => setIsPlaying(false)}
-                        onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-                        onLoadedMetadata={() => {
-                            if (!duration && videoRef.current?.duration) {
-                                setDuration(videoRef.current.duration);
-                            }
-                        }}
-                    />
+                    {showPreRollAd ? (
+                        <VideoAd 
+                            adTagUrl={getVastAdTagUrl('reelbox_video_preroll')}
+                            onAdComplete={() => {
+                                setShowPreRollAd(false);
+                                setAdCompleted(true);
+                                setIsPlaying(true);
+                                if (videoRef.current) videoRef.current.play();
+                            }}
+                            onAdError={() => {
+                                setShowPreRollAd(false);
+                                setAdCompleted(true);
+                                setIsPlaying(true);
+                                if (videoRef.current) videoRef.current.play();
+                            }}
+                        />
+                    ) : (
+                        <video
+                            ref={videoRef}
+                            src={getTransformedUrl(video.videoUrl, QUALITIES.find(q => q.label === currentQuality)?.value)}
+                            className={styles.player}
+                            autoPlay
+                            playsInline
+                            muted={isMuted}
+                            onPlay={() => {
+                                setIsPlaying(true);
+                                showControlsTemporarily();
+                            }}
+                            onPause={() => setIsPlaying(false)}
+                            onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+                            onLoadedMetadata={() => {
+                                if (!duration && videoRef.current?.duration) {
+                                    setDuration(videoRef.current.duration);
+                                }
+                            }}
+                        />
+                    )}
                 </div>
+
 
                 {/* Video Playback Controls Overlay */}
                 <div className={`${styles.playbackControls} ${showControls ? styles.visible : ''}`}>
@@ -750,21 +787,33 @@ const VideoShowcase = ({ isPrivate = false }) => {
                                 <div
                                     key={item.id}
                                     className={styles.relatedCard}
-                                    onClick={() => navigate(`/video/${item.id}`)}
+                                    onClick={() => !item.isAd && navigate(`/video/${item.id}`)}
                                 >
-                                    <div className={styles.relatedThumb}>
-                                        <img src={item.poster} alt={item.title} />
-                                        <span className={styles.duration}>
-                                            {formatDuration(item.duration)}
-                                        </span>
-                                    </div>
-                                    <div className={styles.relatedInfo}>
-                                        <h3 className={styles.relatedTitle}>{item.title}</h3>
-                                        <span className={styles.relatedMeta}>
-                                            {item.isAd ? 'Sponsored' : `${item.creator?.username} • ${formatCompact(item.viewsCount)} views`}
-                                        </span>
-                                    </div>
+                                    {item.isAd ? (
+                                        <div className={styles.adRecommendation}>
+                                            <AdBanner 
+                                                adSlot={AD_SLOTS.BANNER_RECTANGLE} 
+                                                adFormat="rectangle" 
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={styles.relatedThumb}>
+                                                <img src={item.poster} alt={item.title} />
+                                                <span className={styles.duration}>
+                                                    {formatDuration(item.duration)}
+                                                </span>
+                                            </div>
+                                            <div className={styles.relatedInfo}>
+                                                <h3 className={styles.relatedTitle}>{item.title}</h3>
+                                                <span className={styles.relatedMeta}>
+                                                    {item.creator?.username} • {formatCompact(item.viewsCount)} views
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+
                             ))
                         ) : (
                             <p className={styles.noRelated}>No related videos found</p>

@@ -7,7 +7,10 @@ import CommentSection from '../../components/reel/CommentSection';
 import VideoList from '../../components/video/VideoList';
 import ReportModal from '../../components/common/ReportModal';
 import ForwardModal from '../../components/common/ForwardModal';
+import ReelAd from '../../components/ads/ReelAd';
+import { AD_SLOTS } from '../../config/adConfig';
 import styles from './Home.module.css';
+
 
 const Home = () => {
     const { user, isAuthenticated, entitlements } = useAuth();
@@ -18,7 +21,9 @@ const Home = () => {
     }, []);
 
     // Session seed for randomized but paginated feed
-    const [sessionSeed] = useState(() => Math.floor(Math.random() * 1000000));
+    // Session seed for randomized but paginated feed - allows for "infinite randomized loops"
+    const [sessionSeed, setSessionSeed] = useState(() => Math.floor(Math.random() * 1000000));
+
 
     // Get tab from URL, default to 'video'
     const activeTab = searchParams.get('tab') || 'video';
@@ -86,9 +91,33 @@ const Home = () => {
                     return;
                 }
 
-                setVideos(prev => cursorValue === 0 ? newItems : [...prev, ...newItems]);
+                let finalItems = newItems;
+                const canShowAds = !entitlements || !entitlements.noAds;
+                console.log(`📡 [Home] Video fetch success. canShowAds: ${canShowAds}`);
+                
+                if (canShowAds) {
+                    const itemsWithAds = [];
+                    finalItems.forEach((item, index) => {
+                        itemsWithAds.push(item);
+                        // Inject banner ad every 8 videos
+                        if ((videos.length + itemsWithAds.length) % 9 === 0) {
+                            const adIndex = videos.length + itemsWithAds.length;
+                            console.log(`➕ [Home] Injecting ad at video position ${adIndex}`);
+                            itemsWithAds.push({
+                                id: `video-ad-pos-${adIndex}`,
+                                isAd: true
+                            });
+                        }
+
+                    });
+                    finalItems = itemsWithAds;
+                }
+
+                setVideos(prev => cursorValue === 0 ? finalItems : [...prev, ...finalItems]);
+
                 setVideoCursor(newCursor);
                 setVideoHasMore(newCursor !== null && newCursor !== cursorValue);
+
             }
         } catch (err) {
             console.error('Failed to load videos', err);
@@ -119,42 +148,74 @@ const Home = () => {
                 const newCursor = response.data.nextCursor;
 
                 // Inject ads if user doesn't have "noAds" entitlement
-                if (!entitlements || !entitlements.noAds) {
+                const canShowAds = !entitlements || !entitlements.noAds;
+                console.log(`📡 [Home] Reel fetch success. Entitlements.noAds: ${entitlements?.noAds}, canShowAds: ${canShowAds}`);
+                
+                if (canShowAds) {
                     const itemsWithAds = [];
                     newItems.forEach((item, index) => {
                         itemsWithAds.push(item);
                         // Inject an ad every 5 reels
                         if ((reels.length + itemsWithAds.length) % 6 === 0) {
+                            const adIndex = reels.length + itemsWithAds.length;
+                            console.log(`➕ [Home] Injecting ad at reel position ${adIndex}`);
                             itemsWithAds.push({
-                                id: `ad-${Date.now()}-${index}`,
-                                isAd: true,
-                                title: 'Premium Subscription',
-                                description: 'Wanna go ad-free? Upgrade to Gold now!',
-                                poster: 'https://images.unsplash.com/photo-1557683316-973673baf926', // Premium looking background
-                                videoUrl: '', // Ads don't necessarily need a video, can be static
-                                creator: {
-                                    id: 'ad-account',
-                                    name: 'ReelBox Official',
-                                    username: 'reelbox_official',
-                                    profilePic: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-                                    verificationType: 'gold'
-                                }
+                                id: `reel-ad-pos-${adIndex}`,
+                                isAd: true
                             });
                         }
+
                     });
                     newItems = itemsWithAds;
                 }
 
-                // Safety: Stop if we got no items but hasMore was true, or if cursor didn't advance
-                if (cursorValue !== 0 && newItems.length === 0) {
-                    setReelHasMore(false);
-                    return;
-                }
 
-                setReels(prev => cursorValue === 0 ? newItems : [...prev, ...newItems]);
-                setReelCursor(newCursor);
-                setReelHasMore(newCursor !== null && newCursor !== cursorValue);
+                // Randomization Loop Logic: 
+                // If we reach the end of the current sorted pool (cursor is null or no new items)
+                if (newCursor === null || (newItems.length === 0 && cursorValue !== 0)) {
+                    console.log('🔄 [Home] Reel path completed. Rotating seed for a fresh random arrangement...');
+                    
+                    // 1. Generate a new seed to get a completely different shuffle from the DB
+                    const nextSeed = Math.floor(Math.random() * 1000000);
+                    setSessionSeed(nextSeed);
+                    
+                    // 2. Reset cursor to start from the beginning of the NEW shuffle
+                    setReelCursor(0);
+                    setReelHasMore(true);
+
+                    // 3. Immediately fetch the first page of the new loop to prevent a "dead end"
+                    // We call it directly with cursor 0 and the NEW seed
+                    const secondLoopResponse = await reelsAPI.getFeed(0, 10, 'reel', 'All', nextSeed);
+                    if (secondLoopResponse.success) {
+                        const secondLoopItems = secondLoopResponse.data.items || [];
+                        
+                        // Process ads for the new batch
+                        let processedItems = secondLoopItems;
+                        if (canShowAds) {
+                            const adsBatch = [];
+                            secondLoopItems.forEach((item, idx) => {
+                                adsBatch.push(item);
+                                if ((reels.length + newItems.length + adsBatch.length) % 6 === 0) {
+                                    adsBatch.push({
+                                        id: `reel-ad-pos-${reels.length + newItems.length + adsBatch.length}`,
+                                        isAd: true
+                                    });
+                                }
+                            });
+                            processedItems = adsBatch;
+                        }
+                        
+                        setReels(prev => [...prev, ...newItems, ...processedItems]);
+                        setReelCursor(secondLoopResponse.data.nextCursor);
+                    }
+                } else {
+                    setReels(prev => cursorValue === 0 ? newItems : [...prev, ...newItems]);
+                    setReelCursor(newCursor);
+                    setReelHasMore(true);
+                }
             }
+
+
         } catch (err) {
             console.error('Failed to load reels', err);
             setReelHasMore(false);
@@ -305,14 +366,26 @@ const Home = () => {
                     <div className={styles.reelsWrapper}>
                         {reels.map((reel, index) => (
                             <div key={`${reel.id}-${index}`} className={styles.reelItem} ref={index === reels.length - 1 ? lastItemRef : null}>
-                                <ReelPlayer
-                                    reel={reel}
-                                    isActive={index === currentReelIndex}
-                                    onOpenOptions={() => setSelectedReel(reel)}
-                                    onCommentClick={() => setCommentReel(reel)}
-                                />
+                                {reel.isAd ? (
+                                    <ReelAd 
+                                        id={reel.id}
+                                        adSlot={AD_SLOTS.REEL_FEED}
+                                        onAdError={() => {
+                                            console.log('Reel ad failed to load');
+                                        }}
+                                    />
+                                ) : (
+
+                                    <ReelPlayer
+                                        reel={reel}
+                                        isActive={index === currentReelIndex}
+                                        onOpenOptions={() => setSelectedReel(reel)}
+                                        onCommentClick={() => setCommentReel(reel)}
+                                    />
+                                )}
                             </div>
                         ))}
+
 
                         {reelLoadingMore && <div className={styles.loader}>Loading more reels...</div>}
                     </div>

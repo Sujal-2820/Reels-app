@@ -28,7 +28,9 @@ const AdBanner = ({
         window.googletag = window.googletag || { cmd: [] };
 
         const loadAd = () => {
+            console.log(`🎬 [AdBanner] Attempting to load ad for slot: ${adSlot}`);
             try {
+
                 window.googletag.cmd.push(() => {
                     // Define ad sizes based on format
                     let adSizes;
@@ -72,6 +74,7 @@ const AdBanner = ({
                     // Listen for ad events
                     window.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
                         if (event.slot === slot) {
+                            console.log(`🎯 [AdBanner] Slot rendered. Empty: ${event.isEmpty}`);
                             if (event.isEmpty) {
                                 setAdError(true);
                                 console.warn('[AdBanner] No ad returned for slot:', adSlot);
@@ -81,6 +84,7 @@ const AdBanner = ({
                         }
                     });
                 });
+
             } catch (error) {
                 console.error('[AdBanner] Failed to load ad:', error);
                 setAdError(true);

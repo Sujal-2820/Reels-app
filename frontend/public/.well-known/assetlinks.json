@@ -1,14 +1,14 @@
 [
-    {
-        "relation": [
-            "delegate_permission/common.handle_all_urls"
-        ],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.reelbox.app",
-            "sha256_cert_fingerprints": [
-                "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
-            ]
-        }
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.firoplay.app",
+      "sha256_cert_fingerprints": [
+        "24:35:72:11:96:4C:15:05:F8:AA:81:07:24:A5:3A:D9:3E:D7:A3:98:62:09:71:13:05:DF:26:BE:DE:8F:AA:5C"
+      ]
     }
+  }
 ]

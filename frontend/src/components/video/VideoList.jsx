@@ -1,5 +1,8 @@
 import VideoCard from './VideoCard';
+import AdBanner from '../ads/AdBanner';
+import { AD_SLOTS } from '../../config/adConfig';
 import styles from './VideoList.module.css';
+
 
 const VideoList = ({ videos, loading, hasMore, lastVideoRef, onOpenOptions, selectedCategory = 'All' }) => {
     if (loading && videos.length === 0) {
@@ -33,8 +36,18 @@ const VideoList = ({ videos, loading, hasMore, lastVideoRef, onOpenOptions, sele
     return (
         <div className={styles.list}>
             {videos.map((video, index) => (
-                <VideoCard key={video.id} video={video} onOpenOptions={onOpenOptions} />
+                video.isAd ? (
+                    <div key={video.id} className={styles.adWrapper}>
+                        <AdBanner 
+                            adSlot={AD_SLOTS.BANNER_HORIZONTAL} 
+                            adFormat="horizontal" 
+                        />
+                    </div>
+                ) : (
+                    <VideoCard key={video.id} video={video} onOpenOptions={onOpenOptions} />
+                )
             ))}
+
 
             {/* Sentinel element for infinite scroll */}
             {hasMore ? (

@@ -11,10 +11,12 @@ import styles from './ReelAd.module.css';
  * @param {Function} onAdError - Callback when ad fails to load
  */
 const ReelAd = ({
+    id,
     adSlot = '/6499/example/reel-ad',
     onAdLoad,
     onAdError
 }) => {
+
     const adContainerRef = useRef(null);
     const [adLoaded, setAdLoaded] = useState(false);
     const [adFailed, setAdFailed] = useState(false);
@@ -25,41 +27,42 @@ const ReelAd = ({
         window.googletag = window.googletag || { cmd: [] };
 
         const loadAd = () => {
+            if (!adContainerRef.current || !id) return;
+            
+            const adId = id;
+            adContainerRef.current.id = adId;
+            
+            console.log(`🎬 [ReelAd] Loading: ${adSlot} into #${adId}`);
+            
             try {
                 window.googletag.cmd.push(() => {
-                    // Vertical video ad sizes (9:16 aspect ratio)
-                    const adSizes = [
-                        [300, 533],  // 9:16 small
-                        [360, 640],  // 9:16 medium
-                        [405, 720],  // 9:16 large
-                        [1080, 1920] // 9:16 full HD
-                    ];
-
-                    const adId = `reel-ad-${Date.now()}`;
-                    if (adContainerRef.current) {
-                        adContainerRef.current.id = adId;
+                    // Safety check: Don't define the same slot twice
+                    const existingSlots = window.googletag.pubads().getSlots();
+                    if (existingSlots.find(s => s.getSlotElementId() === adId)) {
+                        console.log(`ℹ️ [ReelAd] Slot for ${adId} already exists, skipping define.`);
+                        window.googletag.display(adId);
+                        return;
                     }
+
+                    const adSizes = [
+                        [300, 600], [300, 250], [320, 480], 
+                        [320, 50], [728, 90] // Adding standard banners for test reliability
+                    ];
 
                     const slot = window.googletag
                         .defineSlot(adSlot, adSizes, adId)
                         .addService(window.googletag.pubads());
 
-                    // Enable responsive sizing
-                    slot.defineSizeMapping(
-                        window.googletag.sizeMapping()
-                            .addSize([1024, 768], [[405, 720], [1080, 1920]])
-                            .addSize([640, 480], [[360, 640]])
-                            .addSize([0, 0], [[300, 533]])
-                            .build()
-                    );
-
-                    window.googletag.pubads().enableSingleRequest();
                     window.googletag.pubads().collapseEmptyDivs();
                     window.googletag.enableServices();
                     window.googletag.display(adId);
 
+
+
+
                     window.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
                         if (event.slot === slot) {
+                            console.log(`🎯 [ReelAd] Slot rendered. Empty: ${event.isEmpty}`);
                             if (event.isEmpty) {
                                 setAdFailed(true);
                                 onAdError?.();
@@ -70,6 +73,7 @@ const ReelAd = ({
                         }
                     });
                 });
+
             } catch (error) {
                 console.error('[ReelAd] Failed to load:', error);
                 setAdFailed(true);
@@ -92,12 +96,18 @@ const ReelAd = ({
         }
 
         return () => {
-            if (window.googletag && adContainerRef.current?.id) {
+            if (window.googletag) {
                 window.googletag.cmd.push(() => {
-                    window.googletag.destroySlots();
+                    // Important: only destroy THIS slot to avoid breaking other ads
+                    const slots = window.googletag.pubads().getSlots();
+                    const currentSlot = slots.find(s => s.getSlotElementId() === adContainerRef.current?.id);
+                    if (currentSlot) {
+                        window.googletag.destroySlots([currentSlot]);
+                    }
                 });
             }
         };
+
     }, [adSlot, onAdLoad, onAdError]);
 
     // Don't render if ad failed
