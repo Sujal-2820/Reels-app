@@ -104,7 +104,14 @@ const PullToRefresh = ({ children }) => {
 
         // Delay to show refreshing state then reload
         setTimeout(() => {
-            window.location.reload();
+            // Soft refresh logic to prevent WebView pushing to external browser
+            window.dispatchEvent(new CustomEvent('app:refresh'));
+            
+            // Stop spinner immediately after triggering refresh
+            setTimeout(() => {
+                setIsRefreshing(false);
+                resetPull();
+            }, 300);
         }, 800);
     };
 

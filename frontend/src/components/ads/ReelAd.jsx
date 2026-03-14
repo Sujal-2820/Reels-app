@@ -45,8 +45,7 @@ const ReelAd = ({
                     }
 
                     const adSizes = [
-                        [300, 600], [300, 250], [320, 480], 
-                        [320, 50], [728, 90] // Adding standard banners for test reliability
+                        [300, 600], [300, 250], [320, 480]
                     ];
 
                     const slot = window.googletag

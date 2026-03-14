@@ -225,6 +225,21 @@ const Home = () => {
         }
     };
 
+    // Listen for soft refresh
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log('🔄 [Home] Soft refresh triggered');
+            if (activeTab === 'video') {
+                fetchVideos(0, selectedCategory);
+            } else if (activeTab === 'reel') {
+                fetchReels(0);
+            }
+        };
+
+        window.addEventListener('app:refresh', handleRefresh);
+        return () => window.removeEventListener('app:refresh', handleRefresh);
+    }, [activeTab, selectedCategory]);
+
     // Tab change refetch logic
     useEffect(() => {
         // Only fetch reels if switching to reel tab and none exist
