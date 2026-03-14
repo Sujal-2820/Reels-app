@@ -57,6 +57,10 @@ const Home = () => {
     const videoContainerRef = useRef(null);
     const reelContainerRef = useRef(null);
     const lastItemRef = useRef(null);
+    
+    // Ad tracking references for randomized injection
+    const videoItemsSinceLastAd = useRef(0);
+    const reelItemsSinceLastAd = useRef(0);
 
     // Fetch Videos (with category support)
     const fetchVideos = async (cursorValue = 0, category = 'All') => {
@@ -67,6 +71,7 @@ const Home = () => {
             if (cursorValue === 0) {
                 setVideoLoading(true);
                 setVideos([]); // Clear current videos on category change
+                videoItemsSinceLastAd.current = 0; // Reset ad tracker
             } else {
                 setVideoLoadingMore(true);
             }
@@ -97,18 +102,21 @@ const Home = () => {
                 
                 if (canShowAds) {
                     const itemsWithAds = [];
-                    finalItems.forEach((item, index) => {
+                    finalItems.forEach((item) => {
                         itemsWithAds.push(item);
-                        // Inject banner ad every 8 videos
-                        if ((videos.length + itemsWithAds.length) % 9 === 0) {
+                        videoItemsSinceLastAd.current++;
+
+                        // Inject banner ad randomly between 5 and 10 videos since last ad
+                        // Guaranteed injection if it hits 10, otherwise 20% chance after 5
+                        if (videoItemsSinceLastAd.current >= 5 && (videoItemsSinceLastAd.current >= 10 || Math.random() < 0.2)) {
                             const adIndex = videos.length + itemsWithAds.length;
-                            console.log(`➕ [Home] Injecting ad at video position ${adIndex}`);
+                            console.log(`➕ [Home] Injecting ad at video position ${adIndex} (Randomized)`);
                             itemsWithAds.push({
                                 id: `video-ad-pos-${adIndex}`,
                                 isAd: true
                             });
+                            videoItemsSinceLastAd.current = 0; // Reset after ad injection
                         }
-
                     });
                     finalItems = itemsWithAds;
                 }
@@ -137,6 +145,7 @@ const Home = () => {
             if (cursorValue === 0) {
                 setReelLoading(true);
                 setReels([]);
+                reelItemsSinceLastAd.current = 0; // Reset ad tracker
             } else {
                 setReelLoadingMore(true);
             }
@@ -153,18 +162,21 @@ const Home = () => {
                 
                 if (canShowAds) {
                     const itemsWithAds = [];
-                    newItems.forEach((item, index) => {
+                    newItems.forEach((item) => {
                         itemsWithAds.push(item);
-                        // Inject an ad every 5 reels
-                        if ((reels.length + itemsWithAds.length) % 6 === 0) {
+                        reelItemsSinceLastAd.current++;
+
+                        // Inject reel ad randomly between 4 and 8 reels since last ad
+                        // Guaranteed injection if it hits 8, otherwise 25% chance after 4
+                        if (reelItemsSinceLastAd.current >= 4 && (reelItemsSinceLastAd.current >= 8 || Math.random() < 0.25)) {
                             const adIndex = reels.length + itemsWithAds.length;
-                            console.log(`➕ [Home] Injecting ad at reel position ${adIndex}`);
+                            console.log(`➕ [Home] Injecting ad at reel position ${adIndex} (Randomized)`);
                             itemsWithAds.push({
                                 id: `reel-ad-pos-${adIndex}`,
                                 isAd: true
                             });
+                            reelItemsSinceLastAd.current = 0; // Reset loop counter
                         }
-
                     });
                     newItems = itemsWithAds;
                 }
@@ -193,13 +205,18 @@ const Home = () => {
                         let processedItems = secondLoopItems;
                         if (canShowAds) {
                             const adsBatch = [];
-                            secondLoopItems.forEach((item, idx) => {
+                            secondLoopItems.forEach((item) => {
                                 adsBatch.push(item);
-                                if ((reels.length + newItems.length + adsBatch.length) % 6 === 0) {
+                                reelItemsSinceLastAd.current++;
+                                
+                                if (reelItemsSinceLastAd.current >= 4 && (reelItemsSinceLastAd.current >= 8 || Math.random() < 0.25)) {
+                                    const adIndex = reels.length + newItems.length + adsBatch.length;
+                                    console.log(`➕ [Home] Injecting ad at reel loop position ${adIndex} (Randomized)`);
                                     adsBatch.push({
-                                        id: `reel-ad-pos-${reels.length + newItems.length + adsBatch.length}`,
+                                        id: `reel-ad-pos-${adIndex}`,
                                         isAd: true
                                     });
+                                    reelItemsSinceLastAd.current = 0;
                                 }
                             });
                             processedItems = adsBatch;
