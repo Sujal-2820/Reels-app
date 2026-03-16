@@ -4,6 +4,8 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
+    signInWithCredential,
+    GoogleAuthProvider,
     sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -147,34 +149,61 @@ const Login = () => {
 
     // Handle Google Sign-In
     const handleGoogleSignIn = async () => {
+        setError(null);
+        setSocialLoading('google');
+
         try {
-            setError(null);
-            setSocialLoading('google');
-            console.log('Starting Google Sign-In with Popup...');
+            let firebaseUser = null;
 
-            const result = await signInWithPopup(auth, googleProvider);
-            console.log('Google Sign-In successful:', result.user.email);
+            // --- PATH 1: Running inside Flutter WebView (Mobile App) ---
+            // Use the native Android Google account picker via Flutter bridge
+            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+                console.log('[GoogleSignIn] Flutter WebView detected. Using native bridge...');
 
-            // Check if user existed before
-            const userRef = doc(db, 'users', result.user.uid);
+                const result = await window.flutter_inappwebview.callHandler('nativeGoogleSignIn');
+
+                if (!result || !result.success || !result.idToken) {
+                    console.log('[GoogleSignIn] Native sign-in cancelled or failed.');
+                    setSocialLoading(null);
+                    return; // User cancelled — do not show error
+                }
+
+                console.log('[GoogleSignIn] Native ID token received. Signing into Firebase...');
+                const credential = GoogleAuthProvider.credential(result.idToken);
+                const userCredential = await signInWithCredential(auth, credential);
+                firebaseUser = userCredential.user;
+
+            } else {
+                // --- PATH 2: Regular browser (Web) ---
+                // Use the standard Firebase popup flow
+                console.log('[GoogleSignIn] Browser detected. Using signInWithPopup...');
+                const result = await signInWithPopup(auth, googleProvider);
+                firebaseUser = result.user;
+            }
+
+            console.log('[GoogleSignIn] Authenticated as:', firebaseUser.email);
+
+            // Check if this is a new user before saving (to decide routing)
+            const userRef = doc(db, 'users', firebaseUser.uid);
             const userSnap = await getDoc(userRef);
             const isNewUser = !userSnap.exists();
 
-            const userData = await saveUserToFirestore(result.user, {
+            // Save or fetch user from Firestore
+            const userData = await saveUserToFirestore(firebaseUser, {
                 authProvider: 'google'
             });
             setUser(userData);
 
             if (isNewUser) {
-                console.log('New user, navigating to onboarding');
+                console.log('[GoogleSignIn] New user → navigating to onboarding');
                 navigate('/onboarding', { state: { from }, replace: true });
             } else {
-                console.log('Existing user, navigating to', from);
+                console.log('[GoogleSignIn] Existing user → navigating to', from);
                 navigate(from, { replace: true });
             }
         } catch (err) {
-            console.error('Google sign-in error:', err);
-            // Only show error if user didn't cancel
+            console.error('[GoogleSignIn] Error:', err);
+            // Only show error if user didn't simply cancel the popup
             if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
                 setError(getFirebaseErrorMessage(err.code));
             }
