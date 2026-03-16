@@ -1,14 +1,12 @@
 [
-    {
-        "relation": [
-            "delegate_permission/common.handle_all_urls"
-        ],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.reelbox.app",
-            "sha256_cert_fingerprints": [
-                "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
-            ]
-        }
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.reelbox.android",
+      "sha256_cert_fingerprints": [
+        "9F:3D:C5:3A:44:AD:DB:FD:FA:C8:E9:5B:59:BC:24:CD:C8:9C:97:A3:F3:49:8E:60:6A:36:86:38:47:0B:E1:C3"
+      ]
     }
+  }
 ]
